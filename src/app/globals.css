@@ -1,0 +1,19 @@
+:root {
+  --color-space-black: #0e1728;
+  --color-cream: #f1e8d7;
+}
+
+body {
+  font-family: var(--font-roboto-mono), monospace;
+  font-size: 1rem;
+}
+
+@media (max-width: 768px) {
+  body {
+    font-size: 0.8rem;
+  }
+
+  h1 {
+    font-size: 1rem;
+  }
+}

@@ -1,8 +1,13 @@
 {
     "name": "cs180-portfolio",
+    "engines": {
+        "node": "22.20.0"
+    },
     "scripts": {
         "dev": "next dev",
-        "build": "next build"
+        "build": "next build",
+        "lint": "eslint .",
+        "serve": "npx serve out"
     },
     "dependencies": {
         "@tailwindcss/postcss": "^4.3.3",
@@ -16,6 +21,8 @@
         "@types/node": "latest",
         "@types/react": "latest",
         "@types/react-dom": "latest",
+        "eslint": "^9.39.5",
+        "eslint-config-next": "^16.3.3",
         "typescript": "latest"
     }
 }

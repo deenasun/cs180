@@ -1,23 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 
 export default function Navbar() {
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const [mounted, setMounted] = useState(false);
     const pathname = usePathname();
-
-    useEffect(() => {
-        // for client-side consistency: after component mounts, set mounted to true
-        // and use pathnames to render active status on navbar
-        setMounted(true);
-    }, []);
-
-    const toggleMenu = () => {
-        setIsMenuOpen(!isMenuOpen);
-    };
 
     const projects = [
         {
@@ -49,7 +36,7 @@ export default function Navbar() {
     return (
         <nav className="flex flex-row justify-between items-center h-16 border-b border-gray-200 sticky top-0 z-50 px-4 sm:px-8">
             <div className="flex-shrink-0">
-                <h1>Deena's CS 180 Portfolio</h1>
+                <h1>Deena&apos;s CS 180 Portfolio</h1>
             </div>
             <div className="links flex items-center justify-end gap-x-8 ml-auto">
                 {projects.map((proj) =>

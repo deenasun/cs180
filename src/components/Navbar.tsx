@@ -34,7 +34,7 @@ export default function Navbar() {
     ]
 
     return (
-        <nav className="flex flex-row justify-between items-center h-16 border-b border-gray-200 sticky top-0 z-50 px-4 sm:px-8">
+        <nav className="bg-white/80 flex flex-row justify-between items-center h-16 border-b-2 border-gray-200 sticky top-0 z-50 px-4 sm:px-8">
             <div className="flex-shrink-0">
                 <h1>Deena&apos;s CS 180 Portfolio</h1>
             </div>

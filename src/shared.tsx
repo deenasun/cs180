@@ -1,5 +1,4 @@
-export const basePath =
-  process.env.GITHUB_ACTIONS === "true" ? "/cs180" : "";
+export const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? ""
 
 export function getAssetPath(path: string) {
   return `${basePath}${path}`;

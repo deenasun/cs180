@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { getAssetPath } from "@/shared";
 import { useCallback, useEffect, useState } from "react";
 
 type GifButtonProps = {
@@ -40,11 +41,11 @@ export default function Gif({
 
     const previous = useCallback(() => {
         setIndex((current) => (current - 1 + imagePaths.length) % imagePaths.length);
-    }, [])
+    }, [imagePaths.length])
 
     const next = useCallback(() => {
         setIndex((current) => (current + 1) % imagePaths.length);
-    }, [])
+    }, [imagePaths.length])
 
     useEffect(() => {
         if (!playing) return;
@@ -59,7 +60,7 @@ export default function Gif({
             {/* Image with overlayed text */}
             <div className="relative inline-block">
                 <Image
-                    src={imagePaths[index]}
+                    src={getAssetPath(imagePaths[index])}
                     alt={`Image ${index + 1} of ${imagePaths.length}`}
                     width={400}
                     height={400}

@@ -21,7 +21,7 @@ export default function RootLayout({
 }) {
     return (
         <html lang="en">
-            <body className={robotoMono.variable}>
+            <body className={robotoMono.variable} style={{marginBottom: "1.5rem"}}>
                 <Navbar />
                 {children}
             </body>

@@ -10,6 +10,11 @@ body {
   font-size: 1rem;
 }
 
+@theme {
+  --color-space-black: var(--color-space-black);
+  --color-cream: var(--color-cream);
+}
+
 /* Settings for small view ports less than or equal to 768px */
 /* @media (max-width: 768px) {
   body {

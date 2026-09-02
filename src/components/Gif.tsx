@@ -69,7 +69,7 @@ export default function Gif({
     }, [playing, next])
 
     return (
-        <div>
+        <div className="flex flex-col items-center justify-center w-[25vw]">
             {/* Image with overlayed text */}
             <div className="relative inline-block">
                 <a href={getAssetPath("/proj0/dolly_zoom/sather_gate_dolly_zoom.gif")}
@@ -94,9 +94,9 @@ export default function Gif({
                     <Image
                         src={getAssetPath(imagePaths[index])}
                         alt={`Image ${index + 1} of ${imagePaths.length}`}
-                        width={400}
-                        height={400}
-                        style={{ width: "25vw", height: 'auto' }}
+                        width={1440}
+                        height={1080}
+                        style={{ width: "full", height: 'auto' }}
                         className="rounded-md"
                     />
                 </a>

@@ -38,6 +38,19 @@ export default function Gif({
 }: { imagePaths: string[] }) {
     const [index, setIndex] = useState(0);
     const [playing, setPlaying] = useState(true);
+    const [tooltipPosition, setTooltipPosition] = useState({
+        x: 0,
+        y: 0,
+    });
+
+    function handleMouseMove(event: React.MouseEvent<HTMLAnchorElement>) {
+        const bounds = event.currentTarget.getBoundingClientRect();
+
+        setTooltipPosition({
+            x: event.clientX - bounds.left + 12,
+            y: event.clientY - bounds.top + 12,
+        });
+    }
 
     const previous = useCallback(() => {
         setIndex((current) => (current - 1 + imagePaths.length) % imagePaths.length);
@@ -59,14 +72,34 @@ export default function Gif({
         <div>
             {/* Image with overlayed text */}
             <div className="relative inline-block">
-                <Image
-                    src={getAssetPath(imagePaths[index])}
-                    alt={`Image ${index + 1} of ${imagePaths.length}`}
-                    width={400}
-                    height={400}
-                    style={{ width: "60vh", height: 'auto' }}
-                    className="rounded-md"
-                />
+                <a href={getAssetPath("/proj0/dolly_zoom/sather_gate_dolly_zoom.gif")}
+                    download="sather_gate_dolly_zoom.gif"
+                    onMouseMove={handleMouseMove}
+                    className="group relative block cursor-pointer"
+                >
+                    <span
+                        style={{
+                            left: tooltipPosition.x,
+                            top: tooltipPosition.y,
+                        }}
+                        className="pointer-events-none absolute z-10
+                            whitespace-nowrap
+                            rounded-md bg-space-black/60
+                            px-2 py-1
+                            text-xs text-cream
+                            opacity-0 transition-opacity group-hover:opacity-100"
+                    >
+                        Click to download GIF
+                    </span>
+                    <Image
+                        src={getAssetPath(imagePaths[index])}
+                        alt={`Image ${index + 1} of ${imagePaths.length}`}
+                        width={400}
+                        height={400}
+                        style={{ width: "25vw", height: 'auto' }}
+                        className="rounded-md"
+                    />
+                </a>
                 <div className="pointer-events-none absolute bottom-2 right-2 rounded-md bg-space-black/60 px-2 py-1 text-sm text-cream">{index + 1}/{imagePaths.length}</div>
             </div>
             <div className="mt-2 flex flex-row gap-2 justify-between">

@@ -3,22 +3,22 @@ import { getAssetPath } from "@/shared"
 import Gif from "@/components/Gif"
 
 const dollyZoomImages = [
-    "/proj0/dolly-zoom/dolly-zoom1.jpeg",
-    "/proj0/dolly-zoom/dolly-zoom2.jpeg",
-    "/proj0/dolly-zoom/dolly-zoom3.jpeg",
-    "/proj0/dolly-zoom/dolly-zoom4.jpeg",
-    "/proj0/dolly-zoom/dolly-zoom5.jpeg",
-    "/proj0/dolly-zoom/dolly-zoom6.jpeg",
-    "/proj0/dolly-zoom/dolly-zoom7.jpeg",
-    "/proj0/dolly-zoom/dolly-zoom8.jpeg",
-    "/proj0/dolly-zoom/dolly-zoom9.jpeg",
-    "/proj0/dolly-zoom/dolly-zoom10.jpeg",
-    "/proj0/dolly-zoom/dolly-zoom11.jpeg",
-    "/proj0/dolly-zoom/dolly-zoom12.jpeg",
-    "/proj0/dolly-zoom/dolly-zoom13.jpeg",
-    "/proj0/dolly-zoom/dolly-zoom14.jpeg",
-    "/proj0/dolly-zoom/dolly-zoom15.jpeg",
-    "/proj0/dolly-zoom/dolly-zoom16.jpeg",
+    "/proj0/dolly_zoom/dolly_zoom1.jpeg",
+    "/proj0/dolly_zoom/dolly_zoom2.jpeg",
+    "/proj0/dolly_zoom/dolly_zoom3.jpeg",
+    "/proj0/dolly_zoom/dolly_zoom4.jpeg",
+    "/proj0/dolly_zoom/dolly_zoom5.jpeg",
+    "/proj0/dolly_zoom/dolly_zoom6.jpeg",
+    "/proj0/dolly_zoom/dolly_zoom7.jpeg",
+    "/proj0/dolly_zoom/dolly_zoom8.jpeg",
+    "/proj0/dolly_zoom/dolly_zoom9.jpeg",
+    "/proj0/dolly_zoom/dolly_zoom10.jpeg",
+    "/proj0/dolly_zoom/dolly_zoom11.jpeg",
+    "/proj0/dolly_zoom/dolly_zoom12.jpeg",
+    "/proj0/dolly_zoom/dolly_zoom13.jpeg",
+    "/proj0/dolly_zoom/dolly_zoom14.jpeg",
+    "/proj0/dolly_zoom/dolly_zoom15.jpeg",
+    "/proj0/dolly_zoom/dolly_zoom16.jpeg",
 ]
 
 export default function Page() {
@@ -31,45 +31,45 @@ export default function Page() {
                     key={"face1"}
                     src={getAssetPath("/proj0/face1.jpeg")}
                     alt={"Me! up close"}
-                    height={200}
-                    width={200}
-                    style={{ width: "200px", height: 'auto' }}
+                    height={1440}
+                    width={1080}
+                    style={{ width: "10vw", height: 'auto' }}
                     className="rounded-md"
                 />
                 <Image
                     key={"face2"}
                     src={getAssetPath("/proj0/face2.jpeg")}
                     alt={"My face from a little further away..."}
-                    height={200}
-                    width={200}
-                    style={{ width: "200px", height: 'auto' }}
+                    height={1440}
+                    width={1080}
+                    style={{ width: "10vw", height: 'auto' }}
                     className="rounded-md"
                 />
                 <Image
                     key={"face3"}
                     src={getAssetPath("/proj0/face3.jpeg")}
                     alt={"My face from even further away..."}
-                    height={200}
-                    width={200}
-                    style={{ width: "200px", height: 'auto' }}
+                    height={1440}
+                    width={1080}
+                    style={{ width: "10vw", height: 'auto' }}
                     className="rounded-md"
                 />
                 <Image
                     key={"face4"}
                     src={getAssetPath("/proj0/face4.jpeg")}
                     alt={"My face from EVEN further away..."}
-                    height={200}
-                    width={200}
-                    style={{ width: "200px", height: 'auto' }}
+                    height={1440}
+                    width={1080}
+                    style={{ width: "10vw", height: 'auto' }}
                     className="rounded-md"
                 />
                 <Image
                     key={"face5"}
                     src={getAssetPath("/proj0/face5.jpeg")}
                     alt={"My face from far away, zoomed in!"}
-                    height={200}
-                    width={200}
-                    style={{ width: "200px", height: 'auto' }}
+                    height={1440}
+                    width={1080}
+                    style={{ width: "10vw", height: 'auto' }}
                     className="rounded-md"
                 />
             </div>
@@ -80,18 +80,18 @@ export default function Page() {
                     key={"face1"}
                     src={getAssetPath("/proj0/architecture1.jpeg")}
                     alt={"Wheeler Hall from afar, zoomed in"}
-                    height={300}
-                    width={300}
-                    style={{ width: "45vh", height: 'auto' }}
+                    height={1080}
+                    width={1440}
+                    style={{ width: "25vw", height: 'auto' }}
                     className="rounded-md"
                 />
                 <Image
                     key={"face2"}
                     src={getAssetPath("/proj0/architecture2.jpeg")}
                     alt={"Wheeler Hall from up close, without zoom"}
-                    height={300}
-                    width={300}
-                    style={{ width: "45vh", height: 'auto' }}
+                    height={1080}
+                    width={1440}
+                    style={{ width: "25vw", height: 'auto' }}
                     className="rounded-md"
                 />
             </div>

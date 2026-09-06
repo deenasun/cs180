@@ -9,22 +9,26 @@ DATA_DIR = "data/"
 OUTPUT_DIR = "out/"
 
 # name of the input file
-imname = DATA_DIR + "cathedral.jpg"
+input_file = "wharf"
+input_file_extension = ".tif"
 
 # read in the image
-im = skio.imread(imname)
+im = skio.imread(DATA_DIR + input_file + input_file_extension)
 plt.imshow(im)
 
-print(im.dtype)  # dtype: unit8
+# print(im.dtype)  # dtype: unit8
 
 # convert to double (might want to do this later on to save memory)
 im = sk.img_as_float(im)
 
-print(im.dtype)  # dtype: float64
+# print(im.dtype)  # dtype: float64
 
+width = im.shape[1]
 # compute the height of each part (just 1/3 of total)
 # NOTE: need to use uint64 because uint8 is [0, 255] and any value
 height = np.floor(im.shape[0] / 3.0).astype(np.uint64)
+
+print(f"{input_file}{input_file_extension} has dimensions {height} x {width} (h x w)")
 
 # separate color channels
 # NOTE: each glass plate image in the data folder is in BGR order
@@ -41,6 +45,10 @@ class ShapeMismatchError(Exception):
 
 class UnrecognizedArgumentError(Exception):
     """Raised when an unrecognized argument is passed to a function"""
+
+
+class InvalidAlignmentError(Exception):
+    """Raised for catch-all image alignment errors"""
 
 
 def l2_distance(mat1: np.ndarray, mat2: np.ndarray):
@@ -90,7 +98,6 @@ def align(img, base_img, metric="l2", verbose=True):
         verbose
 
     Returns:
-        best_alignment: the image shifted with np.roll
         best_dy: number of pixels to displace in the y-direction
             to achieve the best alignment metric between img and base_img
         best_dx: number of pixels to displace in the x-direction
@@ -133,16 +140,147 @@ def align(img, base_img, metric="l2", verbose=True):
 
     if verbose:
         print(f"Best metric found: {best_metric}")
-        print(
-            f"Displacement vector (dy, dx): {best_dy, best_dx}"
+        print(f"Displacement vector (dy, dx): {best_dy, best_dx}")
+    return best_dy, best_dx
+
+
+def search(
+    mat, base_mat, dy_center, dx_center, dy_radius, dx_radius, metric="l2", margin=0
+):
+    """Search a radius around an estimate, and return the displacements that optimize the alignment metric
+
+    Args:
+        mat: 2-dimensional np.ndarray
+        base_mat: 2-dimensional np.ndarray to align mat to
+        dy_center: current estimate for the displacement in the y-direction
+        dx_center: current estimate for the displacement in the x-direction
+        dy_radius: the radius around dy_center to search in order to find a better y displacement
+        dx_radius: the radius around dx_center to search in order to find a better x displacement
+        metric: "l2" or "ncc"
+        margin: extra margin around the edges to ignore
+
+    Returns:
+        best_dy: number of pixels to displace in the y-direction
+            to achieve the best alignment metric between mat and base_mat
+        best_dx: number of pixels to displace in the x-direction
+            to achieve the best alignment metric between mat and base_mat
+        best_metric: the best value for the metric found during search
+    """
+    h, w = base_mat.shape
+
+    best_dy, best_dx = dy_center, dx_center
+    best_metric = np.inf if metric == "l2" else -np.inf
+
+    dy_min, dy_max = dy_center - dy_radius, dy_center + dy_radius
+    dx_min, dx_max = dx_center - dx_radius, dx_center + dx_radius
+
+    # Coordinates of a fixed interior rectangle from the base image
+    # to compare all candidates to
+    y0 = max(margin, margin + dy_max)  # top edge
+    y1 = min(h - margin, h - margin + dy_min)  # bottom edge
+    x0 = max(margin, margin + dx_max)  # left edge
+    x1 = min(w - margin, w - margin + dx_min)  # right edge
+
+    if y1 <= y0 or x1 <= x0:
+        raise InvalidAlignmentError(
+            f"Invalid bounds for the base image's fixed interior rectangle: {y0, y1, x0, x1} (y0, y1, x0, x1)"
         )
-    best_alignment = np.roll(img, shift=(best_dy, best_dx), axis=(0, 1))
-    return best_alignment, best_dy, best_dx
+
+    base_rect = base_mat[y0:y1, x0:x1]
+
+    for dy in np.arange(dy_min, dy_max + 1):
+        for dx in np.arange(dx_min, dx_max + 1):
+            # Extract the cells from mat that are now placed on top of the
+            # fixed rectangle from the base image after mat is displaced by (dy, dx)
+            candidate = mat[y0 - dy : y1 - dy, x0 - dx : x1 - dx]
+
+            if metric == "l2":
+                dist = l2_distance(candidate, base_rect)
+                if dist < best_metric:
+                    best_metric = dist
+                    best_dy, best_dx = dy, dx
+            else:
+                corr = normalized_cross_correlation(candidate, base_rect)
+                if corr > best_metric:
+                    best_metric = corr
+                    best_dy, best_dx = dy, dx
+
+    return best_dy, best_dx, best_metric
+
+
+def pyramid_align(img, base_img, metric="l2", radius=8, verbose=False):
+    """Recursive image pyramid implementation to align img to base_img.
+
+    Args:
+        img: 2-dimensional np.ndarray representing a single glass plate (usually R or G)
+        base_img: 2-dimensional np.ndarray representing a single glass plate (usually B)
+        metric: "l2" or "ncc"
+        radius: the range of values to search around the best estimate (dy, dx)
+            returned by the recursive call.
+
+    Returns:
+        dy: best estimate for the number of pixels to displace in the y-direction
+            at this image resolution
+        dx: best estimate for the number of pixels to displace in the x-direction
+            at this image resolution
+    """
+    if metric != "l2" and metric != "ncc":
+        raise UnrecognizedArgumentError("metric should be either l2 or ncc")
+
+    h, w = img.shape
+
+    # Base case: if h <= 200 or w <= 200, perform more exhaustive search
+    if h <= 200 or w <= 200:
+        best_dy, best_dx, _ = search(
+            img,
+            base_img,
+            dy_center=0,
+            dx_center=0,
+            dy_radius=16,
+            dx_radius=16,
+            metric=metric,
+            margin=2,
+        )
+        print(f"BASE CASE: IMAGE SHAPE {h, w}, BEST DISPLACEMENT {best_dy, best_dx}")
+        return best_dy, best_dx
+
+    downsampled = sk.transform.rescale(img, 0.5, anti_aliasing=True)
+    downsampled_base = sk.transform.rescale(base_img, 0.5, anti_aliasing=True)
+    recursive_dy, recursive_dx = pyramid_align(
+        downsampled, downsampled_base, metric, radius, verbose
+    )
+
+    # Scale displacement estimates from recursive call
+    # because those dx, dy represented the pixel shifts needed for an image
+    # with 1/2 the number of pixels as the current image
+    best_dy, best_dx = 2 * recursive_dy, 2 * recursive_dx
+    best_metric = np.inf if metric == "l2" else -np.inf
+
+    # Search a small neighborhood around the scaled estimates for dy, dx
+    best_dy, best_dx, best_metric = search(
+        img,
+        base_img,
+        dy_center=best_dy,
+        dx_center=best_dx,
+        dy_radius=radius,
+        dx_radius=radius,
+        metric=metric,
+        margin=2,
+    )
+
+    if verbose:
+        print(f"Current image resolution: {img.shape}")
+        print(f"Best metric found: {best_metric}")
+        print(f"Displacement vector (dy, dx): {best_dy, best_dx}")
+    return best_dy, best_dx
 
 
 # align
-ar, dy_r, dx_r = align(r, b, "l2")
-ag, dy_g, dx_g = align(g, b, "l2")
+dy_r, dx_r = align(r, b, "l2")
+ar = np.roll(r, shift=(dy_r, dx_r), axis=(0, 1))
+
+dy_g, dx_g = align(g, b, "l2")
+ag = np.roll(g, shift=(dy_r, dx_r), axis=(0, 1))
 
 # create a color image
 aligned_im = np.dstack([ar, ag, b])
@@ -150,19 +288,35 @@ aligned_im = np.dstack([ar, ag, b])
 # Only keep the areas of each color plate that overlap after displacing
 trim_y = max(abs(dy_r), abs(dy_g))
 trim_x = max(abs(dx_r), abs(dx_g))
-trimmed_aligned_im = aligned_im[trim_y : -trim_y, trim_x : -trim_x, :]
+trimmed_aligned_im = aligned_im[trim_y:-trim_y, trim_x:-trim_x, :]
+
+# Pyramid alignment
+pa_dy_r, pa_dx_r = pyramid_align(r, b, "ncc", verbose=True)
+print(f"Pyramid displacement vector for r: {pa_dy_r, pa_dx_r}")
+pa_r = np.roll(r, shift=(pa_dy_r, pa_dx_r), axis=(0, 1))
+
+pa_dy_g, pa_dx_g = pyramid_align(g, b, "ncc", verbose=True)
+print(f"Pyramid displacement vector for g: {pa_dy_g, pa_dx_g}")
+pa_g = np.roll(g, shift=(pa_dy_g, pa_dx_g), axis=(0, 1))
+
+pyramid_aligned_im = np.dstack([pa_r, pa_g, b])
 
 # display the images (original vs. aligned)
-fig, ax = plt.subplots(1, 2)
+fig, ax = plt.subplots(1, 3)
 ax[0].imshow(orig_im)
 ax[0].set_title("Original")
 
 ax[1].imshow(aligned_im)
 ax[1].set_title("Aligned")
+
+ax[2].imshow(pyramid_aligned_im)
+ax[2].set_title("Pyramid Aligned")
 plt.show()
 
 # save the image
-# fname = OUTPUT_DIR + "output.jpg"
-# im_out_uint8 = (im_out * 255.0).astype(np.uint8)
-# print(im_out_uint8)
-# skio.imsave(fname, im_out_uint8)
+fname = f"{OUTPUT_DIR}{input_file}_out.jpg"
+im_out_uint8 = (pyramid_aligned_im * 255.0).astype(np.uint8)
+skio.imsave(fname, im_out_uint8)
+
+if __name__ == "__main__":
+    print("hello world")

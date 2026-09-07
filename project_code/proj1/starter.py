@@ -9,7 +9,7 @@ DATA_DIR = "data/"
 OUTPUT_DIR = "out/"
 
 # name of the input file
-input_file = "wharf"
+input_file = "ilemselga"
 input_file_extension = ".tif"
 
 # read in the image
@@ -36,7 +36,77 @@ b = im[:height]
 g = im[height : 2 * height]
 r = im[2 * height : 3 * height]
 
+# stack color channels into original image
 orig_im = np.dstack([r, g, b])
+
+
+def find_colored_edges(img, color_val=1.0):
+    h, w = img.shape
+
+    # Stop once most of the pixels in this edge is no longer the target color
+    # E.g. if color_val = 1.0 (white), then if the abs diff between this
+    # pixel and white is less than 1e-1, this pixel is most likely also white
+    # Break once fraction of pixels with the target color falls below 0.7
+    left_edge = 0
+    while left_edge < int(0.1 * w):
+        if np.mean(np.abs(color_val - img[:, left_edge]) < 1e-1) < 0.7:
+            break
+        left_edge += 1
+
+    # Stop once most of the right edge's pixels are longer the target color
+    right_edge = w - 1
+    while right_edge > int(0.9 * w):
+        if np.mean(np.abs(color_val - img[:, right_edge]) < 1e-1) < 0.7:
+            break
+        right_edge -= 1
+
+    # Stop once most of the right edge's pixels are longer the target color
+    top_edge = 0
+    while top_edge < int(0.1 * h):
+        if np.mean(np.abs(color_val - img[top_edge, :]) < 1e-1) < 0.7:
+            break
+        top_edge += 1
+
+    # Stop once most of the right edge's pixels are longer the target color
+    bottom_edge = h - 1
+    while bottom_edge > int(0.9 * h):
+        if np.mean(np.abs(color_val - img[bottom_edge, :]) < 1e-1) < 0.7:
+            break
+        bottom_edge -= 1
+
+    return left_edge, right_edge, top_edge, bottom_edge
+    # return int(0.1 * w), int(0.9 * w), int(0.1 * h), int(0.9 * h)
+
+
+def crop_rgb(r, g, b, color_val=1.0):
+    r_left, r_right, r_top, r_bottom = find_colored_edges(r, color_val=color_val)
+    g_left, g_right, g_top, g_bottom = find_colored_edges(g, color_val=color_val)
+    b_left, b_right, b_top, b_bottom = find_colored_edges(b, color_val=color_val)
+
+    # Determine shared border crop to use for all 3 plates
+    # so that their original coordinates are preserved and they all have the same shape
+    shared_left = max(r_left, g_left, b_left)  # Largest (innermost) left boundary
+    shared_right = min(r_right, g_right, b_right)  # Smallest (innermost) right boundary
+    shared_top = max(r_top, g_top, b_top)  # Largest (innermost) top boundary
+    shared_bottom = min(
+        r_bottom, g_bottom, b_bottom
+    )  # Smallest (innermost) bottom boundary
+
+    r_crop = r[shared_top : shared_bottom + 1, shared_left : shared_right + 1]
+    g_crop = g[shared_top : shared_bottom + 1, shared_left : shared_right + 1]
+    b_crop = b[shared_top : shared_bottom + 1, shared_left : shared_right + 1]
+
+    return r_crop, g_crop, b_crop
+
+
+crop_white_r, crop_white_g, crop_white_b = crop_rgb(r, g, b, color_val=1.0)
+crop_black_r, crop_black_g, crop_black_b = crop_rgb(crop_white_r, crop_white_g, crop_white_b, color_val=0.1)
+
+cropped_r, cropped_g, cropped_b = crop_black_r, crop_black_g, crop_black_b
+
+# plt.imshow(cropped_r)
+# plt.imshow(cropped_g)
+# plt.imshow(cropped_b)
 
 
 class ShapeMismatchError(Exception):
@@ -208,7 +278,7 @@ def search(
     return best_dy, best_dx, best_metric
 
 
-def pyramid_align(img, base_img, metric="l2", radius=8, verbose=False):
+def pyramid_align(img, base_img, metric="l2", radius=8, margin=2, verbose=False):
     """Recursive image pyramid implementation to align img to base_img.
 
     Args:
@@ -217,6 +287,7 @@ def pyramid_align(img, base_img, metric="l2", radius=8, verbose=False):
         metric: "l2" or "ncc"
         radius: the range of values to search around the best estimate (dy, dx)
             returned by the recursive call.
+        margin: extra margin around the edges to ignore
 
     Returns:
         dy: best estimate for the number of pixels to displace in the y-direction
@@ -247,7 +318,12 @@ def pyramid_align(img, base_img, metric="l2", radius=8, verbose=False):
     downsampled = sk.transform.rescale(img, 0.5, anti_aliasing=True)
     downsampled_base = sk.transform.rescale(base_img, 0.5, anti_aliasing=True)
     recursive_dy, recursive_dx = pyramid_align(
-        downsampled, downsampled_base, metric, radius, verbose
+        downsampled,
+        downsampled_base,
+        metric=metric,
+        radius=radius,
+        margin=margin,
+        verbose=verbose,
     )
 
     # Scale displacement estimates from recursive call
@@ -265,7 +341,7 @@ def pyramid_align(img, base_img, metric="l2", radius=8, verbose=False):
         dy_radius=radius,
         dx_radius=radius,
         metric=metric,
-        margin=2,
+        margin=margin,
     )
 
     if verbose:
@@ -275,7 +351,20 @@ def pyramid_align(img, base_img, metric="l2", radius=8, verbose=False):
     return best_dy, best_dx
 
 
-# align
+def rescale_img_contrast(r, g, b):
+    """Automatic contrasting: rescale image intensities s.t. the darkest pixel = 0 and the lightest pixel = 1.
+
+    Min-max normalization: x_norm = (x - x_min) / (x_max - x_min)
+
+    First, find the min intensity across all valid pixels in all 3 channels.
+    Next, find the max inensity across all valid pixels in all 3 channels.
+    Use the same min/max values to rescale all 3 channels.
+
+    """
+    pass
+
+
+# Single-scale, basic align
 dy_r, dx_r = align(r, b, "l2")
 ar = np.roll(r, shift=(dy_r, dx_r), axis=(0, 1))
 
@@ -291,32 +380,44 @@ trim_x = max(abs(dx_r), abs(dx_g))
 trimmed_aligned_im = aligned_im[trim_y:-trim_y, trim_x:-trim_x, :]
 
 # Pyramid alignment
-pa_dy_r, pa_dx_r = pyramid_align(r, b, "ncc", verbose=True)
+# pa_dy_r, pa_dx_r = pyramid_align(r, b, "ncc", margin=2, verbose=True)
+# print(f"Pyramid displacement vector for r: {pa_dy_r, pa_dx_r}")
+# pa_r = np.roll(r, shift=(pa_dy_r, pa_dx_r), axis=(0, 1))
+
+# pa_dy_g, pa_dx_g = pyramid_align(g, b, "ncc", margin=2, verbose=True)
+# print(f"Pyramid displacement vector for g: {pa_dy_g, pa_dx_g}")
+# pa_g = np.roll(g, shift=(pa_dy_g, pa_dx_g), axis=(0, 1))
+
+# pyramid_aligned_im = np.dstack([pa_r, pa_g, b])
+
+# # Pyramid alignment with cropped images
+pa_dy_r, pa_dx_r = pyramid_align(cropped_r, cropped_b, "ncc", verbose=True)
 print(f"Pyramid displacement vector for r: {pa_dy_r, pa_dx_r}")
-pa_r = np.roll(r, shift=(pa_dy_r, pa_dx_r), axis=(0, 1))
+pa_r = np.roll(cropped_r, shift=(pa_dy_r, pa_dx_r), axis=(0, 1))
 
-pa_dy_g, pa_dx_g = pyramid_align(g, b, "ncc", verbose=True)
+pa_dy_g, pa_dx_g = pyramid_align(cropped_g, cropped_b, "ncc", verbose=True)
 print(f"Pyramid displacement vector for g: {pa_dy_g, pa_dx_g}")
-pa_g = np.roll(g, shift=(pa_dy_g, pa_dx_g), axis=(0, 1))
+pa_g = np.roll(cropped_g, shift=(pa_dy_g, pa_dx_g), axis=(0, 1))
 
-pyramid_aligned_im = np.dstack([pa_r, pa_g, b])
+pyramid_aligned_cropped_im = np.dstack([pa_r, pa_g, cropped_b])
 
 # display the images (original vs. aligned)
-fig, ax = plt.subplots(1, 3)
+fig, ax = plt.subplots(1, 3, figsize=(24, 12))
 ax[0].imshow(orig_im)
 ax[0].set_title("Original")
 
 ax[1].imshow(aligned_im)
 ax[1].set_title("Aligned")
 
-ax[2].imshow(pyramid_aligned_im)
+ax[2].imshow(pyramid_aligned_cropped_im)
 ax[2].set_title("Pyramid Aligned")
 plt.show()
 
 # save the image
-fname = f"{OUTPUT_DIR}{input_file}_out.jpg"
-im_out_uint8 = (pyramid_aligned_im * 255.0).astype(np.uint8)
+fname = f"{OUTPUT_DIR}{input_file}_pyramid_cropped_out.jpg"
+im_out_uint8 = (pyramid_aligned_cropped_im * 255.0).astype(np.uint8)
 skio.imsave(fname, im_out_uint8)
+print(f"Saved image to {fname}")
 
 if __name__ == "__main__":
     print("hello world")

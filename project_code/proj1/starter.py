@@ -4,12 +4,13 @@ import numpy as np
 import skimage as sk
 import skimage.io as skio
 import matplotlib.pyplot as plt
+from pathlib import Path
 
 DATA_DIR = "data/"
 OUTPUT_DIR = "out/"
 
 # name of the input file
-input_file = "ilemselga"
+input_file = "melons"
 input_file_extension = ".tif"
 
 # read in the image
@@ -100,7 +101,9 @@ def crop_rgb(r, g, b, color_val=1.0):
 
 
 crop_white_r, crop_white_g, crop_white_b = crop_rgb(r, g, b, color_val=1.0)
-crop_black_r, crop_black_g, crop_black_b = crop_rgb(crop_white_r, crop_white_g, crop_white_b, color_val=0.1)
+crop_black_r, crop_black_g, crop_black_b = crop_rgb(
+    crop_white_r, crop_white_g, crop_white_b, color_val=0.1
+)
 
 cropped_r, cropped_g, cropped_b = crop_black_r, crop_black_g, crop_black_b
 
@@ -312,7 +315,8 @@ def pyramid_align(img, base_img, metric="l2", radius=8, margin=2, verbose=False)
             metric=metric,
             margin=2,
         )
-        print(f"BASE CASE: IMAGE SHAPE {h, w}, BEST DISPLACEMENT {best_dy, best_dx}")
+        if verbose:
+            print(f"[BASE CASE] image shape: (h, w) {h, w}, best displacement: {best_dy, best_dx}")
         return best_dy, best_dx
 
     downsampled = sk.transform.rescale(img, 0.5, anti_aliasing=True)
@@ -390,7 +394,7 @@ trimmed_aligned_im = aligned_im[trim_y:-trim_y, trim_x:-trim_x, :]
 
 # pyramid_aligned_im = np.dstack([pa_r, pa_g, b])
 
-# # Pyramid alignment with cropped images
+# Pyramid alignment with cropped images
 pa_dy_r, pa_dx_r = pyramid_align(cropped_r, cropped_b, "ncc", verbose=True)
 print(f"Pyramid displacement vector for r: {pa_dy_r, pa_dx_r}")
 pa_r = np.roll(cropped_r, shift=(pa_dy_r, pa_dx_r), axis=(0, 1))
@@ -401,6 +405,10 @@ pa_g = np.roll(cropped_g, shift=(pa_dy_g, pa_dx_g), axis=(0, 1))
 
 pyramid_aligned_cropped_im = np.dstack([pa_r, pa_g, cropped_b])
 
+trim_y = max(abs(pa_dy_r), abs(pa_dy_g))
+trim_x = max(abs(pa_dx_r), abs(pa_dx_g))
+pyramid_aligned_cropped_trimmed = pyramid_aligned_cropped_im[trim_y:-trim_y, trim_x:-trim_x, :]
+
 # display the images (original vs. aligned)
 fig, ax = plt.subplots(1, 3, figsize=(24, 12))
 ax[0].imshow(orig_im)
@@ -409,7 +417,7 @@ ax[0].set_title("Original")
 ax[1].imshow(aligned_im)
 ax[1].set_title("Aligned")
 
-ax[2].imshow(pyramid_aligned_cropped_im)
+ax[2].imshow(pyramid_aligned_cropped_trimmed)
 ax[2].set_title("Pyramid Aligned")
 plt.show()
 
@@ -419,5 +427,78 @@ im_out_uint8 = (pyramid_aligned_cropped_im * 255.0).astype(np.uint8)
 skio.imsave(fname, im_out_uint8)
 print(f"Saved image to {fname}")
 
+
+def align_image_pipeline(input_file_path, output_path, display=False):
+    """Run the full image alignment pipeline:
+        - Read the image from the input file path
+        - Separate the colored glass plates
+        - Crop the white and black edges
+        - Align R and G plates to the B plate using the image pyramid implementation
+        - Shift all three plates and stack the shifted plates
+        - Trim the stacked image to only keep actually overlapping regions and exclude
+            any pixels that wrapped around after shifting the R and G plates with np.roll
+        - Save the aligned image
+    """
+    im = skio.imread(input_file_path)
+    im = sk.img_as_float(im)
+    width = im.shape[1]
+    # Compute the height of each part (just 1/3 of total)
+    height = np.floor(im.shape[0] / 3.0).astype(np.uint64)
+
+    # Separate color channels
+    # NOTE: each glass plate image in the data folder is in BGR order
+    b = im[:height]
+    g = im[height : 2 * height]
+    r = im[2 * height : 3 * height]
+
+    orig_im = np.dstack([r, g, b])
+
+    crop_white_r, crop_white_g, crop_white_b = crop_rgb(r, g, b, color_val=1.0)
+    crop_black_r, crop_black_g, crop_black_b = crop_rgb(
+        crop_white_r, crop_white_g, crop_white_b, color_val=0.1
+    )
+
+    cropped_r, cropped_g, cropped_b = crop_black_r, crop_black_g, crop_black_b
+
+    dy_r, dx_r = pyramid_align(cropped_r, cropped_b, "ncc")
+    print(f"Displacement vector for r: {dy_r, dx_r}")
+    shifted_r = np.roll(cropped_r, shift=(dy_r, dx_r), axis=(0, 1))
+
+    dy_g, dx_g = pyramid_align(cropped_g, cropped_b, "ncc")
+    print(f"Displacement vector for g: {dy_g, dx_g}")
+    shifted_g = np.roll(cropped_g, shift=(dy_g, dx_g), axis=(0, 1))
+
+    # Align shifted plates with base plate (B)
+    pyramid_aligned_cropped_im = np.dstack([shifted_r, shifted_g, cropped_b])
+
+    # Trim to only keep parts of the stacked image that corresponds to
+    # where the R, G, and B plates actually overlap after shifting
+    trim_y = max(abs(dy_r), abs(dy_g))
+    trim_x = max(abs(dx_r), abs(dx_g))
+    pyramid_aligned_cropped_trimmed = pyramid_aligned_cropped_im[trim_y:-trim_y, trim_x:-trim_x, :]
+
+    if display:
+        # Display the original image and the aligned image
+        fig, ax = plt.subplots(1, 2, figsize=(24, 12))
+        ax[0].imshow(orig_im)
+        ax[0].set_title("Original")
+
+        ax[1].imshow(pyramid_aligned_cropped_trimmed)
+        ax[1].set_title("Pyramid Aligned")
+        plt.show()
+
+    im_out_uint8 = (pyramid_aligned_cropped_trimmed * 255.0).astype(np.uint8)
+    skio.imsave(output_path, im_out_uint8)
+    print(f"Saved image to {output_path}")
+
+
 if __name__ == "__main__":
-    print("hello world")
+    input_dir = Path("data/test")
+    output_dir = Path("out/test")
+
+    for file_path in input_dir.iterdir():
+        if file_path.is_file():
+            base_name = file_path.stem
+            output_path = (output_dir / f"{base_name}_out").with_suffix(".jpg")
+            print(f"Processing {file_path}")
+            align_image_pipeline(file_path, output_path)

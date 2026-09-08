@@ -3,6 +3,7 @@
 :root {
   --color-space-black: #0e1728;
   --color-cream: #f1e8d7;
+  --color-code-blue: #3776AB;
 }
 
 body {
@@ -15,9 +16,17 @@ html {
   scroll-padding-top: 5em;
 }
 
+ul {
+  margin-left: 1em;
+}
+
 @theme {
   --color-space-black: var(--color-space-black);
   --color-cream: var(--color-cream);
+}
+
+code {
+  color: var(--color-code-blue);
 }
 
 /* Settings for small view ports less than or equal to 768px */

@@ -24,7 +24,7 @@ const dollyZoomImages = [
 export default function Page() {
     return (
         <main className="mx-4 my-2 sm:mx-8 space-y-4 justify-center">
-            <p>Project 0: Becoming Friends with Your Camera</p>
+            <h1 className="font-bold">Project 0: Becoming Friends with Your Camera</h1>
             <p>Part 1: pictures of myself from up close and from further away</p>
             <div className="flex flex-row justify-center space-x-20">
                 <Image

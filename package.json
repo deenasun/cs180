@@ -11,6 +11,7 @@
     },
     "dependencies": {
         "@tailwindcss/postcss": "^4.3.3",
+        "katex": "^0.18.7",
         "next": "latest",
         "postcss": "^8.5.26",
         "react": "latest",

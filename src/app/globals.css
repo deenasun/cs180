@@ -10,6 +10,11 @@ body {
   font-size: 1rem;
 }
 
+/* Add offset so that links within the same page account for the Navbar at the top */
+html {
+  scroll-padding-top: 5em;
+}
+
 @theme {
   --color-space-black: var(--color-space-black);
   --color-cream: var(--color-cream);

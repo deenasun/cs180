@@ -10,8 +10,8 @@ DATA_DIR = "data/"
 OUTPUT_DIR = "out/"
 
 # name of the input file
-input_file = "church"
-input_file_extension = ".tif"
+input_file = "monastery"
+input_file_extension = ".jpg"
 
 # read in the image
 im = skio.imread(DATA_DIR + input_file + input_file_extension)
@@ -41,7 +41,7 @@ r = im[2 * height : 3 * height]
 orig_im = np.dstack([r, g, b])
 
 
-def find_colored_edges(img, color_val=1.0):
+def find_colored_edges(img, color_val=1.0, limit=0.05):
     h, w = img.shape
 
     # Stop once most of the pixels in this edge is no longer the target color
@@ -49,29 +49,29 @@ def find_colored_edges(img, color_val=1.0):
     # pixel and white is less than 1e-1, this pixel is most likely also white
     # Break once fraction of pixels with the target color falls below 0.7
     left_edge = 0
-    while left_edge < int(0.1 * w):
-        if np.mean(np.abs(color_val - img[:, left_edge]) < 1e-1) < 0.7:
+    while left_edge < int(limit * w):
+        if np.mean(np.abs(color_val - img[:, left_edge]) <= 1e-1) < 0.7:
             break
         left_edge += 1
 
     # Stop once most of the right edge's pixels are longer the target color
     right_edge = w - 1
-    while right_edge > int(0.9 * w):
-        if np.mean(np.abs(color_val - img[:, right_edge]) < 1e-1) < 0.7:
+    while right_edge > int((1.0 - limit) * w):
+        if np.mean(np.abs(color_val - img[:, right_edge]) <= 1e-1) < 0.7:
             break
         right_edge -= 1
 
     # Stop once most of the right edge's pixels are longer the target color
     top_edge = 0
-    while top_edge < int(0.1 * h):
-        if np.mean(np.abs(color_val - img[top_edge, :]) < 1e-1) < 0.7:
+    while top_edge < int(limit * h):
+        if np.mean(np.abs(color_val - img[top_edge, :]) <= 1e-1) < 0.7:
             break
         top_edge += 1
 
     # Stop once most of the right edge's pixels are longer the target color
     bottom_edge = h - 1
-    while bottom_edge > int(0.9 * h):
-        if np.mean(np.abs(color_val - img[bottom_edge, :]) < 1e-1) < 0.7:
+    while bottom_edge > int((1.0 - limit) * h):
+        if np.mean(np.abs(color_val - img[bottom_edge, :]) <= 1e-1) < 0.7:
             break
         bottom_edge -= 1
 
@@ -389,26 +389,25 @@ pa_g = np.roll(cropped_g, shift=(pac_dy_g, pac_dx_g), axis=(0, 1))
 
 pyramid_aligned_cropped_im = np.dstack([pa_r, pa_g, cropped_b])
 
-# Only keep the areas of each color plate that actually overlap after displacing
-pac_trim_y = max(abs(pa_dy_r), abs(pa_dy_g))
-pac_trim_x = max(abs(pa_dx_r), abs(pa_dx_g))
-pyramid_aligned_cropped_trimmed = pyramid_aligned_cropped_im[
-    pac_trim_y:-pac_trim_y, pac_trim_x:-pac_trim_x, :
-]
-
 # Display the images (original vs. aligned)
 fig, ax = plt.subplots(2, 2, figsize=(16, 12))
 ax[0, 0].imshow(orig_im)
 ax[0, 0].set_title("Original")
 
 ax[0, 1].imshow(aligned_im)
-ax[0, 1].set_title(f"Single-Scale Aligned | r {int(dy_r), int(dx_r)}, g {int(dy_g), int(dx_g)}")
+ax[0, 1].set_title(
+    f"Single-Scale Aligned | r {int(dy_r), int(dx_r)}, g {int(dy_g), int(dx_g)}"
+)
 
 ax[1, 0].imshow(aligned_im)
-ax[1, 0].set_title(f"Pyramid Aligned | r {int(pa_dy_r), int(pa_dx_r)}, g {int(pa_dy_g), int(pa_dx_g)}")
+ax[1, 0].set_title(
+    f"Pyramid Aligned | r {int(pa_dy_r), int(pa_dx_r)}, g {int(pa_dy_g), int(pa_dx_g)}"
+)
 
-ax[1, 1].imshow(pyramid_aligned_cropped_trimmed)
-ax[1, 1].set_title(f"Pyramid + Cropped Aligned | r {int(pac_dy_r), int(pac_dx_r)}, g {int(pac_dy_g), int(pac_dx_g)}")
+ax[1, 1].imshow(pyramid_aligned_cropped_im)
+ax[1, 1].set_title(
+    f"Pyramid + Cropped Aligned | r {int(pac_dy_r), int(pac_dx_r)}, g {int(pac_dy_g), int(pac_dx_g)}"
+)
 
 plt.tight_layout()
 plt.show()
@@ -446,6 +445,7 @@ def align_image_pipeline(input_file_path, output_path, display=False):
     orig_im = np.dstack([r, g, b])
 
     im_out_uint8 = (orig_im * 255.0).astype(np.uint8)
+    orig_output_path = str(output_path).split("_out")[0] + "_original.jpg"
     skio.imsave(orig_output_path, im_out_uint8)
     print(f"Saved stacked original image to {orig_output_path}")
 
@@ -469,11 +469,20 @@ def align_image_pipeline(input_file_path, output_path, display=False):
 
     # Trim to only keep parts of the stacked image that corresponds to
     # where the R, G, and B plates actually overlap after shifting
-    trim_y = max(abs(dy_r), abs(dy_g))
-    trim_x = max(abs(dx_r), abs(dx_g))
-    pyramid_aligned_cropped_trimmed = pyramid_aligned_cropped_im[
-        trim_y:-trim_y, trim_x:-trim_x, :
-    ]
+    trim_top = abs(max(dy_r, dy_g, 0))
+    trim_bottom = abs(min(dy_r, dy_g, 0))
+    trim_left = abs(max(dx_r, dx_g, 0))
+    trim_right = abs(min(dx_r, dx_g, 0))
+    final_color_im = pyramid_aligned_cropped_im
+
+    if trim_top > 0:
+        final_color_im = final_color_im[trim_top:, :]
+    if trim_bottom > 0:
+        final_color_im = final_color_im[:-trim_bottom, :]
+    if trim_left > 0:
+        final_color_im = final_color_im[:, trim_left:]
+    if trim_right > 0:
+        final_color_im = final_color_im[:, :-trim_right]
 
     if display:
         # Display the original image and the aligned image
@@ -481,11 +490,11 @@ def align_image_pipeline(input_file_path, output_path, display=False):
         ax[0].imshow(orig_im)
         ax[0].set_title("Original")
 
-        ax[1].imshow(pyramid_aligned_cropped_trimmed)
+        ax[1].imshow(final_color_im)
         ax[1].set_title("Pyramid Aligned")
         plt.show()
 
-    im_out_uint8 = (pyramid_aligned_cropped_trimmed * 255.0).astype(np.uint8)
+    im_out_uint8 = (final_color_im * 255.0).astype(np.uint8)
     skio.imsave(output_path, im_out_uint8)
     print(f"Saved aligned image to {output_path}")
 
@@ -502,8 +511,5 @@ if __name__ == "__main__":
         if file_path.is_file() and file_path.suffix in {".tif", ".jpg"}:
             base_name = file_path.stem
             output_path = (output_dir / f"{base_name}_out").with_suffix(".jpg")
-            orig_output_path = (output_dir / f"{base_name}_original").with_suffix(
-                ".jpg"
-            )
             print(f"Processing {file_path}")
-            align_image_pipeline(file_path, output_path, orig_output_path)
+            align_image_pipeline(file_path, output_path)

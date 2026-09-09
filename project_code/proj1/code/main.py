@@ -1,5 +1,5 @@
 # CS180 (CS280A): Project 1
-
+import time
 import numpy as np
 import skimage as sk
 import skimage.io as skio
@@ -116,11 +116,11 @@ class ShapeMismatchError(Exception):
     """Raised when two matrices have incompatible shapes"""
 
 
-class UnrecognizedArgumentError(Exception):
+class InvalidArgumentError(Exception):
     """Raised when an unrecognized argument is passed to a function"""
 
 
-class InvalidAlignmentError(Exception):
+class AlignmentError(Exception):
     """Raised for catch-all image alignment errors"""
 
 
@@ -155,7 +155,7 @@ def normalized_cross_correlation(mat1: np.ndarray, mat2: np.ndarray):
 # align the images
 # functions that might be useful for aligning the images include:
 # np.roll, np.sum, sk.transform.rescale (for multiscale)
-def align(img, base_img, metric="l2", verbose=True):
+def align(img, base_img, metric="l2", y_radius=15, x_radius=15, verbose=True):
     """Align img to the base_img.
 
     Displacements (dy, dx) are calculated based on the assumption that the origin (0, 0)
@@ -168,7 +168,9 @@ def align(img, base_img, metric="l2", verbose=True):
         base_img: the base image to align img to
         metric: "l2" or "ncc" - whether to score alignment
             by minimizing L2 distance or maximizing NCC
-        verbose
+        y_radius: algo will search for best vertical displacement between [-y_radius, +y_radius]
+        x_radius: algo will search for best horizontal displacement between [-x_radius, +x_radius]
+        verbose: bool
 
     Returns:
         best_dy: number of pixels to displace in the y-direction
@@ -177,10 +179,15 @@ def align(img, base_img, metric="l2", verbose=True):
             to achieve the best alignment metric between img and base_img
 
     Raises:
-        UnrecognizedArgumentError: If metric is not L2 distance or Normalized Cross Correlation
+        InvalidArgumentError: If metric is not L2 distance or Normalized Cross Correlation
     """
     if metric != "l2" and metric != "ncc":
-        raise UnrecognizedArgumentError("metric should be either l2 or ncc")
+        raise InvalidArgumentError("metric should be either l2 or ncc")
+
+    if y_radius <= 0:
+        raise InvalidArgumentError("y_radius must be a positive integer")
+    if x_radius <= 0:
+        raise InvalidArgumentError("x_radius must be a positive integer")
 
     best_dy, best_dx = 0, 0
     best_metric = np.inf if metric == "l2" else -np.inf
@@ -189,11 +196,21 @@ def align(img, base_img, metric="l2", verbose=True):
     # np.roll wraps pixels to the opposite edge, so the glass-plate borders
     # can dominate the scoring metrics if not excluded.
     h, w = base_img.shape
+
+    if y_radius >= h // 2:
+        raise InvalidArgumentError(
+            f"search y_radius is too big for an image of dimensions {h, w}. y_radius must be at most {h // 2}"
+        )
+
+    if x_radius >= w // 2:
+        raise InvalidArgumentError(
+            f"search x_radius is too big for an image of dimensions {h, w}. x_radius must be at most {w // 2}"
+        )
     trim_edges = max(int(np.round(0.05 * min(h, w))), 15)
     trimmed_base = base_img[trim_edges:-trim_edges, trim_edges:-trim_edges]
 
-    for dy in np.arange(-15, 16):
-        for dx in np.arange(-15, 16):
+    for dy in np.arange(-y_radius, y_radius + 1):
+        for dx in np.arange(-x_radius, x_radius + 1):
             rolled = np.roll(img, shift=(dy, dx), axis=(0, 1))
 
             # Crop to a core interior for the candidate displacement
@@ -255,7 +272,7 @@ def search(
     x1 = min(w - margin, w - margin + dx_min)  # right edge
 
     if y1 <= y0 or x1 <= x0:
-        raise InvalidAlignmentError(
+        raise AlignmentError(
             f"Invalid bounds for the base image's fixed interior rectangle: {y0, y1, x0, x1} (y0, y1, x0, x1)"
         )
 
@@ -299,7 +316,7 @@ def pyramid_align(img, base_img, metric="l2", radius=8, margin=2, verbose=False)
             at this image resolution
     """
     if metric != "l2" and metric != "ncc":
-        raise UnrecognizedArgumentError("metric should be either l2 or ncc")
+        raise InvalidArgumentError("metric should be either l2 or ncc")
 
     h, w = img.shape
 
@@ -499,17 +516,124 @@ def align_image_pipeline(input_file_path, output_path, display=False):
     print(f"Saved aligned image to {output_path}")
 
 
+def compare_alignment_algorithms(input_file_path, output_path_base, display=True):
+    im = skio.imread(input_file_path)
+    im = sk.img_as_float(im)
+
+    # Compute the height of each part (just 1/3 of total)
+    height = np.floor(im.shape[0] / 3.0).astype(np.uint64)
+
+    # Separate color channels
+    # NOTE: each glass plate image in the data folder is in BGR order
+    b = im[:height]
+    g = im[height : 2 * height]
+    r = im[2 * height : 3 * height]
+
+    orig_im = np.dstack([r, g, b])
+
+    im_out_uint8 = (orig_im * 255.0).astype(np.uint8)
+    orig_output_path = output_path_base +  "_original.jpg"
+    skio.imsave(orig_output_path, im_out_uint8)
+    print(f"Saved stacked original image to {orig_output_path}")
+
+    # Image pyramid alignment
+    print("[Image pyramid] Starting alignment...")
+    ipa_start_time = time.perf_counter()
+
+    ipa_dy_r, ipa_dx_r = pyramid_align(r, b, "ncc")
+    ipa_shifted_r = np.roll(r, shift=(ipa_dy_r, ipa_dx_r), axis=(0, 1))
+    ipa_red_end_time = time.perf_counter()
+    print(
+        f"[Image pyramid] Aligned red to blue plate in {ipa_red_end_time - ipa_start_time} seconds"
+    )
+
+    ipa_dy_g, ipa_dx_g = pyramid_align(g, b, "ncc")
+    ipa_shifted_g = np.roll(g, shift=(ipa_dy_g, ipa_dx_g), axis=(0, 1))
+    ipa_green_end_time = time.perf_counter()
+    print(
+        f"[Image pyramid] Aligned green to blue plate in {ipa_green_end_time - ipa_red_end_time} seconds"
+    )
+
+    ipa_end_time = time.perf_counter()
+    image_pyramid_alignment_time = ipa_end_time - ipa_start_time
+
+    print(
+        f"[Image pyramid] Alignment took a total of {image_pyramid_alignment_time} seconds"
+    )
+    print(f"[Image pyramid] Displacement vector for r: {ipa_dy_r, ipa_dx_r}")
+    print(f"[Image pyramid] Displacement vector for g: {ipa_dy_g, ipa_dx_g}")
+
+    pyramid_aligned_im = np.dstack([ipa_shifted_r, ipa_shifted_g, b])
+
+    pyramid_out_uint8 = (pyramid_aligned_im * 255.0).astype(np.uint8)
+    pyramid_output_path = output_path_base + "_pyramid.jpg"
+    skio.imsave(pyramid_output_path, pyramid_out_uint8)
+    print(f"[Image pyramid] Saved image to {pyramid_output_path}")
+
+    # Single-scale alignment
+    print("[Single-scale] Starting alignment...")
+    ssa_start_time = time.perf_counter()
+
+    # Run single-scale alignment algo and search a radius at least as big as the displacement found by the image pyramid algo
+    ssa_dy_r, ssa_dx_r = align(
+        r, b, "ncc", y_radius=abs(ipa_dy_r), x_radius=abs(ipa_dx_r), verbose=False
+    )
+    ssa_shifted_r = np.roll(r, shift=(ssa_dy_r, ssa_dx_r), axis=(0, 1))
+    ssa_red_end_time = time.perf_counter()
+    print(
+        f"[Single-scale] Aligned red to blue plate in {ssa_red_end_time - ssa_start_time} seconds"
+    )
+
+    ssa_dy_g, ssa_dx_g = align(
+        g, b, "ncc", y_radius=abs(ipa_dy_g), x_radius=abs(ipa_dx_g), verbose=False
+    )
+    ssa_shifted_g = np.roll(g, shift=(ssa_dy_g, ssa_dx_g), axis=(0, 1))
+    ssa_green_endtime = time.perf_counter()
+    print(
+        f"[Single-scale] Aligned green to blue plate in {ssa_green_endtime - ssa_red_end_time} seconds"
+    )
+
+    ssa_end_time = time.perf_counter()
+    single_scale_alignment_time = ssa_end_time - ssa_start_time
+
+    print(
+        f"[Single-scale] Alignment took a total of {single_scale_alignment_time} seconds"
+    )
+    print(f"[Single-scale] Displacement vector for r: {ssa_dy_r, ssa_dx_r}")
+    print(f"[Single-scale] Displacement vector for g: {ssa_dy_g, ssa_dx_g}")
+
+    single_scale_alignment_im = np.dstack([ssa_shifted_r, ssa_shifted_g, b])
+    single_scale_out_uint8 = (single_scale_alignment_im * 255.0).astype(np.uint8)
+    single_scale_output_path = output_path_base +  "_single_scale.jpg"
+    skio.imsave(single_scale_output_path, single_scale_out_uint8)
+    print(f"[Single-scale] Saved image to {single_scale_output_path}")
+
+    if display:
+        # Display the original image and the aligned image
+        fig, ax = plt.subplots(1, 3, figsize=(24, 12))
+        ax[0].imshow(orig_im)
+        ax[0].set_title("Original")
+
+        ax[1].imshow(single_scale_alignment_im)
+        ax[1].set_title("Single-Scale")
+
+        ax[2].imshow(pyramid_aligned_im)
+        ax[2].set_title("Image Pyramid")
+        plt.show()
+
+
 if __name__ == "__main__":
     # Folder with the unzipped .tif or .jpg digitized glass plate images
     input_dir = Path("data")
 
     # Folder to save the aligned images to
-    output_dir = Path("out")
+    output_dir = Path("out/comparisons")
 
     # Iterate through the glass plates in input_dir, align each, and save the outputs
     for file_path in input_dir.iterdir():
         if file_path.is_file() and file_path.suffix in {".tif", ".jpg"}:
             base_name = file_path.stem
-            output_path = (output_dir / f"{base_name}_out").with_suffix(".jpg")
+            output_path = str(output_dir / base_name)
             print(f"Processing {file_path}")
-            align_image_pipeline(file_path, output_path)
+            # align_image_pipeline(file_path, output_path)
+            compare_alignment_algorithms(file_path, output_path_base=output_path)

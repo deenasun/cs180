@@ -3,9 +3,114 @@
 import katex from "katex";
 import "katex/dist/katex.min.css";
 
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import TableOfContents from "@/components/TableOfContents";
 import { getAssetPath } from "@/shared"
+
+function Figure({
+    src,
+    caption,
+    subcaption
+}: {
+    src: string,
+    caption: string,
+    subcaption?: string | null
+}) {
+    // Focus on the figure if mouse hovers and stays over the image
+    const [isHovering, setIsHovering] = useState(false);
+    const [isFocused, setIsFocused] = useState(false);
+    const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const handleMouseEnter = () => {
+        setIsHovering(true);
+
+        hoverTimer.current = setTimeout(() => {
+            setIsFocused(true);
+        }, 2000);
+    };
+
+    const handleMouseLeave = () => {
+        setIsHovering(false);
+
+        if (hoverTimer.current) {
+            clearTimeout(hoverTimer.current);
+        }
+    };
+
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === "Escape") {
+                setIsFocused(false);
+            }
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+
+        return () => {
+            window.removeEventListener("keydown", handleKeyDown);
+
+            if (hoverTimer.current) {
+                clearTimeout(hoverTimer.current);
+            }
+        };
+    }, []);
+
+    return (
+        <>
+            <figure className="mx-auto flex w-full max-w-2xl flex-col items-center">
+                <div
+                    className="relative cursor-zoom-in items-center"
+                    onMouseEnter={handleMouseEnter}
+                    onMouseLeave={handleMouseLeave}
+                >
+                    <Image
+                        key={src}
+                        src={getAssetPath(src)}
+                        alt={caption}
+                        height={1080}
+                        width={1080}
+                        style={{ width: "auto", height: "40vh" }}
+                    />
+                    {isHovering && (
+                        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded bg-space-black/80 px-3 py-1 text-sm text-cream">
+                            <span className="mr-2">Hover to zoom</span>
+                            <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-cream border-t-transparent" />
+                        </div>
+                    )}
+                </div>
+                <figcaption className="mt-2 text-center text-sm text-gray-600">
+                    {caption}
+                </figcaption>
+                {subcaption != null && (
+                    <figcaption className="mt-2 text-center text-xs text-gray-600">
+                        {subcaption}
+                    </figcaption>
+                )}
+            </figure>
+            {/* Smooth transition for the focus overlay */}
+            <div
+                className={`fixed inset-0 z-50 flex items-center justify-center bg-space-black/80 p-8
+        transition-opacity duration-300 ease-out
+        ${isFocused
+                        ? "pointer-events-auto opacity-100"
+                        : "pointer-events-none opacity-0"
+                    }`}
+                onClick={() => setIsFocused(false)}
+            >
+                <Image
+                    src={getAssetPath(src)}
+                    alt={caption}
+                    width={2000}
+                    height={2000}
+                    className={`max-h-full max-w-full object-contain
+            transition-transform duration-300 ease-out`}
+                />
+            </div>
+        </>
+
+    )
+}
 
 
 export default function Page() {
@@ -30,6 +135,10 @@ export default function Page() {
             sectionLink: "bells_and_whistles",
             text: "Bells and Whistles"
         },
+        {
+            sectionLink: "results_gallery",
+            text: "Results Gallery"
+        },
     ]
 
     const l2NormEquation = String.raw`L2 = \sqrt{\sum_{i, j} (img1[i, j] - img2[i, j])^2}`
@@ -51,32 +160,13 @@ export default function Page() {
             <article className="mr-[17vw] space-y-12">
                 <h1 className="font-bold">Project 1: Colorizing the Prokudin-Gorskii Photo Collection</h1>
                 <div className="flex flex-row w-full justify-center space-x-20">
-                    <figure className="mx-auto flex w-full max-w-2xl flex-col items-center">
-                        <Image
-                            key={"self_portrait_original"}
-                            src={getAssetPath("/proj1/self_portrait_original.jpg")}
-                            alt={"Prokudin-Gorskii's self-portrait before aligning the colorized glass plates"}
-                            height={1080}
-                            width={1080}
-                            style={{ width: "auto", height: "40vh" }}
-                        />
-                        <figcaption className="mt-2 text-center text-sm leading-relaxed text-gray-600">
-                            Prokudin-Gorskii's self-portrait before aligning
-                        </figcaption>
-                    </figure>
-                    <figure className="mx-auto flex w-full max-w-2xl flex-col items-center">
-                        <Image
-                            key={"self_portrait_out"}
-                            src={getAssetPath("/proj1/self_portrait_out.jpg")}
-                            alt={"Prokudin-Gorskii's self-portrait after aligning the colorized glass plates"}
-                            height={1080}
-                            width={1080}
-                            style={{ width: "auto", height: "40vh" }}
-                        />
-                        <figcaption className="mt-2 text-center text-sm leading-relaxed text-gray-600">
-                            The final results of auto-aligning the glass plates of Prokudin-Gorskii's self-portrait
-                        </figcaption>
-                    </figure>
+                    <Figure src={"/proj1/self_portrait_original.jpg"}
+                        caption={"Prokudin-Gorskii's self-portrait before aligning"}
+                    />
+                    <Figure
+                        src={"/proj1/self_portrait_out.jpg"}
+                        caption={"The final results of auto-aligning the glass plates of Prokudin-Gorskii's self-portrait"}
+                    />
                 </div>
                 <section id="context" className="space-y-5">
                     <h2 className="font-medium">Background Context</h2>
@@ -198,32 +288,9 @@ export default function Page() {
                     </p>
 
                     <div className="flex flex-row w-full justify-center space-x-20">
-                        <figure className="mx-auto flex w-full max-w-2xl flex-col items-center">
-                            <Image
-                                key={"monastery_original"}
-                                src={getAssetPath("/proj1/monastery_original.jpg")}
-                                alt={"Monastery original"}
-                                height={1080}
-                                width={1080}
-                                style={{ width: "auto", height: "40vh" }}
-                            />
-                            <figcaption className="mt-2 text-center text-sm leading-relaxed text-gray-600">
-                                monastery.jpg before automatic alignment
-                            </figcaption>
-                        </figure>
-                        <figure className="mx-auto flex w-full max-w-2xl flex-col items-center">
-                            <Image
-                                key={"monastery_out"}
-                                src={getAssetPath("/proj1/monastery_out.jpg")}
-                                alt={"Monastery aligned"}
-                                height={1080}
-                                width={1080}
-                                style={{ width: "auto", height: "40vh" }}
-                            />
-                            <figcaption className="mt-2 text-center text-sm leading-relaxed text-gray-600">
-                                monastery.jpg after single-scale alignment with NCC
-                            </figcaption>
-                        </figure>
+                        <Figure src={"/proj1/monastery_original.jpg"} caption={"monastery.jpg before automatic alignment"} />
+                        <Figure src={"/proj1/monastery_out.jpg"} caption={"monastery.jpg after single-scale alignment with NCC"} />
+
                     </div>
                     <p>
                         However, when trying to align hi-res glass plates where the each side is measured in thousands of pixels, the glass plates have much bigger
@@ -233,6 +300,10 @@ export default function Page() {
                 </section>
                 <section id="image_pyramids" className="space-y-5">
                     <h2 className="font-medium">Image Pyramids</h2>
+                    <Figure
+                        src={"https://thumb.wikimedia.org/wikipedia/commons/thumb/4/43/Image_pyramid.svg/1920px-Image_pyramid.svg.png"}
+                        caption={"An image pyramid with 5 levels/resolution scales (source: Wikipedia)"}
+                    />
                     <p>
                         An image pyramid is a strategy in image-processing algorithms where the image is scaled to different resolutions and processed hierarchically.
                         I incorporated image pyramids into my automatic alignment algorithm by recursively calling the automatic alignment algorithm on a downsampled
@@ -314,6 +385,91 @@ export default function Page() {
                     a tolerance of 0.1 from 1.0 (white) or 0.1 (an approximation for black). As long as more than 70% of the pixels in this row/column were the target color,
                     the algorithm considered them part of the solid-color border. The algorithm would then continue scanning inwards until it found a row/column where less than
                     70% of the pixels were within tolerance of the solid-color border, or until it hit a max crop limit of 5% of the full height/width.
+                </section>
+                <section id="results_gallery" className="space-y-5">
+                    <h2 className="font-medium">Results Gallery</h2>
+                    <p>Here are the final results of my automatic alignment algorithm on 14 provided glass plate images,
+                        plus 3 pictures I chose from the Library of Congress online archives (TODO: mention which 3 pictures)!
+                        < br />
+                        These were all processed by first splitting the image data into red, green, and blue plates;
+                        cropping solid-color borders from each of the glass plates;
+                        aligning the red plate to the blue plate using my image pyramid alignment algorithm;
+                        aligning the green plate to the blue plate using my image pyramid alignment algorithm;
+                        stacking the 3 aligned plates together into a 3-channel color image;
+                        and lastly, trimming the misplaced, wrap-around pixels from the edges.
+                    </p>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div><Figure src={"/proj1/cathedral_original.jpg"}
+                            caption={"cathedral.jpg (original)"} /></div>
+                        <div><Figure src={"/proj1/cathedral_out.jpg"}
+                            caption={"cathedral.jpg (aligned)"}
+                            subcaption={"red (dy, dx): (12, 3), green (dy, dx): (5, 2)"} /></div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div><Figure src={"/proj1/church_original.jpg"} caption={"church.tif (original)"} /></div>
+                        <div><Figure src={"/proj1/church_out.jpg"} caption={"church.tif (aligned)"}
+                            subcaption={"red (dy, dx): (57, -5), green (dy, dx): (-1, -5)"} /></div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div><Figure src={"/proj1/emir_original.jpg"} caption={"emir.tif (original)"} /></div>
+                        <div><Figure src={"/proj1/emir_out.jpg"} caption={"emir.tif (aligned)"}
+                            subcaption={"red (dy, dx): (118, -178), green (dy, dx): (24, 8)"} /></div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div><Figure src={"/proj1/harvesters_original.jpg"} caption={"harvesters.tif (original)"} /></div>
+                        <div><Figure src={"/proj1/harvesters_out.jpg"} caption={"harvesters.tif (aligned)"}
+                            subcaption={"red (dy, dx): (129, 7), green (dy, dx): (58, 10)"} /></div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div><Figure src={"/proj1/icon_original.jpg"} caption={"icon.tif (original)"} /></div>
+                        <div><Figure src={"/proj1/icon_out.jpg"} caption={"icon.tif (aligned)"}
+                            subcaption={"red (dy, dx): (91, 22), green (dy, dx): (40, 16)"} /></div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div><Figure src={"/proj1/ilemselga_original.jpg"} caption={"ilemselga.tif (original)"} /></div>
+                        <div><Figure src={"/proj1/ilemselga_out.jpg"} caption={"ilemselga.tif (aligned)"}
+                            subcaption={"red (dy, dx): (138, -7), green (dy, dx): (39, -4)"} /></div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div><Figure src={"/proj1/melons_original.jpg"} caption={"melons.tif (original)"} /></div>
+                        <div><Figure src={"/proj1/melons_out.jpg"} caption={"melons.tif (aligned)"}
+                            subcaption={"red (dy, dx): (179, 8), green (dy, dx): (83, 4)"} /></div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div><Figure src={"/proj1/monastery_original.jpg"} caption={"monastery.jpg (original)"} /></div>
+                        <div><Figure src={"/proj1/monastery_out.jpg"} caption={"monastery.jpg (aligned)"}
+                            subcaption={"red (dy, dx): (3, 2), green (dy, dx): (-3, 2)"} /></div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div><Figure src={"/proj1/religous_painting_original.jpg"} caption={"religious_painting.tif (original)"} /></div>
+                        <div><Figure src={"/proj1/religous_painting_out.jpg"} caption={"religious_painting.tif (aligned)"}
+                            subcaption={"red (dy, dx): (69, 7), green (dy, dx): (24, 3)"} /></div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div><Figure src={"/proj1/self_portrait_original.jpg"} caption={"self_portrait.tif (original)"} /></div>
+                        <div><Figure src={"/proj1/self_portrait_out.jpg"} caption={"self_portrait.tif (aligned)"}
+                            subcaption={"red (dy, dx): (176, -3), green (dy, dx): (77, -1)"} /></div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div><Figure src={"/proj1/siren_original.jpg"} caption={"siren.tif (original)"} /></div>
+                        <div><Figure src={"/proj1/siren_out.jpg"} caption={"siren.tif (aligned)"}
+                            subcaption={"red (dy, dx): (97, -21), green (dy, dx): (48, -7)"} /></div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div><Figure src={"/proj1/three_generations_original.jpg"} caption={"three_generations.tif (original)"} /></div>
+                        <div><Figure src={"/proj1/three_generations_out.jpg"} caption={"three_generations.tif (aligned)"}
+                            subcaption={"red (dy, dx): (112, 7), green (dy, dx): (52, 5)"} /></div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div><Figure src={"/proj1/tobolsk_original.jpg"} caption={"tobolsk.jpg (original)"} /></div>
+                        <div><Figure src={"/proj1/tobolsk_out.jpg"} caption={"tobolsk.jpg (aligned)"}
+                            subcaption={"red (dy, dx): (6, 3), green (dy, dx): (3, 2)"} /></div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div><Figure src={"/proj1/wharf_original.jpg"} caption={"wharf.tif (original)"} /></div>
+                        <div><Figure src={"/proj1/wharf_out.jpg"} caption={"wharf.tif (aligned)"}
+                            subcaption={"red (dy, dx): (83, -17), green (dy, dx): (15, -7)"} /></div>
+                    </div>
                 </section>
             </article>
             <aside className="fixed right-0 top-20 hidden h-fit max-h-[70vh] w-[15vw] min-w-[150px] px-4 overflow-y-auto border-l-2 border-gray-200 md:block">

@@ -1,0 +1,128 @@
+[
+  {
+    "input_file_name": "wharf.tif",
+    "single_scale_total_time_elapsed": 157.2599486670224,
+    "single_scale_red_displacement_vector": [83, -17],
+    "single_scale_green_displacement_vector": [15, -7],
+    "image_pyramid_total_time_elapsed": 20.27525591698941,
+    "image_pyramid_red_displacement_vector": [83, -17],
+    "image_pyramid_green_displacement_vector": [15, -7]
+  },
+  {
+    "input_file_name": "emir.tif",
+    "single_scale_total_time_elapsed": 2117.252685583022,
+    "single_scale_red_displacement_vector": [104, 44],
+    "single_scale_green_displacement_vector": [24, 8],
+    "image_pyramid_total_time_elapsed": 19.718385333020706,
+    "image_pyramid_red_displacement_vector": [118, -178],
+    "image_pyramid_green_displacement_vector": [24, 8]
+  },
+  {
+    "input_file_name": "monastery.jpg",
+    "single_scale_total_time_elapsed": 0.019149540981743485,
+    "single_scale_red_displacement_vector": [3, 2],
+    "single_scale_green_displacement_vector": [-3, 2],
+    "image_pyramid_total_time_elapsed": 0.2987282079993747,
+    "image_pyramid_red_displacement_vector": [3, 2],
+    "image_pyramid_green_displacement_vector": [-3, 2]
+  },
+  {
+    "input_file_name": "religous_painting.tif",
+    "single_scale_total_time_elapsed": 60.86188816698268,
+    "single_scale_red_displacement_vector": [68, 7],
+    "single_scale_green_displacement_vector": [24, 3],
+    "image_pyramid_total_time_elapsed": 19.996679125004448,
+    "image_pyramid_red_displacement_vector": [69, 7],
+    "image_pyramid_green_displacement_vector": [24, 3]
+  },
+  {
+    "input_file_name": "church.tif",
+    "single_scale_total_time_elapsed": 31.00756649998948,
+    "single_scale_red_displacement_vector": [57, -5],
+    "single_scale_green_displacement_vector": [1, -5],
+    "image_pyramid_total_time_elapsed": 19.936688084038906,
+    "image_pyramid_red_displacement_vector": [57, -5],
+    "image_pyramid_green_displacement_vector": [-1, -5]
+  },
+  {
+    "input_file_name": "three_generations.tif",
+    "single_scale_total_time_elapsed": 110.15708704205463,
+    "single_scale_red_displacement_vector": [112, 7],
+    "single_scale_green_displacement_vector": [52, 5],
+    "image_pyramid_total_time_elapsed": 19.926406166981906,
+    "image_pyramid_red_displacement_vector": [112, 7],
+    "image_pyramid_green_displacement_vector": [52, 5]
+  },
+  {
+    "input_file_name": "melons.tif",
+    "single_scale_total_time_elapsed": 186.6695230419864,
+    "single_scale_red_displacement_vector": [177, 8],
+    "single_scale_green_displacement_vector": [81, 4],
+    "image_pyramid_total_time_elapsed": 20.561996291042306,
+    "image_pyramid_red_displacement_vector": [179, 8],
+    "image_pyramid_green_displacement_vector": [83, 4]
+  },
+  {
+    "input_file_name": "tobolsk.jpg",
+    "single_scale_total_time_elapsed": 0.03530124999815598,
+    "single_scale_red_displacement_vector": [6, 3],
+    "single_scale_green_displacement_vector": [3, 2],
+    "image_pyramid_total_time_elapsed": 0.31092458398779854,
+    "image_pyramid_red_displacement_vector": [6, 3],
+    "image_pyramid_green_displacement_vector": [3, 2]
+  },
+  {
+    "input_file_name": "icon.tif",
+    "single_scale_total_time_elapsed": 270.12432741594967,
+    "single_scale_red_displacement_vector": [89, 22],
+    "single_scale_green_displacement_vector": [40, 16],
+    "image_pyramid_total_time_elapsed": 20.348901292018127,
+    "image_pyramid_red_displacement_vector": [91, 22],
+    "image_pyramid_green_displacement_vector": [40, 16]
+  },
+  {
+    "input_file_name": "cathedral.jpg",
+    "single_scale_total_time_elapsed": 0.06523008301155642,
+    "single_scale_red_displacement_vector": [12, 3],
+    "single_scale_green_displacement_vector": [5, 2],
+    "image_pyramid_total_time_elapsed": 0.34063304198207334,
+    "image_pyramid_red_displacement_vector": [12, 3],
+    "image_pyramid_green_displacement_vector": [5, 2]
+  },
+  {
+    "input_file_name": "siren.tif",
+    "single_scale_total_time_elapsed": 249.66856158297742,
+    "single_scale_red_displacement_vector": [96, -21],
+    "single_scale_green_displacement_vector": [48, -7],
+    "image_pyramid_total_time_elapsed": 21.13100537500577,
+    "image_pyramid_red_displacement_vector": [97, -21],
+    "image_pyramid_green_displacement_vector": [48, -7]
+  },
+  {
+    "input_file_name": "self_portrait.tif",
+    "single_scale_total_time_elapsed": 74.76482054201188,
+    "single_scale_red_displacement_vector": [171, 2],
+    "single_scale_green_displacement_vector": [77, 1],
+    "image_pyramid_total_time_elapsed": 20.43723791697994,
+    "image_pyramid_red_displacement_vector": [176, -3],
+    "image_pyramid_green_displacement_vector": [77, -1]
+  },
+  {
+    "input_file_name": "harvesters.tif",
+    "single_scale_total_time_elapsed": 153.1230301669566,
+    "single_scale_red_displacement_vector": [124, 7],
+    "single_scale_green_displacement_vector": [58, 10],
+    "image_pyramid_total_time_elapsed": 20.309437874995638,
+    "image_pyramid_red_displacement_vector": [129, 7],
+    "image_pyramid_green_displacement_vector": [58, 10]
+  },
+  {
+    "input_file_name": "ilemselga.tif",
+    "single_scale_total_time_elapsed": 122.37571508297697,
+    "single_scale_red_displacement_vector": [130, 7],
+    "single_scale_green_displacement_vector": [39, 4],
+    "image_pyramid_total_time_elapsed": 21.66792987502413,
+    "image_pyramid_red_displacement_vector": [138, -7],
+    "image_pyramid_green_displacement_vector": [39, -4]
+  }
+]

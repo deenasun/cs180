@@ -9,39 +9,21 @@ from pathlib import Path
 DATA_DIR = "data/"
 OUTPUT_DIR = "out/"
 
-# name of the input file
-input_file = "monastery"
-input_file_extension = ".jpg"
 
-# read in the image
-im = skio.imread(DATA_DIR + input_file + input_file_extension)
-plt.imshow(im, cmap="gray")
+class ShapeMismatchError(Exception):
+    """Raised when two matrices have incompatible shapes"""
 
-# print(im.dtype)  # dtype: unit8
 
-# convert to double (might want to do this later on to save memory)
-im = sk.img_as_float(im)
+class InvalidArgumentError(Exception):
+    """Raised when an unrecognized argument is passed to a function"""
 
-# print(im.dtype)  # dtype: float64
 
-width = im.shape[1]
-# compute the height of each part (just 1/3 of total)
-# NOTE: need to use uint64 because uint8 is [0, 255] and any value
-height = np.floor(im.shape[0] / 3.0).astype(np.uint64)
-
-print(f"{input_file}{input_file_extension} has dimensions {height} x {width} (h x w)")
-
-# separate color channels
-# NOTE: each glass plate image in the data folder is in BGR order
-b = im[:height]
-g = im[height : 2 * height]
-r = im[2 * height : 3 * height]
-
-# stack color channels into original image
-orig_im = np.dstack([r, g, b])
+class AlignmentError(Exception):
+    """Raised for catch-all image alignment errors"""
 
 
 def find_colored_edges(img, color_val=1.0, limit=0.05):
+    """Automatically detect solid color edges"""
     h, w = img.shape
 
     # Stop once most of the pixels in this edge is no longer the target color
@@ -80,6 +62,11 @@ def find_colored_edges(img, color_val=1.0, limit=0.05):
 
 
 def crop_rgb(r, g, b, color_val=1.0):
+    """
+    Crop solid-color edges from red, green, and blue plates.
+    Crop the same amount from each of the three plates so all three plates
+        continue to share the same coordinate system for future alignment.
+    """
     r_left, r_right, r_top, r_bottom = find_colored_edges(r, color_val=color_val)
     g_left, g_right, g_top, g_bottom = find_colored_edges(g, color_val=color_val)
     b_left, b_right, b_top, b_bottom = find_colored_edges(b, color_val=color_val)
@@ -98,30 +85,6 @@ def crop_rgb(r, g, b, color_val=1.0):
     b_crop = b[shared_top : shared_bottom + 1, shared_left : shared_right + 1]
 
     return r_crop, g_crop, b_crop
-
-
-crop_white_r, crop_white_g, crop_white_b = crop_rgb(r, g, b, color_val=1.0)
-crop_black_r, crop_black_g, crop_black_b = crop_rgb(
-    crop_white_r, crop_white_g, crop_white_b, color_val=0.1
-)
-
-cropped_r, cropped_g, cropped_b = crop_black_r, crop_black_g, crop_black_b
-
-# plt.imshow(cropped_r)
-# plt.imshow(cropped_g)
-# plt.imshow(cropped_b)
-
-
-class ShapeMismatchError(Exception):
-    """Raised when two matrices have incompatible shapes"""
-
-
-class InvalidArgumentError(Exception):
-    """Raised when an unrecognized argument is passed to a function"""
-
-
-class AlignmentError(Exception):
-    """Raised for catch-all image alignment errors"""
 
 
 def l2_distance(mat1: np.ndarray, mat2: np.ndarray):
@@ -374,68 +337,6 @@ def pyramid_align(img, base_img, metric="l2", radius=8, margin=2, verbose=False)
     return best_dy, best_dx
 
 
-# Single-scale, basic align
-dy_r, dx_r = align(r, b, "l2")
-ar = np.roll(r, shift=(dy_r, dx_r), axis=(0, 1))
-
-dy_g, dx_g = align(g, b, "l2")
-ag = np.roll(g, shift=(dy_r, dx_r), axis=(0, 1))
-
-# create a color image
-aligned_im = np.dstack([ar, ag, b])
-
-# Pyramid alignment
-pa_dy_r, pa_dx_r = pyramid_align(r, b, "ncc", margin=2, verbose=True)
-print(f"Pyramid displacement vector for r: {pa_dy_r, pa_dx_r}")
-pa_r = np.roll(r, shift=(pa_dy_r, pa_dx_r), axis=(0, 1))
-
-pa_dy_g, pa_dx_g = pyramid_align(g, b, "ncc", margin=2, verbose=True)
-print(f"Pyramid displacement vector for g: {pa_dy_g, pa_dx_g}")
-pa_g = np.roll(g, shift=(pa_dy_g, pa_dx_g), axis=(0, 1))
-
-pyramid_aligned_im = np.dstack([pa_r, pa_g, b])
-
-# Pyramid alignment with cropped images
-pac_dy_r, pac_dx_r = pyramid_align(cropped_r, cropped_b, "ncc", verbose=True)
-print(f"Pyramid + cropped displacement vector for r: {pac_dy_r, pac_dx_r}")
-pa_r = np.roll(cropped_r, shift=(pac_dy_r, pac_dx_r), axis=(0, 1))
-
-pac_dy_g, pac_dx_g = pyramid_align(cropped_g, cropped_b, "ncc", verbose=True)
-print(f"Pyramid + cropped displacement vector for g: {pac_dy_g, pac_dx_g}")
-pa_g = np.roll(cropped_g, shift=(pac_dy_g, pac_dx_g), axis=(0, 1))
-
-pyramid_aligned_cropped_im = np.dstack([pa_r, pa_g, cropped_b])
-
-# Display the images (original vs. aligned)
-fig, ax = plt.subplots(2, 2, figsize=(16, 12))
-ax[0, 0].imshow(orig_im)
-ax[0, 0].set_title("Original")
-
-ax[0, 1].imshow(aligned_im)
-ax[0, 1].set_title(
-    f"Single-Scale Aligned | r {int(dy_r), int(dx_r)}, g {int(dy_g), int(dx_g)}"
-)
-
-ax[1, 0].imshow(aligned_im)
-ax[1, 0].set_title(
-    f"Pyramid Aligned | r {int(pa_dy_r), int(pa_dx_r)}, g {int(pa_dy_g), int(pa_dx_g)}"
-)
-
-ax[1, 1].imshow(pyramid_aligned_cropped_im)
-ax[1, 1].set_title(
-    f"Pyramid + Cropped Aligned | r {int(pac_dy_r), int(pac_dx_r)}, g {int(pac_dy_g), int(pac_dx_g)}"
-)
-
-plt.tight_layout()
-plt.show()
-
-# Save the image
-fname = f"{OUTPUT_DIR}{input_file}_out.jpg"
-im_out_uint8 = (pyramid_aligned_cropped_im * 255.0).astype(np.uint8)
-skio.imsave(fname, im_out_uint8)
-print(f"Saved image to {fname}")
-
-
 def align_image_pipeline(input_file_path, output_path, display=False):
     """Run the full image alignment pipeline:
     - Read the image from the input file path
@@ -516,118 +417,12 @@ def align_image_pipeline(input_file_path, output_path, display=False):
     print(f"Saved aligned image to {output_path}")
 
 
-def compare_alignment_algorithms(input_file_path, output_path_base, display=True):
-    im = skio.imread(input_file_path)
-    im = sk.img_as_float(im)
-
-    # Compute the height of each part (just 1/3 of total)
-    height = np.floor(im.shape[0] / 3.0).astype(np.uint64)
-
-    # Separate color channels
-    # NOTE: each glass plate image in the data folder is in BGR order
-    b = im[:height]
-    g = im[height : 2 * height]
-    r = im[2 * height : 3 * height]
-
-    orig_im = np.dstack([r, g, b])
-
-    im_out_uint8 = (orig_im * 255.0).astype(np.uint8)
-    orig_output_path = output_path_base +  "_original.jpg"
-    skio.imsave(orig_output_path, im_out_uint8)
-    print(f"Saved stacked original image to {orig_output_path}")
-
-    # Image pyramid alignment
-    print("[Image pyramid] Starting alignment...")
-    ipa_start_time = time.perf_counter()
-
-    ipa_dy_r, ipa_dx_r = pyramid_align(r, b, "ncc")
-    ipa_shifted_r = np.roll(r, shift=(ipa_dy_r, ipa_dx_r), axis=(0, 1))
-    ipa_red_end_time = time.perf_counter()
-    print(
-        f"[Image pyramid] Aligned red to blue plate in {ipa_red_end_time - ipa_start_time} seconds"
-    )
-
-    ipa_dy_g, ipa_dx_g = pyramid_align(g, b, "ncc")
-    ipa_shifted_g = np.roll(g, shift=(ipa_dy_g, ipa_dx_g), axis=(0, 1))
-    ipa_green_end_time = time.perf_counter()
-    print(
-        f"[Image pyramid] Aligned green to blue plate in {ipa_green_end_time - ipa_red_end_time} seconds"
-    )
-
-    ipa_end_time = time.perf_counter()
-    image_pyramid_alignment_time = ipa_end_time - ipa_start_time
-
-    print(
-        f"[Image pyramid] Alignment took a total of {image_pyramid_alignment_time} seconds"
-    )
-    print(f"[Image pyramid] Displacement vector for r: {ipa_dy_r, ipa_dx_r}")
-    print(f"[Image pyramid] Displacement vector for g: {ipa_dy_g, ipa_dx_g}")
-
-    pyramid_aligned_im = np.dstack([ipa_shifted_r, ipa_shifted_g, b])
-
-    pyramid_out_uint8 = (pyramid_aligned_im * 255.0).astype(np.uint8)
-    pyramid_output_path = output_path_base + "_pyramid.jpg"
-    skio.imsave(pyramid_output_path, pyramid_out_uint8)
-    print(f"[Image pyramid] Saved image to {pyramid_output_path}")
-
-    # Single-scale alignment
-    print("[Single-scale] Starting alignment...")
-    ssa_start_time = time.perf_counter()
-
-    # Run single-scale alignment algo and search a radius at least as big as the displacement found by the image pyramid algo
-    ssa_dy_r, ssa_dx_r = align(
-        r, b, "ncc", y_radius=abs(ipa_dy_r), x_radius=abs(ipa_dx_r), verbose=False
-    )
-    ssa_shifted_r = np.roll(r, shift=(ssa_dy_r, ssa_dx_r), axis=(0, 1))
-    ssa_red_end_time = time.perf_counter()
-    print(
-        f"[Single-scale] Aligned red to blue plate in {ssa_red_end_time - ssa_start_time} seconds"
-    )
-
-    ssa_dy_g, ssa_dx_g = align(
-        g, b, "ncc", y_radius=abs(ipa_dy_g), x_radius=abs(ipa_dx_g), verbose=False
-    )
-    ssa_shifted_g = np.roll(g, shift=(ssa_dy_g, ssa_dx_g), axis=(0, 1))
-    ssa_green_endtime = time.perf_counter()
-    print(
-        f"[Single-scale] Aligned green to blue plate in {ssa_green_endtime - ssa_red_end_time} seconds"
-    )
-
-    ssa_end_time = time.perf_counter()
-    single_scale_alignment_time = ssa_end_time - ssa_start_time
-
-    print(
-        f"[Single-scale] Alignment took a total of {single_scale_alignment_time} seconds"
-    )
-    print(f"[Single-scale] Displacement vector for r: {ssa_dy_r, ssa_dx_r}")
-    print(f"[Single-scale] Displacement vector for g: {ssa_dy_g, ssa_dx_g}")
-
-    single_scale_alignment_im = np.dstack([ssa_shifted_r, ssa_shifted_g, b])
-    single_scale_out_uint8 = (single_scale_alignment_im * 255.0).astype(np.uint8)
-    single_scale_output_path = output_path_base +  "_single_scale.jpg"
-    skio.imsave(single_scale_output_path, single_scale_out_uint8)
-    print(f"[Single-scale] Saved image to {single_scale_output_path}")
-
-    if display:
-        # Display the original image and the aligned image
-        fig, ax = plt.subplots(1, 3, figsize=(24, 12))
-        ax[0].imshow(orig_im)
-        ax[0].set_title("Original")
-
-        ax[1].imshow(single_scale_alignment_im)
-        ax[1].set_title("Single-Scale")
-
-        ax[2].imshow(pyramid_aligned_im)
-        ax[2].set_title("Image Pyramid")
-        plt.show()
-
-
-if __name__ == "__main__":
+def main():
     # Folder with the unzipped .tif or .jpg digitized glass plate images
     input_dir = Path("data")
 
     # Folder to save the aligned images to
-    output_dir = Path("out/comparisons")
+    output_dir = Path("out/l2_vs_ncc")
 
     # Iterate through the glass plates in input_dir, align each, and save the outputs
     for file_path in input_dir.iterdir():
@@ -635,5 +430,8 @@ if __name__ == "__main__":
             base_name = file_path.stem
             output_path = str(output_dir / base_name)
             print(f"Processing {file_path}")
-            # align_image_pipeline(file_path, output_path)
-            compare_alignment_algorithms(file_path, output_path_base=output_path)
+            align_image_pipeline(file_path, output_path)
+
+
+if __name__ == "__main__":
+    main()

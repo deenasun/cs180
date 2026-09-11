@@ -546,16 +546,16 @@ def main():
     input_dir = Path("data")
 
     # Folder to save the aligned images to
-    output_dir = Path("out/edge_detection")
+    output_dir = Path("out/")
 
     # Iterate through the glass plates in input_dir, align each, and save the outputs
     for file_path in input_dir.iterdir():
-        if file_path.is_file() and file_path.suffix in {".tif", ".jpg"} and file_path.stem =="emir":
+        if file_path.is_file() and file_path.suffix in {".tif", ".jpg"}:
             base_name = file_path.stem
             output_path = str(output_dir / base_name) + "_edge_out.jpg"
             print(f"Processing {file_path}")
             # align_image_pipeline(file_path, output_path)
-            edge_detection_align(file_path, output_path, display=True)
+            edge_detection_align(file_path, output_path, display=False)
 
 
 if __name__ == "__main__":

@@ -10,7 +10,6 @@ from main import (
     align,
     crop_rgb,
     pyramid_align,
-    edge_detection_align,
     DATA_DIR,
     OUTPUT_DIR,
 )
@@ -433,117 +432,11 @@ def process_results_gallery(input_file_path, output_path_base, display=True):
 
 
 def main():
-
-    # name of the input file
-    input_file = "monastery"
-    input_file_extension = ".jpg"
-
-    # read in the image
-    im = skio.imread(DATA_DIR + input_file + input_file_extension)
-    plt.imshow(im, cmap="gray")
-
-    # print(im.dtype)  # dtype: unit8
-
-    # convert to double (might want to do this later on to save memory)
-    im = sk.img_as_float(im)
-
-    # print(im.dtype)  # dtype: float64
-
-    width = im.shape[1]
-    # compute the height of each part (just 1/3 of total)
-    # NOTE: need to use uint64 because uint8 is [0, 255] and any value
-    height = np.floor(im.shape[0] / 3.0).astype(np.uint64)
-
-    print(
-        f"{input_file}{input_file_extension} has dimensions {height} x {width} (h x w)"
-    )
-
-    # separate color channels
-    # NOTE: each glass plate image in the data folder is in BGR order
-    b = im[:height]
-    g = im[height : 2 * height]
-    r = im[2 * height : 3 * height]
-
-    # stack color channels into original image
-    orig_im = np.dstack([r, g, b])
-
-    crop_white_r, crop_white_g, crop_white_b = crop_rgb(r, g, b, color_val=1.0)
-    crop_black_r, crop_black_g, crop_black_b = crop_rgb(
-        crop_white_r, crop_white_g, crop_white_b, color_val=0.1
-    )
-
-    cropped_r, cropped_g, cropped_b = crop_black_r, crop_black_g, crop_black_b
-
-    # plt.imshow(cropped_r)
-    # plt.imshow(cropped_g)
-    # plt.imshow(cropped_b)
-
-    # Single-scale, basic align
-    dy_r, dx_r = align(r, b, "l2")
-    ar = np.roll(r, shift=(dy_r, dx_r), axis=(0, 1))
-
-    dy_g, dx_g = align(g, b, "l2")
-    ag = np.roll(g, shift=(dy_r, dx_r), axis=(0, 1))
-
-    # create a color image
-    aligned_im = np.dstack([ar, ag, b])
-
-    # Pyramid alignment
-    pa_dy_r, pa_dx_r = pyramid_align(r, b, "ncc", margin=2, verbose=True)
-    print(f"Pyramid displacement vector for r: {pa_dy_r, pa_dx_r}")
-    pa_r = np.roll(r, shift=(pa_dy_r, pa_dx_r), axis=(0, 1))
-
-    pa_dy_g, pa_dx_g = pyramid_align(g, b, "ncc", margin=2, verbose=True)
-    print(f"Pyramid displacement vector for g: {pa_dy_g, pa_dx_g}")
-    pa_g = np.roll(g, shift=(pa_dy_g, pa_dx_g), axis=(0, 1))
-
-    pyramid_aligned_im = np.dstack([pa_r, pa_g, b])
-
-    # Pyramid alignment with cropped images
-    pac_dy_r, pac_dx_r = pyramid_align(cropped_r, cropped_b, "ncc", verbose=True)
-    print(f"Pyramid + cropped displacement vector for r: {pac_dy_r, pac_dx_r}")
-    pa_r = np.roll(cropped_r, shift=(pac_dy_r, pac_dx_r), axis=(0, 1))
-
-    pac_dy_g, pac_dx_g = pyramid_align(cropped_g, cropped_b, "ncc", verbose=True)
-    print(f"Pyramid + cropped displacement vector for g: {pac_dy_g, pac_dx_g}")
-    pa_g = np.roll(cropped_g, shift=(pac_dy_g, pac_dx_g), axis=(0, 1))
-
-    pyramid_aligned_cropped_im = np.dstack([pa_r, pa_g, cropped_b])
-
-    # Display the images (original vs. aligned)
-    fig, ax = plt.subplots(2, 2, figsize=(16, 12))
-    ax[0, 0].imshow(orig_im)
-    ax[0, 0].set_title("Original")
-
-    ax[0, 1].imshow(aligned_im)
-    ax[0, 1].set_title(
-        f"Single-Scale Aligned | r {int(dy_r), int(dx_r)}, g {int(dy_g), int(dx_g)}"
-    )
-
-    ax[1, 0].imshow(aligned_im)
-    ax[1, 0].set_title(
-        f"Pyramid Aligned | r {int(pa_dy_r), int(pa_dx_r)}, g {int(pa_dy_g), int(pa_dx_g)}"
-    )
-
-    ax[1, 1].imshow(pyramid_aligned_cropped_im)
-    ax[1, 1].set_title(
-        f"Pyramid + Cropped Aligned | r {int(pac_dy_r), int(pac_dx_r)}, g {int(pac_dy_g), int(pac_dx_g)}"
-    )
-
-    plt.tight_layout()
-    plt.show()
-
-    # Save the image
-    fname = f"{OUTPUT_DIR}{input_file}_out.jpg"
-    im_out_uint8 = (pyramid_aligned_cropped_im * 255.0).astype(np.uint8)
-    skio.imsave(fname, im_out_uint8)
-    print(f"Saved image to {fname}")
-
     # Folder with the unzipped .tif or .jpg digitized glass plate images
-    input_dir = Path("data")
+    input_dir = Path(DATA_DIR)
 
     # Folder to save the aligned images to
-    output_dir = Path("out")
+    output_dir = Path(OUTPUT_DIR)
 
     # Iterate through the glass plates in input_dir, align each, and save the outputs
     for file_path in input_dir.iterdir():

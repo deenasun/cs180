@@ -138,9 +138,9 @@ const galleryImages = [
 
 const additionalGalleryImages = [
     { stem: "laika", filename: "laika.tif", l2: "red (dy, dx): (115, 7), green (dy, dx): (27, 3)", ncc: "red (dy, dx): (115, 7), green (dy, dx): (27, 2)", canny: "red (dy, dx): (116, 4), green (dy, dx): (28, 1)" },
+    { stem: "milan_duomo", filename: "milan_duomo.tif", l2: "red (dy, dx): (111, -15), green (dy, dx): (47, -9)", ncc: "red (dy, dx): (111, -15), green (dy, dx): (47, -9)", canny: "red (dy, dx): (110, -17), green (dy, dx): (50, -6)" },
     { stem: "borodino", filename: "borodino.tif", l2: "red (dy, dx): (109, 39), green (dy, dx): (53, 28)", ncc: "red (dy, dx): (109, 40), green (dy, dx): (54, 29)", canny: "red (dy, dx): (110, 42), green (dy, dx): (51, 24)" },
     { stem: "st_boris", filename: "st_boris.tif", l2: "red (dy, dx): (158, 62), green (dy, dx): (65, 33)", ncc: "red (dy, dx): (158, 62), green (dy, dx): (65, 33)", canny: "red (dy, dx): (157, 61), green (dy, dx): (65, 35)" },
-    { stem: "milan_duomo", filename: "milan_duomo.tif", l2: "red (dy, dx): (111, -15), green (dy, dx): (47, -9)", ncc: "red (dy, dx): (111, -15), green (dy, dx): (47, -9)", canny: "red (dy, dx): (110, -17), green (dy, dx): (50, -6)" },
 ];
 
 export default function Page() {
@@ -474,15 +474,17 @@ export default function Page() {
                 <section id="results_gallery" className="space-y-5">
                     <h2 className="font-medium">Results Gallery</h2>
                     <p>Here are the final results of my automatic alignment algorithm on 14 provided glass plate images,
-                        plus 4 pictures I chose from the Library of Congress online archives: laika.tif, borodino.tif, st_boris.tif, and milan_duomo.tif!
-                        <br />
+                        plus 4 pictures I chose from the Library of Congress online archives: laika.tif, milan_duomo.tif, borodino.tif, and st_boris.tif!
+                    </p>
+                    <p>
                         These were all processed by first splitting the image data into red, green, and blue plates;
                         cropping solid-color borders from each of the glass plates;
                         aligning the red plate to the blue plate using my image pyramid alignment algorithm;
                         aligning the green plate to the blue plate using my image pyramid alignment algorithm;
                         stacking the 3 aligned plates together into a 3-channel color image;
                         and lastly, trimming the misplaced, wrap-around pixels from the edges.
-                        <br />
+                    </p>
+                    <p>
                         Overall, I found cropping solid-color borders and using NCC produced higher quality alignments.
                         Edge detection most noticeably improved the quality of emir.tif, but found pretty similar best displacements for most of the other images.
                     </p>
@@ -516,7 +518,7 @@ export default function Page() {
                         ))}
                     </div>
                     <section id="additional_images" className="space-y-5">
-                    <h3 className="font-medium">Additional Images</h3>
+                        <h3 className="font-medium">Additional Images</h3>
                         {additionalGalleryImages.map(({ stem, filename, l2, ncc, canny }) => (
                             <div key={stem} className="grid grid-cols-1 gap-4 md:grid-cols-4">
                                 <Figure

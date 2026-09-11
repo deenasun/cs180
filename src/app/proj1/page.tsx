@@ -112,6 +112,23 @@ function Figure({
     )
 }
 
+const galleryImages = [
+    { stem: "cathedral", filename: "cathedral.jpg", l2: "red (dy, dx): (12, 3), green (dy, dx): (5, 2)", ncc: "red (dy, dx): (12, 3), green (dy, dx): (5, 2)" },
+    { stem: "church", filename: "church.tif", l2: "red (dy, dx): (57, 197), green (dy, dx): (0, -5)", ncc: "red (dy, dx): (57, -5), green (dy, dx): (-1, -5)" },
+    { stem: "emir", filename: "emir.tif", l2: "red (dy, dx): (114, 17), green (dy, dx): (28, 8)", ncc: "red (dy, dx): (118, -178), green (dy, dx): (24, 8)" },
+    { stem: "harvesters", filename: "harvesters.tif", l2: "red (dy, dx): (128, 7), green (dy, dx): (58, 10)", ncc: "red (dy, dx): (129, 7), green (dy, dx): (58, 10)" },
+    { stem: "icon", filename: "icon.tif", l2: "red (dy, dx): (91, 22), green (dy, dx): (41, 16)", ncc: "red (dy, dx): (91, 22), green (dy, dx): (40, 16)" },
+    { stem: "ilemselga", filename: "ilemselga.tif", l2: "red (dy, dx): (135, -7), green (dy, dx): (39, -4)", ncc: "red (dy, dx): (138, -7), green (dy, dx): (39, -4)" },
+    { stem: "melons", filename: "melons.tif", l2: "red (dy, dx): (179, 8), green (dy, dx): (83, 4)", ncc: "red (dy, dx): (179, 8), green (dy, dx): (83, 4)" },
+    { stem: "monastery", filename: "monastery.jpg", l2: "red (dy, dx): (3, 2), green (dy, dx): (-3, 2)", ncc: "red (dy, dx): (3, 2), green (dy, dx): (-3, 2)" },
+    { stem: "religous_painting", filename: "religious_painting.tif", l2: "red (dy, dx): (69, 7), green (dy, dx): (24, 3)", ncc: "red (dy, dx): (69, 7), green (dy, dx): (24, 3)" },
+    { stem: "self_portrait", filename: "self_portrait.tif", l2: "red (dy, dx): (175, -3), green (dy, dx): (76, -1)", ncc: "red (dy, dx): (176, -3), green (dy, dx): (77, -1)" },
+    { stem: "siren", filename: "siren.tif", l2: "red (dy, dx): (98, -21), green (dy, dx): (48, -7)", ncc: "red (dy, dx): (97, -21), green (dy, dx): (48, -7)" },
+    { stem: "three_generations", filename: "three_generations.tif", l2: "red (dy, dx): (112, 7), green (dy, dx): (52, 5)", ncc: "red (dy, dx): (112, 7), green (dy, dx): (52, 5)" },
+    { stem: "tobolsk", filename: "tobolsk.jpg", l2: "red (dy, dx): (6, 3), green (dy, dx): (3, 2)", ncc: "red (dy, dx): (6, 3), green (dy, dx): (3, 2)" },
+    { stem: "wharf", filename: "wharf.tif", l2: "red (dy, dx): (83, -17), green (dy, dx): (15, -7)", ncc: "red (dy, dx): (83, -17), green (dy, dx): (15, -7)" },
+];
+
 
 export default function Page() {
     const contents = [
@@ -126,6 +143,10 @@ export default function Page() {
         {
             sectionLink: "basic_alignment",
             text: "Single-Scale Alignment"
+        },
+        {
+            sectionLink: "single_scale_gallery",
+            text: "Single-Scale Gallery"
         },
         {
             sectionLink: "image_pyramids",
@@ -288,15 +309,26 @@ export default function Page() {
                         <Figure src={"/proj1/church_l2.jpg"} caption={"church.tif aligned with L2 Norm"} subcaption={"red (dy, dx): (57, 197), green (dy, dx): (0, -5)"} />
                         <Figure src={"/proj1/church_ncc.jpg"} caption={"church.tif aligned with NCC"} subcaption={"red (dy, dx): (57, -5), green (dy, dx): (-1, -5)"} />
                     </div>
-                    <p>
-                        Using single-scale automatic alignment and searching over a range of [-15, 15] for dy and dx worked well on the smaller digitized glass plate data!
-                        Here are the results of single-scale automatic alignment on monastery.jpg, where each glass plate has dimensions (341px, 391px).
-                    </p>
+                    <section id="single_scale_gallery" className="space-y-5">
+                        <h2 className="font-medium">Single-Scale Gallery</h2>
+                        <p>
+                            Using single-scale automatic alignment and searching over a range of [-15, 15] for dy and dx worked well on the smaller digitized glass plate data!
+                            Here are the results of single-scale automatic alignment on the smaller images: cathedral.jpg, monastery.jpg, and tobolsk.jpg.
+                        </p>
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                            <Figure src={"/proj1/gallery/cathedral_original.jpg"} caption={"cathedral.jpg (original, dimensions: (341px, 390px))"} />
+                            <Figure src={"/proj1/cathedral_single_scale_l2.jpg"} caption={"cathedral.jpg (single-scale + L2)"} subcaption={"red (dy, dx): (12, 3), green (dy, dx): (5, 2); total time: 0.218s"} />
+                            <Figure src={"/proj1/cathedral_single_scale_ncc.jpg"} caption={"cathedral.jpg (single-scale + NCC)"} subcaption={"red (dy, dx): (12, 3), green (dy, dx): (5, 2); total time: 0.535s"} />
 
-                    <div className="flex flex-row w-full justify-center space-x-20">
-                        <Figure src={"/proj1/monastery_original.jpg"} caption={"monastery.jpg before automatic alignment"} />
-                        <Figure src={"/proj1/monastery_out.jpg"} caption={"monastery.jpg after single-scale alignment with NCC"} />
-                    </div>
+                            <Figure src={"/proj1/gallery/monastery_original.jpg"} caption={"monastery.jpg (original, dimensions: (341px, 391px))"} />
+                            <Figure src={"/proj1/monastery_single_scale_l2.jpg"} caption={"monastery.jpg (single-scale + L2)"} subcaption={"red (dy, dx): (3, 2), green (dy, dx): (-3, 2); total time: 0.234s"} />
+                            <Figure src={"/proj1/monastery_single_scale_ncc.jpg"} caption={"monastery.jpg (single-scale + NCC)"} subcaption={"red (dy, dx): (3, 2), green (dy, dx): (-3, 2); total time: 0.504s"} />
+
+                            <Figure src={"/proj1/gallery/tobolsk_original.jpg"} caption={"tobolsk.jpg (original, dimensions: (341px, 396px))"} />
+                            <Figure src={"/proj1/tobolsk_single_scale_l2.jpg"} caption={"tobolsk.jpg (single-scale + L2)"} subcaption={"red (dy, dx): (6, 3), green (dy, dx): (3, 2); total time: 0.225s"} />
+                            <Figure src={"/proj1/tobolsk_single_scale_ncc.jpg"} caption={"tobolsk.jpg (single-scale + NCC)"} subcaption={"red (dy, dx): (6, 3), green (dy, dx): (3, 2); total time: 0.525s"} />
+                        </div>
+                    </section>
                     <p>
                         However, when trying to align hi-res glass plates where the each side is measured in thousands of pixels, the glass plates have much bigger
                         margins of displacement so we have to search over much larger windows for dy and dx. Instead of brute-force searching over hundreds or thousands of
@@ -397,85 +429,35 @@ export default function Page() {
                     <h2 className="font-medium">Results Gallery</h2>
                     <p>Here are the final results of my automatic alignment algorithm on 14 provided glass plate images,
                         plus 3 pictures I chose from the Library of Congress online archives (TODO: mention which 3 pictures)!
-                        < br />
+                        <br />
                         These were all processed by first splitting the image data into red, green, and blue plates;
                         cropping solid-color borders from each of the glass plates;
                         aligning the red plate to the blue plate using my image pyramid alignment algorithm;
                         aligning the green plate to the blue plate using my image pyramid alignment algorithm;
                         stacking the 3 aligned plates together into a 3-channel color image;
                         and lastly, trimming the misplaced, wrap-around pixels from the edges.
+                        <br />
+                        Overall, I found cropping solid-color borders and using NCC produced higher quality alignments.
                     </p>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div><Figure src={"/proj1/cathedral_original.jpg"}
-                            caption={"cathedral.jpg (original)"} /></div>
-                        <div><Figure src={"/proj1/cathedral_out.jpg"}
-                            caption={"cathedral.jpg (aligned)"}
-                            subcaption={"red (dy, dx): (12, 3), green (dy, dx): (5, 2)"} /></div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div><Figure src={"/proj1/church_original.jpg"} caption={"church.tif (original)"} /></div>
-                        <div><Figure src={"/proj1/church_out.jpg"} caption={"church.tif (aligned)"}
-                            subcaption={"red (dy, dx): (57, -5), green (dy, dx): (-1, -5)"} /></div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div><Figure src={"/proj1/emir_original.jpg"} caption={"emir.tif (original)"} /></div>
-                        <div><Figure src={"/proj1/emir_out.jpg"} caption={"emir.tif (aligned)"}
-                            subcaption={"red (dy, dx): (118, -178), green (dy, dx): (24, 8)"} /></div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div><Figure src={"/proj1/harvesters_original.jpg"} caption={"harvesters.tif (original)"} /></div>
-                        <div><Figure src={"/proj1/harvesters_out.jpg"} caption={"harvesters.tif (aligned)"}
-                            subcaption={"red (dy, dx): (129, 7), green (dy, dx): (58, 10)"} /></div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div><Figure src={"/proj1/icon_original.jpg"} caption={"icon.tif (original)"} /></div>
-                        <div><Figure src={"/proj1/icon_out.jpg"} caption={"icon.tif (aligned)"}
-                            subcaption={"red (dy, dx): (91, 22), green (dy, dx): (40, 16)"} /></div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div><Figure src={"/proj1/ilemselga_original.jpg"} caption={"ilemselga.tif (original)"} /></div>
-                        <div><Figure src={"/proj1/ilemselga_out.jpg"} caption={"ilemselga.tif (aligned)"}
-                            subcaption={"red (dy, dx): (138, -7), green (dy, dx): (39, -4)"} /></div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div><Figure src={"/proj1/melons_original.jpg"} caption={"melons.tif (original)"} /></div>
-                        <div><Figure src={"/proj1/melons_out.jpg"} caption={"melons.tif (aligned)"}
-                            subcaption={"red (dy, dx): (179, 8), green (dy, dx): (83, 4)"} /></div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div><Figure src={"/proj1/monastery_original.jpg"} caption={"monastery.jpg (original)"} /></div>
-                        <div><Figure src={"/proj1/monastery_out.jpg"} caption={"monastery.jpg (aligned)"}
-                            subcaption={"red (dy, dx): (3, 2), green (dy, dx): (-3, 2)"} /></div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div><Figure src={"/proj1/religous_painting_original.jpg"} caption={"religious_painting.tif (original)"} /></div>
-                        <div><Figure src={"/proj1/religous_painting_out.jpg"} caption={"religious_painting.tif (aligned)"}
-                            subcaption={"red (dy, dx): (69, 7), green (dy, dx): (24, 3)"} /></div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div><Figure src={"/proj1/self_portrait_original.jpg"} caption={"self_portrait.tif (original)"} /></div>
-                        <div><Figure src={"/proj1/self_portrait_out.jpg"} caption={"self_portrait.tif (aligned)"}
-                            subcaption={"red (dy, dx): (176, -3), green (dy, dx): (77, -1)"} /></div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div><Figure src={"/proj1/siren_original.jpg"} caption={"siren.tif (original)"} /></div>
-                        <div><Figure src={"/proj1/siren_out.jpg"} caption={"siren.tif (aligned)"}
-                            subcaption={"red (dy, dx): (97, -21), green (dy, dx): (48, -7)"} /></div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div><Figure src={"/proj1/three_generations_original.jpg"} caption={"three_generations.tif (original)"} /></div>
-                        <div><Figure src={"/proj1/three_generations_out.jpg"} caption={"three_generations.tif (aligned)"}
-                            subcaption={"red (dy, dx): (112, 7), green (dy, dx): (52, 5)"} /></div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div><Figure src={"/proj1/tobolsk_original.jpg"} caption={"tobolsk.jpg (original)"} /></div>
-                        <div><Figure src={"/proj1/tobolsk_out.jpg"} caption={"tobolsk.jpg (aligned)"}
-                            subcaption={"red (dy, dx): (6, 3), green (dy, dx): (3, 2)"} /></div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div><Figure src={"/proj1/wharf_original.jpg"} caption={"wharf.tif (original)"} /></div>
-                        <div><Figure src={"/proj1/wharf_out.jpg"} caption={"wharf.tif (aligned)"}
-                            subcaption={"red (dy, dx): (83, -17), green (dy, dx): (15, -7)"} /></div>
+                    <div className="space-y-10">
+                        {galleryImages.map(({ stem, filename, l2, ncc }) => (
+                            <div key={stem} className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                                <Figure
+                                    src={`/proj1/gallery/${stem}_original.jpg`}
+                                    caption={`${filename} (original)`}
+                                />
+                                <Figure
+                                    src={`/proj1/gallery/${stem}_l2.jpg`}
+                                    caption={`${filename} (image pyramid + L2)`}
+                                    subcaption={l2}
+                                />
+                                <Figure
+                                    src={`/proj1/gallery/${stem}_ncc.jpg`}
+                                    caption={`${filename} (image pyramid + NCC)`}
+                                    subcaption={ncc}
+                                />
+                            </div>
+                        ))}
                     </div>
                 </section>
             </article>

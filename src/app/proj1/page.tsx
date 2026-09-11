@@ -11,11 +11,15 @@ import { getAssetPath } from "@/shared"
 function Figure({
     src,
     caption,
-    subcaption
+    subcaption,
+    style_width,
+    style_height
 }: {
     src: string,
     caption: string,
     subcaption?: string | null
+    style_width?: string | null,
+    style_height?: string | null,
 }) {
     // Focus on the figure if mouse hovers and stays over the image
     const [isHovering, setIsHovering] = useState(false);
@@ -70,7 +74,10 @@ function Figure({
                         alt={caption}
                         height={1080}
                         width={1080}
-                        style={{ width: "auto", height: "40vh" }}
+                        style={{
+                            width: style_width ?? "auto",
+                            height: style_width ? "auto" : (style_height ?? "40vh"),
+                        }}
                     />
                     {isHovering && (
                         <div className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded bg-space-black/80 px-3 py-1 text-sm text-cream">
@@ -113,22 +120,21 @@ function Figure({
 }
 
 const galleryImages = [
-    { stem: "cathedral", filename: "cathedral.jpg", l2: "red (dy, dx): (12, 3), green (dy, dx): (5, 2)", ncc: "red (dy, dx): (12, 3), green (dy, dx): (5, 2)" },
-    { stem: "church", filename: "church.tif", l2: "red (dy, dx): (57, 197), green (dy, dx): (0, -5)", ncc: "red (dy, dx): (57, -5), green (dy, dx): (-1, -5)" },
-    { stem: "emir", filename: "emir.tif", l2: "red (dy, dx): (114, 17), green (dy, dx): (28, 8)", ncc: "red (dy, dx): (118, -178), green (dy, dx): (24, 8)" },
-    { stem: "harvesters", filename: "harvesters.tif", l2: "red (dy, dx): (128, 7), green (dy, dx): (58, 10)", ncc: "red (dy, dx): (129, 7), green (dy, dx): (58, 10)" },
-    { stem: "icon", filename: "icon.tif", l2: "red (dy, dx): (91, 22), green (dy, dx): (41, 16)", ncc: "red (dy, dx): (91, 22), green (dy, dx): (40, 16)" },
-    { stem: "ilemselga", filename: "ilemselga.tif", l2: "red (dy, dx): (135, -7), green (dy, dx): (39, -4)", ncc: "red (dy, dx): (138, -7), green (dy, dx): (39, -4)" },
-    { stem: "melons", filename: "melons.tif", l2: "red (dy, dx): (179, 8), green (dy, dx): (83, 4)", ncc: "red (dy, dx): (179, 8), green (dy, dx): (83, 4)" },
-    { stem: "monastery", filename: "monastery.jpg", l2: "red (dy, dx): (3, 2), green (dy, dx): (-3, 2)", ncc: "red (dy, dx): (3, 2), green (dy, dx): (-3, 2)" },
-    { stem: "religous_painting", filename: "religious_painting.tif", l2: "red (dy, dx): (69, 7), green (dy, dx): (24, 3)", ncc: "red (dy, dx): (69, 7), green (dy, dx): (24, 3)" },
-    { stem: "self_portrait", filename: "self_portrait.tif", l2: "red (dy, dx): (175, -3), green (dy, dx): (76, -1)", ncc: "red (dy, dx): (176, -3), green (dy, dx): (77, -1)" },
-    { stem: "siren", filename: "siren.tif", l2: "red (dy, dx): (98, -21), green (dy, dx): (48, -7)", ncc: "red (dy, dx): (97, -21), green (dy, dx): (48, -7)" },
-    { stem: "three_generations", filename: "three_generations.tif", l2: "red (dy, dx): (112, 7), green (dy, dx): (52, 5)", ncc: "red (dy, dx): (112, 7), green (dy, dx): (52, 5)" },
-    { stem: "tobolsk", filename: "tobolsk.jpg", l2: "red (dy, dx): (6, 3), green (dy, dx): (3, 2)", ncc: "red (dy, dx): (6, 3), green (dy, dx): (3, 2)" },
-    { stem: "wharf", filename: "wharf.tif", l2: "red (dy, dx): (83, -17), green (dy, dx): (15, -7)", ncc: "red (dy, dx): (83, -17), green (dy, dx): (15, -7)" },
+    { stem: "cathedral", filename: "cathedral.jpg", l2: "red (dy, dx): (12, 3), green (dy, dx): (5, 2)", ncc: "red (dy, dx): (12, 3), green (dy, dx): (5, 2)", canny: "red (dy, dx): (12, 3), green (dy, dx): (5, 2)" },
+    { stem: "church", filename: "church.tif", l2: "red (dy, dx): (57, 197), green (dy, dx): (0, -5)", ncc: "red (dy, dx): (57, -5), green (dy, dx): (-1, -5)", canny: "red (dy, dx): (58, -4), green (dy, dx): (25, 4)" },
+    { stem: "emir", filename: "emir.tif", l2: "red (dy, dx): (114, 17), green (dy, dx): (28, 8)", ncc: "red (dy, dx): (118, -178), green (dy, dx): (24, 8)", canny: "red (dy, dx): (107, 40), green (dy, dx): (49, 23)" },
+    { stem: "harvesters", filename: "harvesters.tif", l2: "red (dy, dx): (128, 7), green (dy, dx): (58, 10)", ncc: "red (dy, dx): (129, 7), green (dy, dx): (58, 10)", canny: "red (dy, dx): (123, 9), green (dy, dx): (60, 18)" },
+    { stem: "icon", filename: "icon.tif", l2: "red (dy, dx): (91, 22), green (dy, dx): (41, 16)", ncc: "red (dy, dx): (91, 22), green (dy, dx): (40, 16)", canny: "red (dy, dx): (88, 22), green (dy, dx): (38, 16)" },
+    { stem: "ilemselga", filename: "ilemselga.tif", l2: "red (dy, dx): (135, -7), green (dy, dx): (39, -4)", ncc: "red (dy, dx): (138, -7), green (dy, dx): (39, -4)", canny: "red (dy, dx): (130, 11), green (dy, dx): (39, 7)" },
+    { stem: "melons", filename: "melons.tif", l2: "red (dy, dx): (179, 8), green (dy, dx): (83, 4)", ncc: "red (dy, dx): (179, 8), green (dy, dx): (83, 4)", canny: "red (dy, dx): (182, 11), green (dy, dx): (79, 9)" },
+    { stem: "monastery", filename: "monastery.jpg", l2: "red (dy, dx): (3, 2), green (dy, dx): (-3, 2)", ncc: "red (dy, dx): (3, 2), green (dy, dx): (-3, 2)", canny: "red (dy, dx): (3, 2), green (dy, dx): (-3, 2)" },
+    { stem: "religous_painting", filename: "religious_painting.tif", l2: "red (dy, dx): (69, 7), green (dy, dx): (24, 3)", ncc: "red (dy, dx): (69, 7), green (dy, dx): (24, 3)", canny: "red (dy, dx): (69, 6), green (dy, dx): (29, 1)" },
+    { stem: "self_portrait", filename: "self_portrait.tif", l2: "red (dy, dx): (175, -3), green (dy, dx): (76, -1)", ncc: "red (dy, dx): (176, -3), green (dy, dx): (77, -1)", canny: "red (dy, dx): (175, 37), green (dy, dx): (77, 29)" },
+    { stem: "siren", filename: "siren.tif", l2: "red (dy, dx): (98, -21), green (dy, dx): (48, -7)", ncc: "red (dy, dx): (97, -21), green (dy, dx): (48, -7)", canny: "red (dy, dx): (96, -23), green (dy, dx): (48, -8)" },
+    { stem: "three_generations", filename: "three_generations.tif", l2: "red (dy, dx): (112, 7), green (dy, dx): (52, 5)", ncc: "red (dy, dx): (112, 7), green (dy, dx): (52, 5)", canny: "red (dy, dx): (111, 8), green (dy, dx): (56, 12)" },
+    { stem: "tobolsk", filename: "tobolsk.jpg", l2: "red (dy, dx): (6, 3), green (dy, dx): (3, 2)", ncc: "red (dy, dx): (6, 3), green (dy, dx): (3, 2)", canny: "red (dy, dx): (6, 3), green (dy, dx): (3, 3)" },
+    { stem: "wharf", filename: "wharf.tif", l2: "red (dy, dx): (83, -17), green (dy, dx): (15, -7)", ncc: "red (dy, dx): (83, -17), green (dy, dx): (15, -7)", canny: "red (dy, dx): (83, -16), green (dy, dx): (15, -7)" },
 ];
-
 
 export default function Page() {
     const contents = [
@@ -334,7 +340,7 @@ export default function Page() {
                         margins of displacement so we have to search over much larger windows for dy and dx. Instead of brute-force searching over hundreds or thousands of
                         displacements, automatic alignment can use image pyramids to hierarchically refine the best-estimate displacement at multiple scales!
                     </p>
-                    <Figure src="/proj1/single_scale_vs_pyramid_time.png"
+                    <Figure src="/proj1/single_scale_vs_pyramid_time.jpg"
                         caption="The time in seconds it took the single-scale alignment algo to search the same window of possible displacements as the best displacements found by the image pyramid implementation" />
                 </section>
                 <section id="image_pyramids" className="space-y-5">
@@ -419,11 +425,44 @@ export default function Page() {
                 </section>
                 <section id="bells_and_whistles" className="space-y-5">
                     <h2 className="font-medium">Bells and Whistles!</h2>
-                    <b>Automatic cropping and detecting solid-color borders: </b> Before aligning the color plates to one another, I cropped the white and black borders from all 3 plates.
-                    To detect whether a row or column should be cropped, I computed the fraction of elements in a given row/column whose pixel values were within
-                    a tolerance of 0.1 from 1.0 (white) or 0.1 (an approximation for black). As long as more than 70% of the pixels in this row/column were the target color,
-                    the algorithm considered them part of the solid-color border. The algorithm would then continue scanning inwards until it found a row/column where less than
-                    70% of the pixels were within tolerance of the solid-color border, or until it hit a max crop limit of 5% of the full height/width.
+                    <p>
+                        <b>Automatic cropping and detecting solid-color borders: </b> Before aligning the color plates to one another, I cropped the white and black borders from all 3 plates.
+                        To detect whether a row or column should be cropped, I computed the fraction of elements in a given row/column whose pixel values were within
+                        a tolerance of 0.1 from 1.0 (white) or 0.1 (an approximation for black). As long as more than 70% of the pixels in this row/column were the target color,
+                        the algorithm considered them part of the solid-color border. The algorithm would then continue scanning inwards until it found a row/column where less than
+                        70% of the pixels were within tolerance of the solid-color border, or until it hit a max crop limit of 5% of the full height/width.
+                    </p>
+                    <p>
+                        <b>Automatic edge detection using Canny edge detectors: </b> Even with all the automatic alignment tricks I threw at it so far, emir.tif evaded alignment!
+                        Aligning based on pixel intensity alone proved insufficient because Emir's robe is overwhelmingly blue. The pixel values of his robe in the red and green
+                        plates are much darker compared to to the blue plate; hence, L2 norm and NCC will struggle to align his robe's red or green pixels to the blue pixels since their values differ so much!
+                        The solution I explore was to align the color plates based on edges of objects, people, or scenery instead!
+                        Since the three color plates all captured the same scene at roughly the same moment in time, the shapes in the scene were more consistent than color, especially if one color dominates the other two in a particular spot.
+
+                        I used scikit-image's Canny edge detector. Canny edge detection is a multi-stage algorithm that detects edges by convolving the image with a Gaussian filters to remove noise and taking the gradient of the image to compute
+                        how the image's pixel intensities change in a local window. The intensity of the image gradient can be used to identify edges.
+                    </p>
+                    <p>
+                        Below, you can see how edge detection greatly improved the final alignment quality of Emir's portrait!
+
+                        For the other provided images, automatic alignment based on pixel intensities vs. edges produced roughly the same displacements.
+                    </p>
+                    <div className="grid grid-cols-1 gap-4 pt-10 md:grid-cols-3">
+                        <Figure
+                            src="/proj1/gallery/emir_original.jpg"
+                            caption="emir.tif (original)"
+                        />
+                        <Figure
+                            src="/proj1/gallery/emir_ncc.jpg"
+                            caption="emir.tif (image pyramid + NCC)"
+                            subcaption="red (dy, dx): (118, -178), green (dy, dx): (24, 8)"
+                        />
+                        <Figure
+                            src="/proj1/gallery/emir_edge_out.jpg"
+                            caption="emir.tif (image pyramid + Canny + NCC)"
+                            subcaption="red (dy, dx): (107, 40), green (dy, dx): (49, 23)"
+                        />
+                    </div>
                 </section>
                 <section id="results_gallery" className="space-y-5">
                     <h2 className="font-medium">Results Gallery</h2>
@@ -438,23 +477,33 @@ export default function Page() {
                         and lastly, trimming the misplaced, wrap-around pixels from the edges.
                         <br />
                         Overall, I found cropping solid-color borders and using NCC produced higher quality alignments.
+                        Edge detection most noticeably improved the quality of emir.tif, but found pretty similar best displacements for most of the other images.
                     </p>
                     <div className="space-y-10">
-                        {galleryImages.map(({ stem, filename, l2, ncc }) => (
-                            <div key={stem} className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                        {galleryImages.map(({ stem, filename, l2, ncc, canny }) => (
+                            <div key={stem} className="grid grid-cols-1 gap-4 md:grid-cols-4">
                                 <Figure
                                     src={`/proj1/gallery/${stem}_original.jpg`}
                                     caption={`${filename} (original)`}
+                                    style_width={"20vw"}
                                 />
                                 <Figure
                                     src={`/proj1/gallery/${stem}_l2.jpg`}
                                     caption={`${filename} (image pyramid + L2)`}
                                     subcaption={l2}
+                                    style_width={"20vw"}
                                 />
                                 <Figure
                                     src={`/proj1/gallery/${stem}_ncc.jpg`}
                                     caption={`${filename} (image pyramid + NCC)`}
                                     subcaption={ncc}
+                                    style_width={"20vw"}
+                                />
+                                <Figure
+                                    src={`/proj1/gallery/${stem}_edge_out.jpg`}
+                                    caption={`${filename} (image pyramid + Canny + NCC)`}
+                                    subcaption={canny}
+                                    style_width={"20vw"}
                                 />
                             </div>
                         ))}

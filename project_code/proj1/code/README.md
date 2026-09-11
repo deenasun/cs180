@@ -41,7 +41,11 @@ Although the exact width of the solid-color borders might differ between each of
 1. Create 2 folders at the root of `code/` called `data/` and `out/`. These should match the constants defined in `DATA_DIR` and `OUTPUT_DIR`.
 
 2. Put the 14 provided glass plate negatives under `data/`.
-    a. The 4 additional glass plate images I chose can be downloaded here! I used the highest resolution `.tif` files that were available online.
+    a. I also chose 4 additional glass plate images from the [Library of Congress's Prokudin-Gorskii collection](https://www.loc.gov/collections/prokudin-gorskii/?st=grid) (I used the highest resolution `.tif` files that were available online):
+      i. laika.tif - [Studies in the mouth of Kem River - laika (dog)](https://www.loc.gov/item/2018679239/)
+      ii. milan_duomo.tif - [Details of Milan Cathedral](https://www.loc.gov/item/2018679122/)
+      iii. borodino.tif - [River Koloch at the Village of Gorki with a High Bank. Borodino [Battlefield]](https://www.loc.gov/item/2018679978/)
+      iv. st_boris.tif - [Village of Deviatiny and the Saint Boris Dam [Russian Empire]](https://www.loc.gov/item/2018678884/)
 
 3. Uncomment either the `align_image_pipeline` or `edge_detection_align` line to run the full image processing pipeline on each input file inside `data/`. From the root directory of `code/`, run `python3 main.py`.
     a. Alternatively, I like to use my IDE's interactive Python window to run my Python code side-by-side as I develop. In interactive Python window mode, I can select and run certain parts of my Python file in real-time, see generated plots/visualizations, and experiment faster :) Interactive window mode executes the selected code sequentially and preserves variables in between executions (for example, you would need to run import statements to initialize them in the `ipykernel` kernel, or run function definitions before trying to call the functions).
@@ -49,6 +53,3 @@ Although the exact width of the solid-color borders might differ between each of
     To turn on interactive Python mode in VSCode/Cursor, set `"jupyter.interactiveWindow.textEditor.executeSelection": true`. Then, open a Python file. Highlight the lines you want to execute and press `shift + enter`. If promped, select the virtual environment created during setup as the Python interpreter.
 
 4. To generate the 4 different variations in my results gallery, run `python3 experiments.py`. The main function in that file runs the `process_results_gallery` function on each input file inside `data/`. The `process_results_gallery` function will generate 4 results for each input image: the original glass plates stacked on top of each other without any alignment, image pyramid + L2, image pyramid + NCC, and image pyramid + Canny edge detector + NCC.
-
-## Image sources
-In addition to the 14 provided images, I also chose 4 glass plate negatives from the [Library of Congress's Prokudin-Gorskii collection](https://www.loc.gov/collections/prokudin-gorskii/?st=grid): laika.tif, milan_duomo.tif, borodino.tif, st_boris.tif.

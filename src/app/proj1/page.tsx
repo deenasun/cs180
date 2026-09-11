@@ -13,13 +13,15 @@ function Figure({
     caption,
     subcaption,
     style_width,
-    style_height
+    style_height,
+    loading
 }: {
     src: string,
     caption: string,
     subcaption?: string | null
     style_width?: string | null,
     style_height?: string | null,
+    loading?: "eager" | "lazy";
 }) {
     // Focus on the figure if mouse hovers and stays over the image
     const [isHovering, setIsHovering] = useState(false);
@@ -74,6 +76,7 @@ function Figure({
                         alt={caption}
                         height={1080}
                         width={1080}
+                        loading={loading}
                         style={{
                             width: style_width ?? "auto",
                             height: style_width ? "auto" : (style_height ?? "40vh"),
@@ -170,8 +173,8 @@ export default function Page() {
             text: "Bells and Whistles"
         },
         {
-            sectionLink: "results_gallery",
-            text: "Results Gallery"
+            sectionLink: "final_results_gallery",
+            text: "Final Results Gallery"
         },
     ]
 
@@ -196,10 +199,12 @@ export default function Page() {
                 <div className="flex flex-row w-full justify-center space-x-20">
                     <Figure src={"/proj1/gallery/self_portrait_original.jpg"}
                         caption={"Prokudin-Gorskii's self-portrait before aligning"}
+                        loading="eager"
                     />
                     <Figure
                         src={"/proj1/gallery/self_portrait_canny_out.jpg"}
                         caption={"My auto-aligned glass plates of Prokudin-Gorskii's self-portrait"}
+                        loading="eager"
                     />
                 </div>
                 <section id="context" className="space-y-5">
@@ -471,10 +476,14 @@ export default function Page() {
                         />
                     </div>
                 </section>
-                <section id="results_gallery" className="space-y-5">
-                    <h2 className="font-medium">Results Gallery</h2>
+                <section id="final_results_gallery" className="space-y-5">
+                    <h2 className="font-medium">Final Results Gallery</h2>
                     <p>Here are the final results of my automatic alignment algorithm on 14 provided glass plate images,
-                        plus 4 pictures I chose from the Library of Congress online archives: laika.tif, milan_duomo.tif, borodino.tif, and st_boris.tif!
+                        plus 4 pictures I chose from the Library of Congress's Prokudin-Gorskii online collection:{" "}
+                        <a href="https://www.loc.gov/item/2018679239/" target="_blank" rel="noopener noreferrer" className="text-[var(--color-code-blue)] hover:underline">laika.tif</a>,{" "}
+                        <a href="https://www.loc.gov/item/2018679122/" target="_blank" rel="noopener noreferrer" className="text-[var(--color-code-blue)] hover:underline">milan_duomo.tif</a>,{" "}
+                        <a href="https://www.loc.gov/item/2018679978/" target="_blank" rel="noopener noreferrer" className="text-[var(--color-code-blue)] hover:underline">borodino.tif</a>, and{" "}
+                        <a href="https://www.loc.gov/item/2018678884/" target="_blank" rel="noopener noreferrer" className="text-[var(--color-code-blue)] hover:underline">st_boris.tif</a>!
                     </p>
                     <p>
                         These were all processed by first splitting the image data into red, green, and blue plates;

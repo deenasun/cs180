@@ -121,19 +121,26 @@ function Figure({
 
 const galleryImages = [
     { stem: "cathedral", filename: "cathedral.jpg", l2: "red (dy, dx): (12, 3), green (dy, dx): (5, 2)", ncc: "red (dy, dx): (12, 3), green (dy, dx): (5, 2)", canny: "red (dy, dx): (12, 3), green (dy, dx): (5, 2)" },
-    { stem: "church", filename: "church.tif", l2: "red (dy, dx): (57, 197), green (dy, dx): (0, -5)", ncc: "red (dy, dx): (57, -5), green (dy, dx): (-1, -5)", canny: "red (dy, dx): (58, -4), green (dy, dx): (25, 4)" },
-    { stem: "emir", filename: "emir.tif", l2: "red (dy, dx): (114, 17), green (dy, dx): (28, 8)", ncc: "red (dy, dx): (118, -178), green (dy, dx): (24, 8)", canny: "red (dy, dx): (107, 40), green (dy, dx): (49, 23)" },
-    { stem: "harvesters", filename: "harvesters.tif", l2: "red (dy, dx): (128, 7), green (dy, dx): (58, 10)", ncc: "red (dy, dx): (129, 7), green (dy, dx): (58, 10)", canny: "red (dy, dx): (123, 9), green (dy, dx): (60, 18)" },
-    { stem: "icon", filename: "icon.tif", l2: "red (dy, dx): (91, 22), green (dy, dx): (41, 16)", ncc: "red (dy, dx): (91, 22), green (dy, dx): (40, 16)", canny: "red (dy, dx): (88, 22), green (dy, dx): (38, 16)" },
-    { stem: "ilemselga", filename: "ilemselga.tif", l2: "red (dy, dx): (135, -7), green (dy, dx): (39, -4)", ncc: "red (dy, dx): (138, -7), green (dy, dx): (39, -4)", canny: "red (dy, dx): (130, 11), green (dy, dx): (39, 7)" },
-    { stem: "melons", filename: "melons.tif", l2: "red (dy, dx): (179, 8), green (dy, dx): (83, 4)", ncc: "red (dy, dx): (179, 8), green (dy, dx): (83, 4)", canny: "red (dy, dx): (182, 11), green (dy, dx): (79, 9)" },
+    { stem: "church", filename: "church.tif", l2: "red (dy, dx): (58, 188), green (dy, dx): (25, 2)", ncc: "red (dy, dx): (57, -5), green (dy, dx): (24, 3)", canny: "red (dy, dx): (58, -4), green (dy, dx): (25, 4)" },
+    { stem: "emir", filename: "emir.tif", l2: "red (dy, dx): (104, 43), green (dy, dx): (49, 24)", ncc: "red (dy, dx): (132, -276), green (dy, dx): (49, 24)", canny: "red (dy, dx): (107, 40), green (dy, dx): (49, 23)" },
+    { stem: "harvesters", filename: "harvesters.tif", l2: "red (dy, dx): (124, 14), green (dy, dx): (60, 16)", ncc: "red (dy, dx): (124, 13), green (dy, dx): (60, 16)", canny: "red (dy, dx): (123, 9), green (dy, dx): (60, 18)" },
+    { stem: "icon", filename: "icon.tif", l2: "red (dy, dx): (90, 23), green (dy, dx): (41, 17)", ncc: "red (dy, dx): (89, 23), green (dy, dx): (40, 16)", canny: "red (dy, dx): (88, 22), green (dy, dx): (38, 16)" },
+    { stem: "ilemselga", filename: "ilemselga.tif", l2: "red (dy, dx): (129, 11), green (dy, dx): (39, 7)", ncc: "red (dy, dx): (130, 11), green (dy, dx): (39, 7)", canny: "red (dy, dx): (130, 11), green (dy, dx): (39, 7)" },
+    { stem: "melons", filename: "melons.tif", l2: "red (dy, dx): (179, 13), green (dy, dx): (82, 10)", ncc: "red (dy, dx): (178, 12), green (dy, dx): (82, 9)", canny: "red (dy, dx): (182, 11), green (dy, dx): (79, 9)" },
     { stem: "monastery", filename: "monastery.jpg", l2: "red (dy, dx): (3, 2), green (dy, dx): (-3, 2)", ncc: "red (dy, dx): (3, 2), green (dy, dx): (-3, 2)", canny: "red (dy, dx): (3, 2), green (dy, dx): (-3, 2)" },
-    { stem: "religous_painting", filename: "religious_painting.tif", l2: "red (dy, dx): (69, 7), green (dy, dx): (24, 3)", ncc: "red (dy, dx): (69, 7), green (dy, dx): (24, 3)", canny: "red (dy, dx): (69, 6), green (dy, dx): (29, 1)" },
-    { stem: "self_portrait", filename: "self_portrait.tif", l2: "red (dy, dx): (175, -3), green (dy, dx): (76, -1)", ncc: "red (dy, dx): (176, -3), green (dy, dx): (77, -1)", canny: "red (dy, dx): (175, 37), green (dy, dx): (77, 29)" },
-    { stem: "siren", filename: "siren.tif", l2: "red (dy, dx): (98, -21), green (dy, dx): (48, -7)", ncc: "red (dy, dx): (97, -21), green (dy, dx): (48, -7)", canny: "red (dy, dx): (96, -23), green (dy, dx): (48, -8)" },
-    { stem: "three_generations", filename: "three_generations.tif", l2: "red (dy, dx): (112, 7), green (dy, dx): (52, 5)", ncc: "red (dy, dx): (112, 7), green (dy, dx): (52, 5)", canny: "red (dy, dx): (111, 8), green (dy, dx): (56, 12)" },
-    { stem: "tobolsk", filename: "tobolsk.jpg", l2: "red (dy, dx): (6, 3), green (dy, dx): (3, 2)", ncc: "red (dy, dx): (6, 3), green (dy, dx): (3, 2)", canny: "red (dy, dx): (6, 3), green (dy, dx): (3, 3)" },
+    { stem: "religous_painting", filename: "religious_painting.tif", l2: "red (dy, dx): (68, 7), green (dy, dx): (28, 5)", ncc: "red (dy, dx): (68, 7), green (dy, dx): (28, 5)", canny: "red (dy, dx): (69, 6), green (dy, dx): (29, 1)" },
+    { stem: "self_portrait", filename: "self_portrait.tif", l2: "red (dy, dx): (176, 36), green (dy, dx): (79, 28)", ncc: "red (dy, dx): (176, 36), green (dy, dx): (79, 28)", canny: "red (dy, dx): (175, 37), green (dy, dx): (77, 29)" },
+    { stem: "siren", filename: "siren.tif", l2: "red (dy, dx): (96, -25), green (dy, dx): (49, -6)", ncc: "red (dy, dx): (96, -25), green (dy, dx): (49, -6)", canny: "red (dy, dx): (96, -23), green (dy, dx): (48, -8)" },
+    { stem: "three_generations", filename: "three_generations.tif", l2: "red (dy, dx): (112, 10), green (dy, dx): (54, 12)", ncc: "red (dy, dx): (112, 10), green (dy, dx): (54, 12)", canny: "red (dy, dx): (111, 8), green (dy, dx): (56, 12)" },
+    { stem: "tobolsk", filename: "tobolsk.jpg", l2: "red (dy, dx): (6, 3), green (dy, dx): (3, 3)", ncc: "red (dy, dx): (6, 3), green (dy, dx): (3, 3)", canny: "red (dy, dx): (6, 3), green (dy, dx): (3, 3)" },
     { stem: "wharf", filename: "wharf.tif", l2: "red (dy, dx): (83, -17), green (dy, dx): (15, -7)", ncc: "red (dy, dx): (83, -17), green (dy, dx): (15, -7)", canny: "red (dy, dx): (83, -16), green (dy, dx): (15, -7)" },
+];
+
+const additionalGalleryImages = [
+    { stem: "laika", filename: "laika.tif", l2: "red (dy, dx): (115, 7), green (dy, dx): (27, 3)", ncc: "red (dy, dx): (115, 7), green (dy, dx): (27, 2)", canny: "red (dy, dx): (116, 4), green (dy, dx): (28, 1)" },
+    { stem: "borodino", filename: "borodino.tif", l2: "red (dy, dx): (109, 39), green (dy, dx): (53, 28)", ncc: "red (dy, dx): (109, 40), green (dy, dx): (54, 29)", canny: "red (dy, dx): (110, 42), green (dy, dx): (51, 24)" },
+    { stem: "st_boris", filename: "st_boris.tif", l2: "red (dy, dx): (158, 62), green (dy, dx): (65, 33)", ncc: "red (dy, dx): (158, 62), green (dy, dx): (65, 33)", canny: "red (dy, dx): (157, 61), green (dy, dx): (65, 35)" },
+    { stem: "milan_duomo", filename: "milan_duomo.tif", l2: "red (dy, dx): (111, -15), green (dy, dx): (47, -9)", ncc: "red (dy, dx): (111, -15), green (dy, dx): (47, -9)", canny: "red (dy, dx): (110, -17), green (dy, dx): (50, -6)" },
 ];
 
 export default function Page() {
@@ -187,12 +194,12 @@ export default function Page() {
             <article className="mr-[17vw] space-y-12">
                 <h1 className="font-bold">Project 1: Colorizing the Prokudin-Gorskii Photo Collection</h1>
                 <div className="flex flex-row w-full justify-center space-x-20">
-                    <Figure src={"/proj1/self_portrait_original.jpg"}
+                    <Figure src={"/proj1/gallery/self_portrait_original.jpg"}
                         caption={"Prokudin-Gorskii's self-portrait before aligning"}
                     />
                     <Figure
-                        src={"/proj1/self_portrait_out.jpg"}
-                        caption={"The final results of auto-aligning the glass plates of Prokudin-Gorskii's self-portrait"}
+                        src={"/proj1/gallery/self_portrait_canny_out.jpg"}
+                        caption={"My auto-aligned glass plates of Prokudin-Gorskii's self-portrait"}
                     />
                 </div>
                 <section id="context" className="space-y-5">
@@ -312,8 +319,8 @@ export default function Page() {
                     <p>Here is a comparison of church.tif, whose best displacement vector differed the most between the two metrics (L2 Norm vs. NCC) among the 14 provided images.</p>
                     <div className="flex flex-row w-full justify-center space-x-20">
                         <Figure src={"/proj1/church_original.jpg"} caption={"church.tif before automatic alignment"} />
-                        <Figure src={"/proj1/church_l2.jpg"} caption={"church.tif aligned with L2 Norm"} subcaption={"red (dy, dx): (57, 197), green (dy, dx): (0, -5)"} />
-                        <Figure src={"/proj1/church_ncc.jpg"} caption={"church.tif aligned with NCC"} subcaption={"red (dy, dx): (57, -5), green (dy, dx): (-1, -5)"} />
+                        <Figure src={"/proj1/church_l2.jpg"} caption={"church.tif aligned with L2 Norm"} subcaption={"red (dy, dx): (58, 188), green (dy, dx): (25, 2)"} />
+                        <Figure src={"/proj1/church_ncc.jpg"} caption={"church.tif aligned with NCC"} subcaption={"red (dy, dx): (57, -5), green (dy, dx): (24, 3)"} />
                     </div>
                     <section id="single_scale_gallery" className="space-y-5">
                         <h2 className="font-medium">Single-Scale Gallery</h2>
@@ -453,12 +460,12 @@ export default function Page() {
                             caption="emir.tif (original)"
                         />
                         <Figure
-                            src="/proj1/gallery/emir_ncc.jpg"
+                            src="/proj1/gallery/emir_ncc_out.jpg"
                             caption="emir.tif (image pyramid + NCC)"
-                            subcaption="red (dy, dx): (118, -178), green (dy, dx): (24, 8)"
+                            subcaption="red (dy, dx): (132, -276), green (dy, dx): (49, 24)"
                         />
                         <Figure
-                            src="/proj1/gallery/emir_edge_out.jpg"
+                            src="/proj1/gallery/emir_canny_out.jpg"
                             caption="emir.tif (image pyramid + Canny + NCC)"
                             subcaption="red (dy, dx): (107, 40), green (dy, dx): (49, 23)"
                         />
@@ -467,7 +474,7 @@ export default function Page() {
                 <section id="results_gallery" className="space-y-5">
                     <h2 className="font-medium">Results Gallery</h2>
                     <p>Here are the final results of my automatic alignment algorithm on 14 provided glass plate images,
-                        plus 3 pictures I chose from the Library of Congress online archives (TODO: mention which 3 pictures)!
+                        plus 4 pictures I chose from the Library of Congress online archives: laika.tif, borodino.tif, st_boris.tif, and milan_duomo.tif!
                         <br />
                         These were all processed by first splitting the image data into red, green, and blue plates;
                         cropping solid-color borders from each of the glass plates;
@@ -488,19 +495,19 @@ export default function Page() {
                                     style_width={"20vw"}
                                 />
                                 <Figure
-                                    src={`/proj1/gallery/${stem}_l2.jpg`}
+                                    src={`/proj1/gallery/${stem}_l2_out.jpg`}
                                     caption={`${filename} (image pyramid + L2)`}
                                     subcaption={l2}
                                     style_width={"20vw"}
                                 />
                                 <Figure
-                                    src={`/proj1/gallery/${stem}_ncc.jpg`}
+                                    src={`/proj1/gallery/${stem}_ncc_out.jpg`}
                                     caption={`${filename} (image pyramid + NCC)`}
                                     subcaption={ncc}
                                     style_width={"20vw"}
                                 />
                                 <Figure
-                                    src={`/proj1/gallery/${stem}_edge_out.jpg`}
+                                    src={`/proj1/gallery/${stem}_canny_out.jpg`}
                                     caption={`${filename} (image pyramid + Canny + NCC)`}
                                     subcaption={canny}
                                     style_width={"20vw"}
@@ -508,6 +515,36 @@ export default function Page() {
                             </div>
                         ))}
                     </div>
+                    <section id="additional_images" className="space-y-5">
+                    <h3 className="font-medium">Additional Images</h3>
+                        {additionalGalleryImages.map(({ stem, filename, l2, ncc, canny }) => (
+                            <div key={stem} className="grid grid-cols-1 gap-4 md:grid-cols-4">
+                                <Figure
+                                    src={`/proj1/gallery/${stem}_original.jpg`}
+                                    caption={`${filename} (original)`}
+                                    style_width={"20vw"}
+                                />
+                                <Figure
+                                    src={`/proj1/gallery/${stem}_l2_out.jpg`}
+                                    caption={`${filename} (image pyramid + L2)`}
+                                    subcaption={l2}
+                                    style_width={"20vw"}
+                                />
+                                <Figure
+                                    src={`/proj1/gallery/${stem}_ncc_out.jpg`}
+                                    caption={`${filename} (image pyramid + NCC)`}
+                                    subcaption={ncc}
+                                    style_width={"20vw"}
+                                />
+                                <Figure
+                                    src={`/proj1/gallery/${stem}_canny_out.jpg`}
+                                    caption={`${filename} (image pyramid + Canny + NCC)`}
+                                    subcaption={canny}
+                                    style_width={"20vw"}
+                                />
+                            </div>
+                        ))}
+                    </section>
                 </section>
             </article>
             <aside className="fixed right-0 top-20 hidden h-fit max-h-[70vh] w-[15vw] min-w-[150px] px-4 overflow-y-auto border-l-2 border-gray-200 md:block">

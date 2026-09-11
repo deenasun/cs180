@@ -1,0 +1,20 @@
+[
+  {"input_file_name":"borodino.tif","canny_ncc_red_displacement_vector":[110,42],"canny_ncc_green_displacement_vector":[51,24]},
+  {"input_file_name":"wharf.tif","canny_ncc_red_displacement_vector":[83,-16],"canny_ncc_green_displacement_vector":[15,-7]},
+  {"input_file_name":"st_boris.tif","canny_ncc_red_displacement_vector":[157,61],"canny_ncc_green_displacement_vector":[65,35]},
+  {"input_file_name":"emir.tif","canny_ncc_red_displacement_vector":[107,40],"canny_ncc_green_displacement_vector":[49,23]},
+  {"input_file_name":"monastery.jpg","canny_ncc_red_displacement_vector":[3,2],"canny_ncc_green_displacement_vector":[-3,2]},
+  {"input_file_name":"religous_painting.tif","canny_ncc_red_displacement_vector":[69,6],"canny_ncc_green_displacement_vector":[29,1]},
+  {"input_file_name":"church.tif","canny_ncc_red_displacement_vector":[58,-4],"canny_ncc_green_displacement_vector":[25,4]},
+  {"input_file_name":"three_generations.tif","canny_ncc_red_displacement_vector":[111,8],"canny_ncc_green_displacement_vector":[56,12]},
+  {"input_file_name":"melons.tif","canny_ncc_red_displacement_vector":[182,11],"canny_ncc_green_displacement_vector":[79,9]},
+  {"input_file_name":"tobolsk.jpg","canny_ncc_red_displacement_vector":[6,3],"canny_ncc_green_displacement_vector":[3,3]},
+  {"input_file_name":"icon.tif","canny_ncc_red_displacement_vector":[88,22],"canny_ncc_green_displacement_vector":[38,16]},
+  {"input_file_name":"cathedral.jpg","canny_ncc_red_displacement_vector":[12,3],"canny_ncc_green_displacement_vector":[5,2]},
+  {"input_file_name":"laika.tif","canny_ncc_red_displacement_vector":[116,4],"canny_ncc_green_displacement_vector":[28,1]},
+  {"input_file_name":"siren.tif","canny_ncc_red_displacement_vector":[96,-23],"canny_ncc_green_displacement_vector":[48,-8]},
+  {"input_file_name":"milan_duomo.tif","canny_ncc_red_displacement_vector":[110,-17],"canny_ncc_green_displacement_vector":[50,-6]},
+  {"input_file_name":"self_portrait.tif","canny_ncc_red_displacement_vector":[175,37],"canny_ncc_green_displacement_vector":[77,29]},
+  {"input_file_name":"harvesters.tif","canny_ncc_red_displacement_vector":[123,9],"canny_ncc_green_displacement_vector":[60,18]},
+  {"input_file_name":"ilemselga.tif","canny_ncc_red_displacement_vector":[130,11],"canny_ncc_green_displacement_vector":[39,7]}
+]

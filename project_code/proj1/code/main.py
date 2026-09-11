@@ -417,20 +417,138 @@ def align_image_pipeline(input_file_path, output_path, display=False):
     print(f"Saved aligned image to {output_path}")
 
 
+def edge_detection_align(input_file_path, output_path, display=False):
+    """Use skimage's Canny filter to detect edges, then align color plates based on detected edges."""
+    im = skio.imread(input_file_path)
+    im = sk.img_as_float(im)
+
+    # Compute the height of each part (just 1/3 of total)
+    height = np.floor(im.shape[0] / 3.0).astype(np.uint64)
+
+    # Separate color channels
+    # NOTE: each glass plate image in the data folder is in BGR order
+    b = im[:height]
+    g = im[height : 2 * height]
+    r = im[2 * height : 3 * height]
+
+    orig_im = np.dstack([r, g, b])
+
+    im_out_uint8 = (orig_im * 255.0).astype(np.uint8)
+    orig_output_path = str(output_path).split("_out")[0] + "_original.jpg"
+    skio.imsave(orig_output_path, im_out_uint8)
+    print(
+        f"[Image Pyramid + Edge Detection + NCC] Saved stacked original image to {orig_output_path}"
+    )
+
+    crop_white_r, crop_white_g, crop_white_b = crop_rgb(r, g, b, color_val=1.0)
+    crop_black_r, crop_black_g, crop_black_b = crop_rgb(
+        crop_white_r, crop_white_g, crop_white_b, color_val=0.1
+    )
+
+    cropped_r, cropped_g, cropped_b = crop_black_r, crop_black_g, crop_black_b
+
+    if display:
+        # Display detected edges
+        fig, ax = plt.subplots(1, 3, figsize=(24, 12))
+        ax[0].imshow(cropped_r, cmap="gray", vmin=0, vmax=1)
+        ax[0].set_title("Red plate")
+
+        ax[1].imshow(cropped_g, cmap="gray", vmin=0, vmax=1)
+        ax[1].set_title("Green pkate")
+
+        blue_im = ax[2].imshow(cropped_b, cmap="gray", vmin=0, vmax=1)  # Colorbar needs an image returned by imshow
+        ax[2].set_title("Blue plate")
+
+        # Colorbar for pixel intensities
+        plt.colorbar(blue_im, ax=ax, label="Pixel intensity", orientation="horizontal", fraction=0.05, pad=0.05)
+        plt.show()
+
+    r_edges = sk.feature.canny(cropped_r).astype(
+        np.float64
+    )  # Cast from bool into floats
+    g_edges = sk.feature.canny(cropped_g).astype(np.float64)
+    b_edges = sk.feature.canny(cropped_b).astype(np.float64)
+
+    if display:
+        # Display detected edges
+        fig, ax = plt.subplots(1, 3, figsize=(24, 12))
+        ax[0].imshow(r_edges, cmap="gray")
+        ax[0].set_title("Red edges")
+
+        ax[1].imshow(g_edges, cmap="gray")
+        ax[1].set_title("Green edges")
+
+        ax[2].imshow(b_edges, cmap="gray")
+        ax[2].set_title("Blue edges")
+
+        plt.show()
+
+    dy_r, dx_r = pyramid_align(r_edges, b_edges, "ncc")
+    print(
+        f"[Image Pyramid + Edge Detection + NCC] Displacement vector for r: {dy_r, dx_r}"
+    )
+    shifted_r = np.roll(cropped_r, shift=(dy_r, dx_r), axis=(0, 1))
+
+    dy_g, dx_g = pyramid_align(g_edges, b_edges, "ncc")
+    print(
+        f"[Image Pyramid + Edge Detection + NCC] Displacement vector for g: {dy_g, dx_g}"
+    )
+    shifted_g = np.roll(cropped_g, shift=(dy_g, dx_g), axis=(0, 1))
+
+    # Align shifted plates with base plate (B)
+    pyramid_aligned_cropped_im = np.dstack([shifted_r, shifted_g, cropped_b])
+
+    # Trim to only keep parts of the stacked image that corresponds to
+    # where the R, G, and B plates actually overlap after shifting
+    trim_top = abs(max(dy_r, dy_g, 0))
+    trim_bottom = abs(min(dy_r, dy_g, 0))
+    trim_left = abs(max(dx_r, dx_g, 0))
+    trim_right = abs(min(dx_r, dx_g, 0))
+    final_color_im = pyramid_aligned_cropped_im
+
+    if trim_top > 0:
+        final_color_im = final_color_im[trim_top:, :]
+    if trim_bottom > 0:
+        final_color_im = final_color_im[:-trim_bottom, :]
+    if trim_left > 0:
+        final_color_im = final_color_im[:, trim_left:]
+    if trim_right > 0:
+        final_color_im = final_color_im[:, :-trim_right]
+
+    if display:
+        # Display the original image and the aligned image
+        fig, ax = plt.subplots(1, 2, figsize=(24, 12))
+        ax[0].imshow(orig_im)
+        ax[0].set_title("Original")
+
+        ax[1].imshow(final_color_im)
+        ax[1].set_title("Pyramid Aligned + Edge Detection")
+        plt.show()
+
+    im_out_uint8 = (final_color_im * 255.0).astype(np.uint8)
+    skio.imsave(output_path, im_out_uint8)
+    print(f"[Image Pyramid + Edge Detection + NCC] Saved aligned image to {output_path}")
+
+
 def main():
     # Folder with the unzipped .tif or .jpg digitized glass plate images
     input_dir = Path("data")
 
     # Folder to save the aligned images to
-    output_dir = Path("out/l2_vs_ncc")
+    output_dir = Path("out/edge_detection")
 
     # Iterate through the glass plates in input_dir, align each, and save the outputs
     for file_path in input_dir.iterdir():
-        if file_path.is_file() and file_path.suffix in {".tif", ".jpg"}:
+        if (
+            file_path.is_file()
+            and file_path.suffix in {".tif", ".jpg"}
+            and file_path.stem == "emir"
+        ):
             base_name = file_path.stem
-            output_path = str(output_dir / base_name)
+            output_path = str(output_dir / base_name) + "_edge_out.jpg"
             print(f"Processing {file_path}")
-            align_image_pipeline(file_path, output_path)
+            # align_image_pipeline(file_path, output_path)
+            edge_detection_align(file_path, output_path, display=True)
 
 
 if __name__ == "__main__":

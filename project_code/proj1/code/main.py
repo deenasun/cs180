@@ -454,13 +454,22 @@ def edge_detection_align(input_file_path, output_path, display=False):
         ax[0].set_title("Red plate")
 
         ax[1].imshow(cropped_g, cmap="gray", vmin=0, vmax=1)
-        ax[1].set_title("Green pkate")
+        ax[1].set_title("Green plate")
 
-        blue_im = ax[2].imshow(cropped_b, cmap="gray", vmin=0, vmax=1)  # Colorbar needs an image returned by imshow
+        blue_im = ax[2].imshow(
+            cropped_b, cmap="gray", vmin=0, vmax=1
+        )  # Colorbar needs an image returned by imshow
         ax[2].set_title("Blue plate")
 
         # Colorbar for pixel intensities
-        plt.colorbar(blue_im, ax=ax, label="Pixel intensity", orientation="horizontal", fraction=0.05, pad=0.05)
+        plt.colorbar(
+            blue_im,
+            ax=ax,
+            label="Pixel intensity",
+            orientation="horizontal",
+            fraction=0.05,
+            pad=0.05,
+        )
         plt.show()
 
     r_edges = sk.feature.canny(cropped_r).astype(
@@ -527,7 +536,9 @@ def edge_detection_align(input_file_path, output_path, display=False):
 
     im_out_uint8 = (final_color_im * 255.0).astype(np.uint8)
     skio.imsave(output_path, im_out_uint8)
-    print(f"[Image Pyramid + Edge Detection + NCC] Saved aligned image to {output_path}")
+    print(
+        f"[Image Pyramid + Edge Detection + NCC] Saved aligned image to {output_path}"
+    )
 
 
 def main():
@@ -539,11 +550,7 @@ def main():
 
     # Iterate through the glass plates in input_dir, align each, and save the outputs
     for file_path in input_dir.iterdir():
-        if (
-            file_path.is_file()
-            and file_path.suffix in {".tif", ".jpg"}
-            and file_path.stem == "emir"
-        ):
+        if file_path.is_file() and file_path.suffix in {".tif", ".jpg"} and file_path.stem =="emir":
             base_name = file_path.stem
             output_path = str(output_dir / base_name) + "_edge_out.jpg"
             print(f"Processing {file_path}")

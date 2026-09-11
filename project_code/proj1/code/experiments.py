@@ -6,7 +6,14 @@ import skimage.io as skio
 import matplotlib.pyplot as plt
 from pathlib import Path
 
-from main import align, crop_rgb, pyramid_align, DATA_DIR, OUTPUT_DIR
+from main import (
+    align,
+    crop_rgb,
+    pyramid_align,
+    edge_detection_align,
+    DATA_DIR,
+    OUTPUT_DIR,
+)
 
 
 def plot_alignment_barchart():
@@ -228,6 +235,203 @@ def compare_metrics(input_file_path, output_path_base, display=True):
         plt.show()
 
 
+def process_results_gallery(input_file_path, output_path_base, display=True):
+
+    im = skio.imread(input_file_path)
+    im = sk.img_as_float(im)
+
+    # Compute the height of each part (just 1/3 of total)
+    height = np.floor(im.shape[0] / 3.0).astype(np.uint64)
+
+    # Separate color channels
+    # NOTE: each glass plate image in the data folder is in BGR order
+    b = im[:height]
+    g = im[height : 2 * height]
+    r = im[2 * height : 3 * height]
+
+    orig_im = np.dstack([r, g, b])
+
+    im_out_uint8 = (orig_im * 255.0).astype(np.uint8)
+    orig_output_path = str(output_path_base) + "_original.jpg"
+    skio.imsave(orig_output_path, im_out_uint8)
+    print(f"Saved stacked original image to {orig_output_path}")
+
+    crop_white_r, crop_white_g, crop_white_b = crop_rgb(r, g, b, color_val=1.0)
+    crop_black_r, crop_black_g, crop_black_b = crop_rgb(
+        crop_white_r, crop_white_g, crop_white_b, color_val=0.1
+    )
+
+    cropped_r, cropped_g, cropped_b = crop_black_r, crop_black_g, crop_black_b
+
+    # Image Pyramid + L2 norm
+    l2_dy_r, l2_dx_r = pyramid_align(cropped_r, cropped_b, "l2")
+    l2_shifted_r = np.roll(cropped_r, shift=(l2_dy_r, l2_dx_r), axis=(0, 1))
+
+    l2_dy_g, l2_dx_g = pyramid_align(cropped_g, cropped_b, "l2")
+    l2_shifted_g = np.roll(cropped_g, shift=(l2_dy_g, l2_dx_g), axis=(0, 1))
+
+    print(f"[Image Pyramid + L2 Norm] Displacement vector for r: {l2_dy_r, l2_dx_r}")
+    print(f"[Image Pyramid + L2 Norm] Displacement vector for g: {l2_dy_g, l2_dx_g}")
+
+    l2_aligned_im = np.dstack([l2_shifted_r, l2_shifted_g, cropped_b])
+
+    # Trim to only keep parts of the stacked image that corresponds to
+    # where the R, G, and B plates actually overlap after shifting
+    l2_trim_top = abs(max(l2_dy_r, l2_dy_g, 0))
+    l2_trim_bottom = abs(min(l2_dy_r, l2_dy_g, 0))
+    l2_trim_left = abs(max(l2_dx_r, l2_dx_g, 0))
+    l2_trim_right = abs(min(l2_dx_r, l2_dx_g, 0))
+
+    if l2_trim_top > 0:
+        l2_aligned_im = l2_aligned_im[l2_trim_top:, :]
+    if l2_trim_bottom > 0:
+        l2_aligned_im = l2_aligned_im[:-l2_trim_bottom, :]
+    if l2_trim_left > 0:
+        l2_aligned_im = l2_aligned_im[:, l2_trim_left:]
+    if l2_trim_right > 0:
+        l2_aligned_im = l2_aligned_im[:, :-l2_trim_right]
+
+    l2_out_uint8 = (l2_aligned_im * 255.0).astype(np.uint8)
+    l2_output_path = output_path_base + "_l2_out.jpg"
+    skio.imsave(l2_output_path, l2_out_uint8)
+    print(f"[Image Pyramid + L2 Norm] Saved image to {l2_output_path}")
+
+    # Image Pyramid + NCC
+    print("[Image Pyramid + NCC] Starting alignment...")
+
+    ncc_dy_r, ncc_dx_r = pyramid_align(cropped_r, cropped_b, "ncc")
+    ncc_shifted_r = np.roll(cropped_r, shift=(ncc_dy_r, ncc_dx_r), axis=(0, 1))
+
+    ncc_dy_g, ncc_dx_g = pyramid_align(cropped_g, cropped_b, "ncc")
+    ncc_shifted_g = np.roll(cropped_g, shift=(ncc_dy_g, ncc_dx_g), axis=(0, 1))
+
+    print(f"[Image Pyramid + NCC] Displacement vector for r: {ncc_dy_r, ncc_dx_r}")
+    print(f"[Image Pyramid + NCC] Displacement vector for g: {ncc_dy_g, ncc_dx_g}")
+
+    ncc_aligned_im = np.dstack([ncc_shifted_r, ncc_shifted_g, cropped_b])
+
+    # Trim to only keep parts of the stacked image that corresponds to
+    # where the R, G, and B plates actually overlap after shifting
+    ncc_trim_top = abs(max(ncc_dy_r, ncc_dy_g, 0))
+    ncc_trim_bottom = abs(min(ncc_dy_r, ncc_dy_g, 0))
+    ncc_trim_left = abs(max(ncc_dx_r, ncc_dx_g, 0))
+    ncc_trim_right = abs(min(ncc_dx_r, ncc_dx_g, 0))
+
+    if ncc_trim_top > 0:
+        ncc_aligned_im = ncc_aligned_im[ncc_trim_top:, :]
+    if ncc_trim_bottom > 0:
+        ncc_aligned_im = ncc_aligned_im[:-ncc_trim_bottom, :]
+    if ncc_trim_left > 0:
+        ncc_aligned_im = ncc_aligned_im[:, ncc_trim_left:]
+    if ncc_trim_right > 0:
+        ncc_aligned_im = ncc_aligned_im[:, :-ncc_trim_right]
+
+    ncc_out_uint8 = (ncc_aligned_im * 255.0).astype(np.uint8)
+    ncc_output_path = output_path_base + "_ncc_out.jpg"
+    skio.imsave(ncc_output_path, ncc_out_uint8)
+    print(f"[Image Pyramid + NCC] Saved image to {ncc_output_path}")
+
+    # Image Pyramid + Canny Edge Detector
+    if display:
+        # Display detected edges
+        fig, ax = plt.subplots(1, 3, figsize=(24, 12))
+        ax[0].imshow(cropped_r, cmap="gray", vmin=0, vmax=1)
+        ax[0].set_title("Red plate")
+
+        ax[1].imshow(cropped_g, cmap="gray", vmin=0, vmax=1)
+        ax[1].set_title("Green plate")
+
+        blue_im = ax[2].imshow(
+            cropped_b, cmap="gray", vmin=0, vmax=1
+        )  # Colorbar needs an image returned by imshow
+        ax[2].set_title("Blue plate")
+
+        # Colorbar for pixel intensities
+        plt.colorbar(
+            blue_im,
+            ax=ax,
+            label="Pixel intensity",
+            orientation="horizontal",
+            fraction=0.05,
+            pad=0.05,
+        )
+        plt.show()
+
+    r_edges = sk.feature.canny(cropped_r).astype(
+        np.float64
+    )  # Cast from bool into floats
+    g_edges = sk.feature.canny(cropped_g).astype(np.float64)
+    b_edges = sk.feature.canny(cropped_b).astype(np.float64)
+
+    if display:
+        # Display detected edges
+        fig, ax = plt.subplots(1, 3, figsize=(24, 12))
+        ax[0].imshow(r_edges, cmap="gray")
+        ax[0].set_title("Red edges")
+
+        ax[1].imshow(g_edges, cmap="gray")
+        ax[1].set_title("Green edges")
+
+        ax[2].imshow(b_edges, cmap="gray")
+        ax[2].set_title("Blue edges")
+
+        plt.show()
+
+    canny_dy_r, canny_dx_r = pyramid_align(r_edges, b_edges, "ncc")
+    print(
+        f"[Image Pyramid + Canny Edge Detector + NCC] Displacement vector for r: {canny_dy_r, canny_dx_r}"
+    )
+    canny_shifted_r = np.roll(cropped_r, shift=(canny_dy_r, canny_dx_r), axis=(0, 1))
+
+    canny_dy_g, canny_dx_g = pyramid_align(g_edges, b_edges, "ncc")
+    print(
+        f"[Image Pyramid + Canny Edge Detector + NCC] Displacement vector for g: {canny_dy_g, canny_dx_g}"
+    )
+    canny_shifted_g = np.roll(cropped_g, shift=(canny_dy_g, canny_dx_g), axis=(0, 1))
+
+    # Align shifted plates with base plate (B)
+    canny_im = np.dstack([canny_shifted_r, canny_shifted_g, cropped_b])
+
+    # Trim to only keep parts of the stacked image that corresponds to
+    # where the R, G, and B plates actually overlap after shifting
+    canny_trim_top = abs(max(canny_dy_r, canny_dy_g, 0))
+    canny_trim_bottom = abs(min(canny_dy_r, canny_dy_g, 0))
+    canny_trim_left = abs(max(canny_dx_r, canny_dx_g, 0))
+    canny_trim_right = abs(min(canny_dx_r, canny_dx_g, 0))
+
+    if canny_trim_top > 0:
+        canny_im = canny_im[canny_trim_top:, :]
+    if canny_trim_bottom > 0:
+        canny_im = canny_im[:-canny_trim_bottom, :]
+    if canny_trim_left > 0:
+        canny_im = canny_im[:, canny_trim_left:]
+    if canny_trim_right > 0:
+        canny_im = canny_im[:, :-canny_trim_right]
+
+    canny_im_out_uint8 = (canny_im * 255.0).astype(np.uint8)
+    canny_output_path = output_path_base + "_canny_out.jpg"
+    skio.imsave(canny_output_path, canny_im_out_uint8)
+    print(
+        f"[Image Pyramid + Canny Edge Detector + NCC] Saved aligned image to {canny_output_path}"
+    )
+
+    if display:
+        # Display the original image and the aligned image
+        fig, ax = plt.subplots(2, 2, figsize=(24, 24))
+        ax[0, 0].imshow(orig_im)
+        ax[0, 0].set_title("Original")
+
+        ax[0, 1].imshow(l2_aligned_im)
+        ax[0, 1].set_title("Image Pyramid + L2")
+
+        ax[1, 0].imshow(ncc_aligned_im)
+        ax[1, 0].set_title("Image Pyramid + NCC")
+
+        ax[1, 1].imshow(canny_im)
+        ax[1, 1].set_title("Image Pyramid + Canny Edge Detector")
+        plt.show()
+
+
 def main():
 
     # name of the input file
@@ -339,16 +543,17 @@ def main():
     input_dir = Path("data")
 
     # Folder to save the aligned images to
-    output_dir = Path("out/l2_vs_ncc")
+    output_dir = Path("out")
 
     # Iterate through the glass plates in input_dir, align each, and save the outputs
     for file_path in input_dir.iterdir():
         if file_path.is_file() and file_path.suffix in {".tif", ".jpg"}:
             base_name = file_path.stem
-            output_path = str(output_dir / base_name)
+            output_path_base = str(output_dir / base_name)
             print(f"Processing {file_path}")
-            # compare_alignment_algorithms(file_path, output_path_base=output_path)
-            compare_metrics(file_path, output_path_base=output_path)
+            # compare_alignment_algorithms(file_path, output_path_base=output_path_base)
+            # compare_metrics(file_path, output_path_base=output_path)
+            process_results_gallery(file_path, output_path_base, display=True)
 
 
 if __name__ == "__main__":

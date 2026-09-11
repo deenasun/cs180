@@ -282,6 +282,12 @@ export default function Page() {
                     />
                     <p>NB: One way to apply these difference metrics to 2D image matrices instead of vectors is by unraveling the matrix into a long, 1-dimensional vector.</p>
 
+                    <p>Here is a comparison of church.tif, whose best displacement vector differed the most between the two metrics (L2 Norm vs. NCC) among the 14 provided images.</p>
+                    <div className="flex flex-row w-full justify-center space-x-20">
+                        <Figure src={"/proj1/church_original.jpg"} caption={"church.tif before automatic alignment"} />
+                        <Figure src={"/proj1/church_l2.jpg"} caption={"church.tif aligned with L2 Norm"} subcaption={"red (dy, dx): (57, 197), green (dy, dx): (0, -5)"} />
+                        <Figure src={"/proj1/church_ncc.jpg"} caption={"church.tif aligned with NCC"} subcaption={"red (dy, dx): (57, -5), green (dy, dx): (-1, -5)"} />
+                    </div>
                     <p>
                         Using single-scale automatic alignment and searching over a range of [-15, 15] for dy and dx worked well on the smaller digitized glass plate data!
                         Here are the results of single-scale automatic alignment on monastery.jpg, where each glass plate has dimensions (341px, 391px).
@@ -290,13 +296,14 @@ export default function Page() {
                     <div className="flex flex-row w-full justify-center space-x-20">
                         <Figure src={"/proj1/monastery_original.jpg"} caption={"monastery.jpg before automatic alignment"} />
                         <Figure src={"/proj1/monastery_out.jpg"} caption={"monastery.jpg after single-scale alignment with NCC"} />
-
                     </div>
                     <p>
                         However, when trying to align hi-res glass plates where the each side is measured in thousands of pixels, the glass plates have much bigger
                         margins of displacement so we have to search over much larger windows for dy and dx. Instead of brute-force searching over hundreds or thousands of
                         displacements, automatic alignment can use image pyramids to hierarchically refine the best-estimate displacement at multiple scales!
                     </p>
+                    <Figure src="/proj1/single_scale_vs_pyramid_time.png"
+                        caption="The time in seconds it took the single-scale alignment algo to search the same window of possible displacements as the best displacements found by the image pyramid implementation" />
                 </section>
                 <section id="image_pyramids" className="space-y-5">
                     <h2 className="font-medium">Image Pyramids</h2>

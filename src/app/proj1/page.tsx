@@ -33,7 +33,7 @@ function Figure({
 
         hoverTimer.current = setTimeout(() => {
             setIsFocused(true);
-        }, 2000);
+        }, 1000);
     };
 
     const handleMouseLeave = () => {
@@ -64,7 +64,10 @@ function Figure({
 
     return (
         <>
-            <figure className="mx-auto flex w-full max-w-2xl flex-col items-center">
+            <figure
+                className={`flex w-full max-w-2xl flex-col items-center ${style_width ? "" : "mx-auto"}`}
+                style={style_width ? { width: style_width } : undefined}
+            >
                 <div
                     className="relative cursor-zoom-in items-center"
                     onMouseEnter={handleMouseEnter}
@@ -123,28 +126,45 @@ function Figure({
 }
 
 const galleryImages = [
-    { stem: "cathedral", filename: "cathedral.jpg", l2: "red (dy, dx): (12, 3), green (dy, dx): (5, 2)", ncc: "red (dy, dx): (12, 3), green (dy, dx): (5, 2)", canny: "red (dy, dx): (12, 3), green (dy, dx): (5, 2)" },
-    { stem: "church", filename: "church.tif", l2: "red (dy, dx): (58, 188), green (dy, dx): (25, 2)", ncc: "red (dy, dx): (57, -5), green (dy, dx): (24, 3)", canny: "red (dy, dx): (58, -4), green (dy, dx): (25, 4)" },
-    { stem: "emir", filename: "emir.tif", l2: "red (dy, dx): (104, 43), green (dy, dx): (49, 24)", ncc: "red (dy, dx): (132, -276), green (dy, dx): (49, 24)", canny: "red (dy, dx): (107, 40), green (dy, dx): (49, 23)" },
-    { stem: "harvesters", filename: "harvesters.tif", l2: "red (dy, dx): (124, 14), green (dy, dx): (60, 16)", ncc: "red (dy, dx): (124, 13), green (dy, dx): (60, 16)", canny: "red (dy, dx): (123, 9), green (dy, dx): (60, 18)" },
-    { stem: "icon", filename: "icon.tif", l2: "red (dy, dx): (90, 23), green (dy, dx): (41, 17)", ncc: "red (dy, dx): (89, 23), green (dy, dx): (40, 16)", canny: "red (dy, dx): (88, 22), green (dy, dx): (38, 16)" },
-    { stem: "ilemselga", filename: "ilemselga.tif", l2: "red (dy, dx): (129, 11), green (dy, dx): (39, 7)", ncc: "red (dy, dx): (130, 11), green (dy, dx): (39, 7)", canny: "red (dy, dx): (130, 11), green (dy, dx): (39, 7)" },
-    { stem: "melons", filename: "melons.tif", l2: "red (dy, dx): (179, 13), green (dy, dx): (82, 10)", ncc: "red (dy, dx): (178, 12), green (dy, dx): (82, 9)", canny: "red (dy, dx): (182, 11), green (dy, dx): (79, 9)" },
-    { stem: "monastery", filename: "monastery.jpg", l2: "red (dy, dx): (3, 2), green (dy, dx): (-3, 2)", ncc: "red (dy, dx): (3, 2), green (dy, dx): (-3, 2)", canny: "red (dy, dx): (3, 2), green (dy, dx): (-3, 2)" },
-    { stem: "religous_painting", filename: "religious_painting.tif", l2: "red (dy, dx): (68, 7), green (dy, dx): (28, 5)", ncc: "red (dy, dx): (68, 7), green (dy, dx): (28, 5)", canny: "red (dy, dx): (69, 6), green (dy, dx): (29, 1)" },
-    { stem: "self_portrait", filename: "self_portrait.tif", l2: "red (dy, dx): (176, 36), green (dy, dx): (79, 28)", ncc: "red (dy, dx): (176, 36), green (dy, dx): (79, 28)", canny: "red (dy, dx): (175, 37), green (dy, dx): (77, 29)" },
-    { stem: "siren", filename: "siren.tif", l2: "red (dy, dx): (96, -25), green (dy, dx): (49, -6)", ncc: "red (dy, dx): (96, -25), green (dy, dx): (49, -6)", canny: "red (dy, dx): (96, -23), green (dy, dx): (48, -8)" },
-    { stem: "three_generations", filename: "three_generations.tif", l2: "red (dy, dx): (112, 10), green (dy, dx): (54, 12)", ncc: "red (dy, dx): (112, 10), green (dy, dx): (54, 12)", canny: "red (dy, dx): (111, 8), green (dy, dx): (56, 12)" },
-    { stem: "tobolsk", filename: "tobolsk.jpg", l2: "red (dy, dx): (6, 3), green (dy, dx): (3, 3)", ncc: "red (dy, dx): (6, 3), green (dy, dx): (3, 3)", canny: "red (dy, dx): (6, 3), green (dy, dx): (3, 3)" },
-    { stem: "wharf", filename: "wharf.tif", l2: "red (dy, dx): (83, -17), green (dy, dx): (15, -7)", ncc: "red (dy, dx): (83, -17), green (dy, dx): (15, -7)", canny: "red (dy, dx): (83, -16), green (dy, dx): (15, -7)" },
+    { stem: "cathedral", filename: "cathedral.jpg", noBorderCrop: "red (dy, dx): (12, 3), green (dy, dx): (5, 2)", l2: "red (dy, dx): (12, 3), green (dy, dx): (5, 2)", ncc: "red (dy, dx): (12, 3), green (dy, dx): (5, 2)", nccTime: 0.34063304198207334, canny: "red (dy, dx): (12, 3), green (dy, dx): (5, 2)", cannyTime: 0.28272237500641495 },
+    { stem: "church", filename: "church.tif", noBorderCrop: "red (dy, dx): (57, -5), green (dy, dx): (-1, -5)", l2: "red (dy, dx): (58, 188), green (dy, dx): (25, 2)", ncc: "red (dy, dx): (57, -5), green (dy, dx): (24, 3)", nccTime: 19.936688084038906, canny: "red (dy, dx): (58, -4), green (dy, dx): (25, 4)", cannyTime: 19.063652332988568 },
+    { stem: "emir", filename: "emir.tif", noBorderCrop: "red (dy, dx): (118, -178), green (dy, dx): (24, 8)", l2: "red (dy, dx): (104, 43), green (dy, dx): (49, 24)", ncc: "red (dy, dx): (132, -276), green (dy, dx): (49, 24)", nccTime: 19.718385333020706, canny: "red (dy, dx): (107, 40), green (dy, dx): (49, 23)", cannyTime: 18.14302591700107 },
+    { stem: "harvesters", filename: "harvesters.tif", noBorderCrop: "red (dy, dx): (129, 7), green (dy, dx): (58, 10)", l2: "red (dy, dx): (124, 14), green (dy, dx): (60, 16)", ncc: "red (dy, dx): (124, 13), green (dy, dx): (60, 16)", nccTime: 20.309437874995638, canny: "red (dy, dx): (123, 9), green (dy, dx): (60, 18)", cannyTime: 18.353582709096372 },
+    { stem: "icon", filename: "icon.tif", noBorderCrop: "red (dy, dx): (91, 22), green (dy, dx): (40, 16)", l2: "red (dy, dx): (90, 23), green (dy, dx): (41, 17)", ncc: "red (dy, dx): (89, 23), green (dy, dx): (40, 16)", nccTime: 20.348901292018127, canny: "red (dy, dx): (88, 22), green (dy, dx): (38, 16)", cannyTime: 20.003334500011988 },
+    { stem: "ilemselga", filename: "ilemselga.tif", noBorderCrop: "red (dy, dx): (138, -7), green (dy, dx): (39, -4)", l2: "red (dy, dx): (129, 11), green (dy, dx): (39, 7)", ncc: "red (dy, dx): (130, 11), green (dy, dx): (39, 7)", nccTime: 21.66792987502413, canny: "red (dy, dx): (130, 11), green (dy, dx): (39, 7)", cannyTime: 17.579173124977387 },
+    { stem: "melons", filename: "melons.tif", noBorderCrop: "red (dy, dx): (179, 8), green (dy, dx): (83, 4)", l2: "red (dy, dx): (179, 13), green (dy, dx): (82, 10)", ncc: "red (dy, dx): (178, 12), green (dy, dx): (82, 9)", nccTime: 20.561996291042306, canny: "red (dy, dx): (182, 11), green (dy, dx): (79, 9)", cannyTime: 17.75047070789151 },
+    { stem: "monastery", filename: "monastery.jpg", noBorderCrop: "red (dy, dx): (3, 2), green (dy, dx): (-3, 2)", l2: "red (dy, dx): (3, 2), green (dy, dx): (-3, 2)", ncc: "red (dy, dx): (3, 2), green (dy, dx): (-3, 2)", nccTime: 0.2987282079993747, canny: "red (dy, dx): (3, 2), green (dy, dx): (-3, 2)", cannyTime: 0.28110541601199657 },
+    { stem: "religous_painting", filename: "religious_painting.tif", noBorderCrop: "red (dy, dx): (69, 7), green (dy, dx): (24, 3)", l2: "red (dy, dx): (68, 7), green (dy, dx): (28, 5)", ncc: "red (dy, dx): (68, 7), green (dy, dx): (28, 5)", nccTime: 19.996679125004448, canny: "red (dy, dx): (69, 6), green (dy, dx): (29, 1)", cannyTime: 18.60476383403875 },
+    { stem: "self_portrait", filename: "self_portrait.tif", noBorderCrop: "red (dy, dx): (176, -3), green (dy, dx): (77, -1)", l2: "red (dy, dx): (176, 36), green (dy, dx): (79, 28)", ncc: "red (dy, dx): (176, 36), green (dy, dx): (79, 28)", nccTime: 20.43723791697994, canny: "red (dy, dx): (175, 37), green (dy, dx): (77, 29)", cannyTime: 17.60523758304771 },
+    { stem: "siren", filename: "siren.tif", noBorderCrop: "red (dy, dx): (97, -21), green (dy, dx): (48, -7)", l2: "red (dy, dx): (96, -25), green (dy, dx): (49, -6)", ncc: "red (dy, dx): (96, -25), green (dy, dx): (49, -6)", nccTime: 21.13100537500577, canny: "red (dy, dx): (96, -23), green (dy, dx): (48, -8)", cannyTime: 18.04695425007958 },
+    { stem: "three_generations", filename: "three_generations.tif", noBorderCrop: "red (dy, dx): (112, 7), green (dy, dx): (52, 5)", l2: "red (dy, dx): (112, 10), green (dy, dx): (54, 12)", ncc: "red (dy, dx): (112, 10), green (dy, dx): (54, 12)", nccTime: 19.926406166981906, canny: "red (dy, dx): (111, 8), green (dy, dx): (56, 12)", cannyTime: 18.969930042047054 },
+    { stem: "tobolsk", filename: "tobolsk.jpg", noBorderCrop: "red (dy, dx): (6, 3), green (dy, dx): (3, 2)", l2: "red (dy, dx): (6, 3), green (dy, dx): (3, 3)", ncc: "red (dy, dx): (6, 3), green (dy, dx): (3, 3)", nccTime: 0.31092458398779854, canny: "red (dy, dx): (6, 3), green (dy, dx): (3, 3)", cannyTime: 0.2716849159915 },
+    { stem: "wharf", filename: "wharf.tif", noBorderCrop: "red (dy, dx): (83, -17), green (dy, dx): (15, -7)", l2: "red (dy, dx): (83, -17), green (dy, dx): (15, -7)", ncc: "red (dy, dx): (83, -17), green (dy, dx): (15, -7)", nccTime: 20.27525591698941, canny: "red (dy, dx): (83, -16), green (dy, dx): (15, -7)", cannyTime: 18.091458334005438 },
 ];
 
 const additionalGalleryImages = [
-    { stem: "laika", filename: "laika.tif", l2: "red (dy, dx): (115, 7), green (dy, dx): (27, 3)", ncc: "red (dy, dx): (115, 7), green (dy, dx): (27, 2)", canny: "red (dy, dx): (116, 4), green (dy, dx): (28, 1)" },
-    { stem: "milan_duomo", filename: "milan_duomo.tif", l2: "red (dy, dx): (111, -15), green (dy, dx): (47, -9)", ncc: "red (dy, dx): (111, -15), green (dy, dx): (47, -9)", canny: "red (dy, dx): (110, -17), green (dy, dx): (50, -6)" },
-    { stem: "borodino", filename: "borodino.tif", l2: "red (dy, dx): (109, 39), green (dy, dx): (53, 28)", ncc: "red (dy, dx): (109, 40), green (dy, dx): (54, 29)", canny: "red (dy, dx): (110, 42), green (dy, dx): (51, 24)" },
-    { stem: "st_boris", filename: "st_boris.tif", l2: "red (dy, dx): (158, 62), green (dy, dx): (65, 33)", ncc: "red (dy, dx): (158, 62), green (dy, dx): (65, 33)", canny: "red (dy, dx): (157, 61), green (dy, dx): (65, 35)" },
+    { stem: "laika", filename: "laika.tif", noBorderCrop: "red (dy, dx): (125, 12), green (dy, dx): (26, 5)", l2: "red (dy, dx): (115, 7), green (dy, dx): (27, 3)", ncc: "red (dy, dx): (115, 7), green (dy, dx): (27, 2)", nccTime: null, canny: "red (dy, dx): (116, 4), green (dy, dx): (28, 1)", cannyTime: 18.338085582945496 },
+    { stem: "milan_duomo", filename: "milan_duomo.tif", noBorderCrop: "red (dy, dx): (111, -16), green (dy, dx): (46, -10)", l2: "red (dy, dx): (111, -15), green (dy, dx): (47, -9)", ncc: "red (dy, dx): (111, -15), green (dy, dx): (47, -9)", nccTime: null, canny: "red (dy, dx): (110, -17), green (dy, dx): (50, -6)", cannyTime: 19.01235195796471 },
+    { stem: "borodino", filename: "borodino.tif", noBorderCrop: "red (dy, dx): (107, 26), green (dy, dx): (55, 13)", l2: "red (dy, dx): (109, 39), green (dy, dx): (53, 28)", ncc: "red (dy, dx): (109, 40), green (dy, dx): (54, 29)", nccTime: null, canny: "red (dy, dx): (110, 42), green (dy, dx): (51, 24)", cannyTime: 17.819363708025776 },
+    { stem: "st_boris", filename: "st_boris.tif", noBorderCrop: "red (dy, dx): (118, 31), green (dy, dx): (48, 16)", l2: "red (dy, dx): (158, 62), green (dy, dx): (65, 33)", ncc: "red (dy, dx): (158, 62), green (dy, dx): (65, 33)", nccTime: null, canny: "red (dy, dx): (157, 61), green (dy, dx): (65, 35)", cannyTime: 17.78168666700367 },
 ];
+
+const singleScaleTimes: Record<string, number> = {
+    cathedral: 0.06523008301155642,
+    church: 31.00756649998948,
+    emir: 2117.252685583022,
+    harvesters: 153.1230301669566,
+    icon: 270.12432741594967,
+    ilemselga: 122.37571508297697,
+    melons: 186.6695230419864,
+    monastery: 0.019149540981743485,
+    religous_painting: 60.86188816698268,
+    self_portrait: 74.76482054201188,
+    siren: 249.66856158297742,
+    three_generations: 110.15708704205463,
+    tobolsk: 0.03530124999815598,
+    wharf: 157.2599486670224,
+};
 
 export default function Page() {
     const contents = [
@@ -171,6 +191,10 @@ export default function Page() {
         {
             sectionLink: "bells_and_whistles",
             text: "Bells and Whistles"
+        },
+        {
+            sectionLink: "timing_comparison",
+            text: "Alignment Timing Comparison"
         },
         {
             sectionLink: "final_results_gallery",
@@ -445,6 +469,28 @@ export default function Page() {
                         70% of the pixels were within tolerance of the solid-color border, or until it hit a max crop limit of 5% of the full height/width.
                     </p>
                     <p>
+                        One example where cropping the black and white borders first before aligning significantly improved the quality of the final alignment
+                        was church.tif. In the result without first cropping B/W borders, the edges of the church are visibly misaligned.
+
+                        Cropping the B/W borders first removes the aligned image's visual artifacts, and results in a different green displacement vector.
+                    </p>
+                    <div className="grid grid-cols-1 gap-4 pt-10 md:grid-cols-3">
+                        <Figure
+                            src="/proj1/gallery/church_original.jpg"
+                            caption="church.tif (original)"
+                        />
+                        <Figure
+                            src="/proj1/gallery/church_wo_bw_border_crop_out.jpg"
+                            caption="church.tif (image pyramid + NCC, no B/W border cropping)"
+                            subcaption="red (dy, dx): (57, -5), green (dy, dx): (-1, -5)"
+                        />
+                        <Figure
+                            src="/proj1/gallery/church_ncc_out.jpg"
+                            caption="church.tif (image pyramid + NCC + B/W border cropping)"
+                            subcaption="red (dy, dx): (57, -5), green (dy, dx): (24, 3)"
+                        />
+                    </div>
+                    <p>
                         <b>Automatic edge detection using Canny edge detectors: </b> Even with all the automatic alignment tricks I threw at it so far, emir.tif evaded alignment!
                         Aligning based on pixel intensity alone proved insufficient because Emir's robe is overwhelmingly blue. The pixel values of his robe in the red and green
                         plates are much darker compared to to the blue plate; hence, L2 norm and NCC will struggle to align his robe's red or green pixels to the blue pixels since their values differ so much!
@@ -466,14 +512,50 @@ export default function Page() {
                         />
                         <Figure
                             src="/proj1/gallery/emir_ncc_out.jpg"
-                            caption="emir.tif (image pyramid + NCC)"
+                            caption="emir.tif (image pyramid + NCC + B/W border cropping)"
                             subcaption="red (dy, dx): (132, -276), green (dy, dx): (49, 24)"
                         />
                         <Figure
                             src="/proj1/gallery/emir_canny_out.jpg"
-                            caption="emir.tif (image pyramid + Canny + NCC)"
+                            caption="emir.tif (image pyramid + Canny + NCC + B/W border cropping)"
                             subcaption="red (dy, dx): (107, 40), green (dy, dx): (49, 23)"
                         />
+                    </div>
+                </section>
+                <section id="timing_comparison" className="space-y-5">
+                    <h2 className="font-medium">Alignment Timing Comparison</h2>
+                    <div className="overflow-x-auto flex flex-col gap-4">
+                        <p>I measured the time that it took 3 of my alignment algorithms to run.
+                            This table contains the total seconds it took to align both the red and green plates to the blue plate
+                            using the single-scale alignment algorithm, the image pyramid alignment algorithm on raw pixel values, or
+                            the image pyramid alignment algorithm on edges from the Canny edge detector.
+                            All 3 variations used NCC as the alignment metric.
+
+                            These times represent the core algorithm, and do not include B/W border edge cropping or trimming wrap-around pixels.
+                        </p>
+                        <table className="w-full border-collapse text-sm mt-8">
+                            <caption className="mb-3 text-left font-medium">
+                                Core alignment runtime comparison (seconds)
+                            </caption>
+                            <thead>
+                                <tr className="border-b border-gray-300">
+                                    <th scope="col" className="px-3 py-2 text-left font-medium">Image</th>
+                                    <th scope="col" className="px-3 py-2 text-right font-medium">Single-scale</th>
+                                    <th scope="col" className="px-3 py-2 text-right font-medium">Image pyramid</th>
+                                    <th scope="col" className="px-3 py-2 text-right font-medium">Image pyramid + Canny</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {galleryImages.map(({ stem, filename, nccTime, cannyTime }) => (
+                                    <tr key={stem} className="border-b border-gray-200 last:border-0">
+                                        <th scope="row" className="px-3 py-2 text-left font-normal">{filename}</th>
+                                        <td className="px-3 py-2 text-right tabular-nums">{singleScaleTimes[stem].toFixed(3)}</td>
+                                        <td className="px-3 py-2 text-right tabular-nums">{nccTime.toFixed(3)}</td>
+                                        <td className="px-3 py-2 text-right tabular-nums">{cannyTime.toFixed(3)}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
                 </section>
                 <section id="final_results_gallery" className="space-y-5">
@@ -492,67 +574,96 @@ export default function Page() {
                         aligning the green plate to the blue plate using my image pyramid alignment algorithm;
                         stacking the 3 aligned plates together into a 3-channel color image;
                         and lastly, trimming the misplaced, wrap-around pixels from the edges.
+
+                        I included 5 variations for every image:
+                        - original: stacking the 3 color plates after splitting without any alignment
+                        - image pyramid + NCC, no B/W border cropping: all the steps except cropping solid-color borders before aligning.
+                        This serves as a comparison for my bells and whistles feature: "Automaic cropping and detecting solid-color borders".
+                        - image pyramid + L2 + B/W border cropping: all the steps, with plate alignment search measured based on the L2 distance
+                        - image pyramid + NCC + B/W border cropping: all the steps, with plate alignment search measured based on NCC
+                        - image pyramid + Canny + NCC + B/W border cropping: all the steps, with alignment search performed on each color plate's detected edges
+                        rather than their raw pixel values.
                     </p>
                     <p>
                         Overall, I found cropping solid-color borders and using NCC produced higher quality alignments.
                         Edge detection most noticeably improved the quality of emir.tif, but found pretty similar best displacements for most of the other images.
                     </p>
                     <div className="space-y-10">
-                        {galleryImages.map(({ stem, filename, l2, ncc, canny }) => (
-                            <div key={stem} className="grid grid-cols-1 gap-4 md:grid-cols-4">
-                                <Figure
-                                    src={`/proj1/gallery/${stem}_original.jpg`}
-                                    caption={`${filename} (original)`}
-                                    style_width={"20vw"}
-                                />
-                                <Figure
-                                    src={`/proj1/gallery/${stem}_l2_out.jpg`}
-                                    caption={`${filename} (image pyramid + L2)`}
-                                    subcaption={l2}
-                                    style_width={"20vw"}
-                                />
-                                <Figure
-                                    src={`/proj1/gallery/${stem}_ncc_out.jpg`}
-                                    caption={`${filename} (image pyramid + NCC)`}
-                                    subcaption={ncc}
-                                    style_width={"20vw"}
-                                />
-                                <Figure
-                                    src={`/proj1/gallery/${stem}_canny_out.jpg`}
-                                    caption={`${filename} (image pyramid + Canny + NCC)`}
-                                    subcaption={canny}
-                                    style_width={"20vw"}
-                                />
+                        {galleryImages.map(({ stem, filename, noBorderCrop, l2, ncc, canny }) => (
+                            <div key={stem} className="space-y-4">
+                                <div className="flex flex-col justify-center gap-20 md:flex-row">
+                                    <Figure
+                                        src={`/proj1/gallery/${stem}_original.jpg`}
+                                        caption={`${filename} (original)`}
+                                        style_width={"20vw"}
+                                    />
+                                    <Figure
+                                        src={`/proj1/gallery/${stem}_wo_bw_border_crop_out.jpg`}
+                                        caption={`${filename} (image pyramid + NCC, no B/W border cropping)`}
+                                        subcaption={noBorderCrop}
+                                        style_width={"20vw"}
+                                    />
+                                </div>
+                                <div className="grid grid-cols-1 justify-items-center gap-4 md:grid-cols-3">
+                                    <Figure
+                                        src={`/proj1/gallery/${stem}_l2_out.jpg`}
+                                        caption={`${filename} (image pyramid + L2 + B/W border cropping)`}
+                                        subcaption={l2}
+                                        style_width={"20vw"}
+                                    />
+                                    <Figure
+                                        src={`/proj1/gallery/${stem}_ncc_out.jpg`}
+                                        caption={`${filename} (image pyramid + NCC + B/W border cropping)`}
+                                        subcaption={ncc}
+                                        style_width={"20vw"}
+                                    />
+                                    <Figure
+                                        src={`/proj1/gallery/${stem}_canny_out.jpg`}
+                                        caption={`${filename} (image pyramid + Canny + NCC + B/W border cropping)`}
+                                        subcaption={canny}
+                                        style_width={"20vw"}
+                                    />
+                                </div>
                             </div>
                         ))}
                     </div>
                     <section id="additional_images" className="space-y-5">
                         <h3 className="font-medium">Additional Images</h3>
-                        {additionalGalleryImages.map(({ stem, filename, l2, ncc, canny }) => (
-                            <div key={stem} className="grid grid-cols-1 gap-4 md:grid-cols-4">
-                                <Figure
-                                    src={`/proj1/gallery/${stem}_original.jpg`}
-                                    caption={`${filename} (original)`}
-                                    style_width={"20vw"}
-                                />
-                                <Figure
-                                    src={`/proj1/gallery/${stem}_l2_out.jpg`}
-                                    caption={`${filename} (image pyramid + L2)`}
-                                    subcaption={l2}
-                                    style_width={"20vw"}
-                                />
-                                <Figure
-                                    src={`/proj1/gallery/${stem}_ncc_out.jpg`}
-                                    caption={`${filename} (image pyramid + NCC)`}
-                                    subcaption={ncc}
-                                    style_width={"20vw"}
-                                />
-                                <Figure
-                                    src={`/proj1/gallery/${stem}_canny_out.jpg`}
-                                    caption={`${filename} (image pyramid + Canny + NCC)`}
-                                    subcaption={canny}
-                                    style_width={"20vw"}
-                                />
+                        {additionalGalleryImages.map(({ stem, filename, noBorderCrop, l2, ncc, canny }) => (
+                            <div key={stem} className="space-y-4">
+                                <div className="flex flex-col justify-center gap-4 md:flex-row">
+                                    <Figure
+                                        src={`/proj1/gallery/${stem}_original.jpg`}
+                                        caption={`${filename} (original)`}
+                                        style_width={"20vw"}
+                                    />
+                                    <Figure
+                                        src={`/proj1/gallery/${stem}_wo_bw_border_crop_out.jpg`}
+                                        caption={`${filename} (image pyramid + NCC, no B/W border cropping)`}
+                                        subcaption={noBorderCrop}
+                                        style_width={"20vw"}
+                                    />
+                                </div>
+                                <div className="grid grid-cols-1 justify-items-center gap-4 md:grid-cols-3">
+                                    <Figure
+                                        src={`/proj1/gallery/${stem}_l2_out.jpg`}
+                                        caption={`${filename} (image pyramid + L2 + B/W border cropping)`}
+                                        subcaption={l2}
+                                        style_width={"20vw"}
+                                    />
+                                    <Figure
+                                        src={`/proj1/gallery/${stem}_ncc_out.jpg`}
+                                        caption={`${filename} (image pyramid + NCC + B/W border cropping)`}
+                                        subcaption={ncc}
+                                        style_width={"20vw"}
+                                    />
+                                    <Figure
+                                        src={`/proj1/gallery/${stem}_canny_out.jpg`}
+                                        caption={`${filename} (image pyramid + Canny + NCC + B/W border cropping)`}
+                                        subcaption={canny}
+                                        style_width={"20vw"}
+                                    />
+                                </div>
                             </div>
                         ))}
                     </section>

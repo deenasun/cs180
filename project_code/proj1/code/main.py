@@ -337,16 +337,25 @@ def pyramid_align(img, base_img, metric="l2", radius=8, margin=2, verbose=False)
     return best_dy, best_dx
 
 
-def align_image_pipeline(input_file_path, output_path, display=False):
+def align_image_pipeline(
+    input_file_path, output_path, use_image_pyramid=True, metric="ncc", display=False
+):
     """Run the full image alignment pipeline:
     - Read the image from the input file path
     - Separate the colored glass plates
     - Crop the white and black edges
-    - Align R and G plates to the B plate using the image pyramid implementation
+    - Align R and G plates to the B plate
     - Shift all three plates and stack the shifted plates
     - Trim the stacked image to only keep actually overlapping regions and exclude
         any pixels that wrapped around after shifting the R and G plates with np.roll
     - Save the aligned image
+
+    Args:
+        input_file_path: path where the input image (jpg or tif) is located
+        output_path: output path where the result should be saved to
+        use_image_pyramid: if True, use the image pyramid alignment algo. Otherwise, use the single-scale alignment algo
+        metric: l2 or ncc
+        display: whether to show intermediate matplotlib plots
     """
     im = skio.imread(input_file_path)
     im = sk.img_as_float(im)
@@ -374,16 +383,25 @@ def align_image_pipeline(input_file_path, output_path, display=False):
 
     cropped_r, cropped_g, cropped_b = crop_black_r, crop_black_g, crop_black_b
 
-    dy_r, dx_r = pyramid_align(cropped_r, cropped_b, "ncc")
-    print(f"Displacement vector for r: {dy_r, dx_r}")
-    shifted_r = np.roll(cropped_r, shift=(dy_r, dx_r), axis=(0, 1))
+    if use_image_pyramid:
+        dy_r, dx_r = pyramid_align(cropped_r, cropped_b, metric)
+        print(f"Displacement vector for r: {dy_r, dx_r}")
+        shifted_r = np.roll(cropped_r, shift=(dy_r, dx_r), axis=(0, 1))
 
-    dy_g, dx_g = pyramid_align(cropped_g, cropped_b, "ncc")
-    print(f"Displacement vector for g: {dy_g, dx_g}")
-    shifted_g = np.roll(cropped_g, shift=(dy_g, dx_g), axis=(0, 1))
+        dy_g, dx_g = pyramid_align(cropped_g, cropped_b, metric)
+        print(f"Displacement vector for g: {dy_g, dx_g}")
+        shifted_g = np.roll(cropped_g, shift=(dy_g, dx_g), axis=(0, 1))
+    else:
+        dy_r, dx_r = align(cropped_r, cropped_b, metric)
+        print(f"Displacement vector for r: {dy_r, dx_r}")
+        shifted_r = np.roll(cropped_r, shift=(dy_r, dx_r), axis=(0, 1))
+
+        dy_g, dx_g = align(cropped_g, cropped_b, metric)
+        print(f"Displacement vector for g: {dy_g, dx_g}")
+        shifted_g = np.roll(cropped_g, shift=(dy_g, dx_g), axis=(0, 1))
 
     # Align shifted plates with base plate (B)
-    pyramid_aligned_cropped_im = np.dstack([shifted_r, shifted_g, cropped_b])
+    aligned_im = np.dstack([shifted_r, shifted_g, cropped_b])
 
     # Trim to only keep parts of the stacked image that corresponds to
     # where the R, G, and B plates actually overlap after shifting
@@ -391,7 +409,7 @@ def align_image_pipeline(input_file_path, output_path, display=False):
     trim_bottom = abs(min(dy_r, dy_g, 0))
     trim_left = abs(max(dx_r, dx_g, 0))
     trim_right = abs(min(dx_r, dx_g, 0))
-    final_color_im = pyramid_aligned_cropped_im
+    final_color_im = aligned_im
 
     if trim_top > 0:
         final_color_im = final_color_im[trim_top:, :]
@@ -409,15 +427,17 @@ def align_image_pipeline(input_file_path, output_path, display=False):
         ax[0].set_title("Original")
 
         ax[1].imshow(final_color_im)
-        ax[1].set_title("Pyramid Aligned")
+        ax[1].set_title("Aligned")
         plt.show()
-
+    
     im_out_uint8 = (final_color_im * 255.0).astype(np.uint8)
     skio.imsave(output_path, im_out_uint8)
     print(f"Saved aligned image to {output_path}")
 
 
-def edge_detection_align(input_file_path, output_path, display=False):
+def edge_detection_align(
+    input_file_path, output_path, use_image_pyramid=True, metric="ncc", display=False
+):
     """Use skimage's Canny filter to detect edges, then align color plates based on detected edges."""
     im = skio.imread(input_file_path)
     im = sk.img_as_float(im)
@@ -448,7 +468,7 @@ def edge_detection_align(input_file_path, output_path, display=False):
     cropped_r, cropped_g, cropped_b = crop_black_r, crop_black_g, crop_black_b
 
     if display:
-        # Display detected edges
+        # Display color intensity of plates
         fig, ax = plt.subplots(1, 3, figsize=(24, 12))
         ax[0].imshow(cropped_r, cmap="gray", vmin=0, vmax=1)
         ax[0].set_title("Red plate")
@@ -471,7 +491,7 @@ def edge_detection_align(input_file_path, output_path, display=False):
             pad=0.05,
         )
         plt.show()
-
+    
     r_edges = sk.feature.canny(cropped_r).astype(
         np.float64
     )  # Cast from bool into floats
@@ -491,21 +511,34 @@ def edge_detection_align(input_file_path, output_path, display=False):
         ax[2].set_title("Blue edges")
 
         plt.show()
+    
+    if use_image_pyramid:
+        dy_r, dx_r = pyramid_align(r_edges, b_edges, metric)
+        print(
+            f"[Image Pyramid + Edge Detection + {metric.capitalize()}] Displacement vector for r: {dy_r, dx_r}"
+        )
+        shifted_r = np.roll(cropped_r, shift=(dy_r, dx_r), axis=(0, 1))
 
-    dy_r, dx_r = pyramid_align(r_edges, b_edges, "ncc")
-    print(
-        f"[Image Pyramid + Edge Detection + NCC] Displacement vector for r: {dy_r, dx_r}"
-    )
-    shifted_r = np.roll(cropped_r, shift=(dy_r, dx_r), axis=(0, 1))
+        dy_g, dx_g = pyramid_align(g_edges, b_edges, metric)
+        print(
+            f"[Image Pyramid + Edge Detection + {metric.capitalize()}] Displacement vector for g: {dy_g, dx_g}"
+        )
+        shifted_g = np.roll(cropped_g, shift=(dy_g, dx_g), axis=(0, 1))
+    else:
+        dy_r, dx_r = align(r_edges, b_edges, metric)
+        print(
+            f"[Single-Scale + Edge Detection + {metric.capitalize()}] Displacement vector for r: {dy_r, dx_r}"
+        )
+        shifted_r = np.roll(cropped_r, shift=(dy_r, dx_r), axis=(0, 1))
 
-    dy_g, dx_g = pyramid_align(g_edges, b_edges, "ncc")
-    print(
-        f"[Image Pyramid + Edge Detection + NCC] Displacement vector for g: {dy_g, dx_g}"
-    )
-    shifted_g = np.roll(cropped_g, shift=(dy_g, dx_g), axis=(0, 1))
+        dy_g, dx_g = align(g_edges, b_edges, metric)
+        print(
+            f"[Single-Scale + Edge Detection + {metric.capitalize()}] Displacement vector for g: {dy_g, dx_g}"
+        )
+        shifted_g = np.roll(cropped_g, shift=(dy_g, dx_g), axis=(0, 1))
 
     # Align shifted plates with base plate (B)
-    pyramid_aligned_cropped_im = np.dstack([shifted_r, shifted_g, cropped_b])
+    aligned_im = np.dstack([shifted_r, shifted_g, cropped_b])
 
     # Trim to only keep parts of the stacked image that corresponds to
     # where the R, G, and B plates actually overlap after shifting
@@ -513,7 +546,7 @@ def edge_detection_align(input_file_path, output_path, display=False):
     trim_bottom = abs(min(dy_r, dy_g, 0))
     trim_left = abs(max(dx_r, dx_g, 0))
     trim_right = abs(min(dx_r, dx_g, 0))
-    final_color_im = pyramid_aligned_cropped_im
+    final_color_im = aligned_im
 
     if trim_top > 0:
         final_color_im = final_color_im[trim_top:, :]
@@ -531,13 +564,13 @@ def edge_detection_align(input_file_path, output_path, display=False):
         ax[0].set_title("Original")
 
         ax[1].imshow(final_color_im)
-        ax[1].set_title("Pyramid Aligned + Edge Detection")
+        ax[1].set_title("Aligned with Edge Detection")
         plt.show()
-
+    
     im_out_uint8 = (final_color_im * 255.0).astype(np.uint8)
     skio.imsave(output_path, im_out_uint8)
     print(
-        f"[Image Pyramid + Edge Detection + NCC] Saved aligned image to {output_path}"
+        f"[{'Image Pyramid' if use_image_pyramid else 'Single-Scale'} + Edge Detection + {metric}] Saved aligned image to {output_path}"
     )
 
 
@@ -548,14 +581,23 @@ def main():
     # Folder to save the aligned images to
     output_dir = Path("out/")
 
+    USE_IMAGE_PYRAMID = True  # Whether to use the image-pyramid implementation or single-scale implementation
+    METRIC = "ncc"  # "l2" or "ncc"
+
     # Iterate through the glass plates in input_dir, align each, and save the outputs
     for file_path in input_dir.iterdir():
         if file_path.is_file() and file_path.suffix in {".tif", ".jpg"}:
             base_name = file_path.stem
             output_path = str(output_dir / base_name) + "_edge_out.jpg"
             print(f"Processing {file_path}")
-            # align_image_pipeline(file_path, output_path)
-            edge_detection_align(file_path, output_path, display=False)
+            # align_image_pipeline(file_path, output_path, use_image_pyramid=USE_IMAGE_PYRAMID, metric=METRIC, display=True)
+            edge_detection_align(
+                file_path,
+                output_path,
+                use_image_pyramid=USE_IMAGE_PYRAMID,
+                metric=METRIC,
+                display=True,
+            )
 
 
 if __name__ == "__main__":

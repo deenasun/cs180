@@ -47,7 +47,6 @@ def plot_alignment_barchart():
     plt.tight_layout()
     plt.show()
 
-
 def compare_alignment_algorithms(input_file_path, output_path_base, display=True):
     im = skio.imread(input_file_path)
     im = sk.img_as_float(im)
@@ -153,7 +152,6 @@ def compare_alignment_algorithms(input_file_path, output_path_base, display=True
         ax[2].set_title("Image Pyramid")
         plt.show()
 
-
 def compare_metrics(input_file_path, output_path_base, display=True):
     im = skio.imread(input_file_path)
     im = sk.img_as_float(im)
@@ -233,7 +231,6 @@ def compare_metrics(input_file_path, output_path_base, display=True):
         ax[2].set_title("NCC")
         plt.show()
 
-
 def process_results_gallery(input_file_path, output_path_base, display=True):
 
     im = skio.imread(input_file_path)
@@ -254,6 +251,39 @@ def process_results_gallery(input_file_path, output_path_base, display=True):
     orig_output_path = str(output_path_base) + "_original.jpg"
     skio.imsave(orig_output_path, im_out_uint8)
     print(f"Saved stacked original image to {orig_output_path}")
+
+    # Image Pyramid + NCC without detecting solid-color borders
+    print("[Image Pyramid + NCC w/o b/w border crop] Starting alignment...")
+
+    wo_bw_border_crop_dy_r, wo_bw_border_crop_dx_r = pyramid_align(r, b, "ncc")
+    wo_bw_border_crop_r = np.roll(r, shift=(wo_bw_border_crop_dy_r, wo_bw_border_crop_dx_r), axis=(0, 1))
+
+    wo_bw_border_crop_dy_g, wo_bw_border_crop_dx_g = pyramid_align(g, b, "ncc")
+    wo_bw_border_crop_g = np.roll(g, shift=(wo_bw_border_crop_dy_g, wo_bw_border_crop_dx_g), axis=(0, 1))
+
+    print(f"[Image Pyramid + NCC w/o b/w border crop] Displacement vector for r: {wo_bw_border_crop_dy_r, wo_bw_border_crop_dx_r}")
+    print(f"[Image Pyramid + NCC w/o b/w border crop] Displacement vector for g: {wo_bw_border_crop_dy_g, wo_bw_border_crop_dx_g}")
+
+    wo_bw_border_crop_aligned_im = np.dstack([wo_bw_border_crop_r, wo_bw_border_crop_g, b])
+    
+    wo_bw_border_crop_trim_top = abs(max(wo_bw_border_crop_dy_r, wo_bw_border_crop_dy_g, 0))
+    wo_bw_border_crop_trim_bottom = abs(min(wo_bw_border_crop_dy_r, wo_bw_border_crop_dy_g, 0))
+    wo_bw_border_crop_trim_left = abs(max(wo_bw_border_crop_dx_r, wo_bw_border_crop_dx_g, 0))
+    wo_bw_border_crop_trim_right = abs(min(wo_bw_border_crop_dx_r, wo_bw_border_crop_dx_g, 0))
+
+    if wo_bw_border_crop_trim_top > 0:
+        wo_bw_border_crop_aligned_im = wo_bw_border_crop_aligned_im[wo_bw_border_crop_trim_top:, :]
+    if wo_bw_border_crop_trim_bottom > 0:
+        wo_bw_border_crop_aligned_im = wo_bw_border_crop_aligned_im[:-wo_bw_border_crop_trim_bottom, :]
+    if wo_bw_border_crop_trim_left > 0:
+        wo_bw_border_crop_aligned_im = wo_bw_border_crop_aligned_im[:, wo_bw_border_crop_trim_left:]
+    if wo_bw_border_crop_trim_right > 0:
+        wo_bw_border_crop_aligned_im = wo_bw_border_crop_aligned_im[:, :-wo_bw_border_crop_trim_right]
+    
+    wo_bw_border_crop_out_uint8 = (wo_bw_border_crop_aligned_im * 255.0).astype(np.uint8)
+    wo_bw_border_crop_output_path = output_path_base + "_wo_bw_border_crop_out.jpg"
+    skio.imsave(wo_bw_border_crop_output_path, wo_bw_border_crop_out_uint8)
+    print(f"[Image Pyramid + NCC w/o b/w border crop] Saved image to {wo_bw_border_crop_output_path}")
 
     crop_white_r, crop_white_g, crop_white_b = crop_rgb(r, g, b, color_val=1.0)
     crop_black_r, crop_black_g, crop_black_b = crop_rgb(
@@ -329,52 +359,14 @@ def process_results_gallery(input_file_path, output_path_base, display=True):
     ncc_output_path = output_path_base + "_ncc_out.jpg"
     skio.imsave(ncc_output_path, ncc_out_uint8)
     print(f"[Image Pyramid + NCC] Saved image to {ncc_output_path}")
-
+    
     # Image Pyramid + Canny Edge Detector
-    if display:
-        # Display detected edges
-        fig, ax = plt.subplots(1, 3, figsize=(24, 12))
-        ax[0].imshow(cropped_r, cmap="gray", vmin=0, vmax=1)
-        ax[0].set_title("Red plate")
-
-        ax[1].imshow(cropped_g, cmap="gray", vmin=0, vmax=1)
-        ax[1].set_title("Green plate")
-
-        blue_im = ax[2].imshow(
-            cropped_b, cmap="gray", vmin=0, vmax=1
-        )  # Colorbar needs an image returned by imshow
-        ax[2].set_title("Blue plate")
-
-        # Colorbar for pixel intensities
-        plt.colorbar(
-            blue_im,
-            ax=ax,
-            label="Pixel intensity",
-            orientation="horizontal",
-            fraction=0.05,
-            pad=0.05,
-        )
-        plt.show()
-
+    canny_start_time = time.perf_counter()
     r_edges = sk.feature.canny(cropped_r).astype(
         np.float64
     )  # Cast from bool into floats
     g_edges = sk.feature.canny(cropped_g).astype(np.float64)
     b_edges = sk.feature.canny(cropped_b).astype(np.float64)
-
-    if display:
-        # Display detected edges
-        fig, ax = plt.subplots(1, 3, figsize=(24, 12))
-        ax[0].imshow(r_edges, cmap="gray")
-        ax[0].set_title("Red edges")
-
-        ax[1].imshow(g_edges, cmap="gray")
-        ax[1].set_title("Green edges")
-
-        ax[2].imshow(b_edges, cmap="gray")
-        ax[2].set_title("Blue edges")
-
-        plt.show()
 
     canny_dy_r, canny_dx_r = pyramid_align(r_edges, b_edges, "ncc")
     print(
@@ -390,6 +382,10 @@ def process_results_gallery(input_file_path, output_path_base, display=True):
 
     # Align shifted plates with base plate (B)
     canny_im = np.dstack([canny_shifted_r, canny_shifted_g, cropped_b])
+    canny_end_time = time.perf_counter()
+    print(
+        f"[Image Pyramid + Canny Edge Detector + NCC] Alignment took a total of {canny_end_time - canny_start_time} seconds"
+    )
 
     # Trim to only keep parts of the stacked image that corresponds to
     # where the R, G, and B plates actually overlap after shifting
@@ -415,21 +411,38 @@ def process_results_gallery(input_file_path, output_path_base, display=True):
     )
 
     if display:
+        # Display detected edges
+        fig, ax = plt.subplots(1, 3, figsize=(24, 12))
+        ax[0].imshow(r_edges, cmap="gray")
+        ax[0].set_title("Red edges")
+
+        ax[1].imshow(g_edges, cmap="gray")
+        ax[1].set_title("Green edges")
+
+        ax[2].imshow(b_edges, cmap="gray")
+        ax[2].set_title("Blue edges")
+
+        plt.show()
+
+    if display:
         # Display the original image and the aligned image
-        fig, ax = plt.subplots(2, 2, figsize=(24, 24))
+        fig, ax = plt.subplots(3, 2, figsize=(24, 24))
         ax[0, 0].imshow(orig_im)
         ax[0, 0].set_title("Original")
 
-        ax[0, 1].imshow(l2_aligned_im)
-        ax[0, 1].set_title("Image Pyramid + L2")
+        ax[0, 1].imshow(wo_bw_border_crop_aligned_im)
+        ax[0, 1].set_title("Image Pyramid + NCC without cropping black/white border")
 
-        ax[1, 0].imshow(ncc_aligned_im)
-        ax[1, 0].set_title("Image Pyramid + NCC")
+        ax[1, 0].imshow(l2_aligned_im)
+        ax[1, 0].set_title("Image Pyramid + L2")
 
-        ax[1, 1].imshow(canny_im)
-        ax[1, 1].set_title("Image Pyramid + Canny Edge Detector")
+        ax[1, 1].imshow(ncc_aligned_im)
+        ax[1, 1].set_title("Image Pyramid + NCC")
+
+        ax[2, 0].imshow(canny_im)
+        ax[2, 0].set_title("Image Pyramid + Canny Edge Detector")
+        
         plt.show()
-
 
 def main():
     # Folder with the unzipped .tif or .jpg digitized glass plate images

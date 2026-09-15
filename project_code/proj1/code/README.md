@@ -9,7 +9,7 @@
 | |-requirements.txt
 │ └─README.md      # you are here right now :)
 └─web/
-  └─deena_cs180_proj1.pdf        # PDF snapshot of my proj1 portfolio
+  └─deena_cs180_proj1_website.pdf        # PDF snapshot of my proj1 portfolio
 ```
 
 ## Website

@@ -4,6 +4,7 @@ import scipy
 import skimage as sk
 import matplotlib.pyplot as plt
 from pathlib import Path
+from align_image_code import align_images
 
 
 def make_difference_and_box_filters():
@@ -33,13 +34,16 @@ def make_2d_gaussian_kernel(size=3, sigma=None):
     return gaussian_filter @ gaussian_filter.T
 
 
-def read_img_as_float(input_file_path):
+def read_img_as_float(input_file_path, grayscale=False):
     img = sk.io.imread(input_file_path)
     img = sk.img_as_float(img)
 
     # Convert 4-channeled RGBA images into RGB images
     if img.shape[-1] > 3:
         img = sk.color.rgba2rgb(img)
+
+    if grayscale:
+        img = sk.color.rgb2gray(img)
 
     return img
 
@@ -340,47 +344,241 @@ def sharpen_then_blur_then_sharpen(input_file_path="data/taj.jpg", alpha=0.25):
     plt.show()
 
 
-def main():
-    Dx, Dy, box_filter = make_difference_and_box_filters()
+def hybrid_image(img1, img2, hf_sigma, lf_sigma, show_ft=False):
+    """
+    Part 2.2: Hybrid Images
 
-    img = read_img_as_float("data/deenasun_square.jpg")
+    The cut-off frequency where the Gaussian's frequency response falls to 1/2 its original amplitude:
+        f_c = (sqrt(2 * ln(2)) / (2 * pi * sigma) ≈ 0.187 / sigma
 
-    img_grayscale = sk.color.rgb2gray(img)  # dtype: float64, shape: (w, h)
+    So doubling the sigma halves the cutoff frequency.
+    """
 
-    out_Dx = convolve_2d(img_grayscale, Dx)
-    out_Dy = convolve_2d(img_grayscale, Dy)
-    out_box = convolve_2d(img_grayscale, box_filter)
+    def high_pass_filter(img, sigma):
+        # Rule of thumb for Gaussians: set filter half-width to about 3 sigma
+        kernel_size = 2 * int(np.ceil(3 * sigma)) + 1
+        gaussian = make_2d_gaussian_kernel(size=kernel_size, sigma=sigma)
+        if len(img.shape) == 2:
+            gaussian_conv = scipy.signal.convolve2d(
+                img, gaussian, mode="same", fillvalue=0
+            )
+            high_pass_out = img - gaussian_conv
+        elif len(img.shape) == 3:
+            high_pass_outs = []
+            for c in range(img.shape[-1]):
+                channel = img[:, :, c]
+                gaussian_conv = scipy.signal.convolve2d(
+                    channel, gaussian, mode="same", fillvalue=0
+                )
+                hp_channel_out = channel - gaussian_conv
+                high_pass_outs.append(hp_channel_out)
+            high_pass_out = np.dstack(high_pass_outs)
+        else:
+            print(
+                f"Input image should have 2 or 3 dimensions, but input had shape {img.shape}"
+            )
+            return None
 
-    fig, ax = plt.subplots(2, 2, figsize=(12, 12))
-    ax[0, 0].imshow(img_grayscale, cmap="gray", vmin=0, vmax=1)
-    ax[0, 0].set_title("Original (grayscale)")
+        return high_pass_out
 
-    ax[0, 1].imshow(out_Dx, cmap="viridis", vmin=0, vmax=1)
-    ax[0, 1].set_title("After convolving with Dx")
+    def low_pass_filter(img, sigma):
+        # Rule of thumb for Gaussians: set filter half-width to about 3 sigma
+        kernel_size = 2 * int(np.ceil(3 * sigma)) + 1
+        gaussian = make_2d_gaussian_kernel(size=kernel_size, sigma=sigma)
+        if len(img.shape) == 2:
+            low_pass_out = scipy.signal.convolve2d(
+                img, gaussian, mode="same", fillvalue=0
+            )
+        elif len(img.shape) == 3:
+            low_pass_outs = []
+            for c in range(img.shape[-1]):
+                channel = img[:, :, c]
+                lp_channel_out = scipy.signal.convolve2d(
+                    channel, gaussian, mode="same", fillvalue=0
+                )
+                low_pass_outs.append(lp_channel_out)
+            low_pass_out = np.dstack(low_pass_outs)
+        else:
+            print(
+                f"Input image should have 2 or 3 dimensions, but input had shape {img.shape}"
+            )
+            return None
 
-    ax[1, 0].imshow(out_Dy, cmap="viridis", vmin=0, vmax=1)
-    ax[1, 0].set_title("After convolving with Dy")
+        return low_pass_out
 
-    ax[1, 1].imshow(out_box, cmap="gray", vmin=0, vmax=1)
-    ax[1, 1].set_title("After convolving with box filter")
+    high_freq_img = high_pass_filter(img1, hf_sigma)
+    low_freq_img = low_pass_filter(img2, lf_sigma)
 
+    hybrid = low_freq_img + high_freq_img
+    hybrid = np.clip(hybrid, 0.0, 1.0)
+
+    # Display images and their log magnitude Fourier Transforms
+    # np.fft.fft2 computes the 2D Fourier transform by converting pixel brightness into spatial-frequency components
+    # np.fft.fftshift moves the zero-frequency to the center;
+    #   low frequencies are near the center and high frequences are on the periphery
+    if show_ft:
+        fig, ax = plt.subplots(nrows=5, ncols=2, figsize=(10, 20), layout="constrained")
+
+        img1_gray = sk.color.rgb2gray(img1)
+        img1_ft = np.log(np.abs(np.fft.fftshift(np.fft.fft2(img1_gray))))
+
+        img2_gray = sk.color.rgb2gray(img2)
+        img2_ft = np.log(np.abs(np.fft.fftshift(np.fft.fft2(img2_gray))))
+
+        hf_gray = sk.color.rgb2gray(high_freq_img)
+        hf_ft = np.log(np.abs(np.fft.fftshift(np.fft.fft2(hf_gray))))
+
+        lf_gray = sk.color.rgb2gray(low_freq_img)
+        lf_ft = np.log(np.abs(np.fft.fftshift(np.fft.fft2(lf_gray))))
+
+        hybrid_gray = sk.color.rgb2gray(hybrid)
+        hybrid_ft = np.log(np.abs(np.fft.fftshift(np.fft.fft2(hybrid_gray))))
+
+        # Compute min/max across all Fourier Transform plots so each imshow has consistent vmin/vmax
+        ft_min = min(
+            [img1_ft.min(), img2_ft.min(), hf_ft.min(), lf_ft.min(), hybrid_ft.min()]
+        )
+        ft_max = min(
+            [img1_ft.max(), img2_ft.max(), hf_ft.max(), lf_ft.max(), hybrid_ft.max()]
+        )
+
+        ax[0, 0].imshow(img1)
+        ax[0, 0].set_title("Image 1")
+        ax[0, 1].imshow(img1_ft, cmap="gray", vmin=ft_min, vmax=ft_max)
+        ax[0, 1].set_title("Image 1 (FT log magnitude)")
+
+        ax[1, 0].imshow(img2)
+        ax[1, 0].set_title("Image 2")
+        ax[1, 1].imshow(img2_ft, cmap="gray", vmin=ft_min, vmax=ft_max)
+        ax[1, 1].set_title("Image 2 (FT log magnitude)")
+
+        ax[2, 0].imshow(high_freq_img)
+        ax[2, 0].set_title(f"Image 1 w/ high-pass filter σ={hf_sigma}")
+        ax[2, 1].imshow(hf_ft, cmap="gray", vmin=ft_min, vmax=ft_max)
+        ax[2, 1].set_title("Image 1 w/ high-pass filter (FT log magnitude)")
+
+        ax[3, 0].imshow(low_freq_img)
+        ax[3, 0].set_title("Image 2 w/ low-pass filter σ={lf_sigma}")
+        ax[3, 1].imshow(lf_ft, cmap="gray", vmin=ft_min, vmax=ft_max)
+        ax[3, 1].set_title("Image 2 w/ low-pass filter (FT log magnitude)")
+
+        ax[4, 0].imshow(hybrid)
+        ax[4, 0].set_title("Hybrid image")
+        ax[4, 1].imshow(hybrid_ft, cmap="gray", vmin=ft_min, vmax=ft_max)
+        ax[4, 1].set_title("Hybrid image (FT log magnitude)")
+
+        plt.show()
+
+    return hybrid
+
+
+def load_align_hybrid(
+    img1_file_path="data/DerekPicture.jpg", img2_file_path="data/nutmeg.jpg"
+):
+    """
+    Part 2.2: Hybrid Images
+
+    This function implements the full pipeline for part 2.2: loading 2 images, aligning them, then hybridizing them.
+    """
+    # high sf
+    # img1 = plt.imread("data/DerekPicture.jpg") / 255.0
+    # # low sf
+    # img2 = plt.imread("data/nutmeg.jpg") / 255.0
+
+    # # high sf
+    # img1 = plt.imread("data/cheetah.jpg") / 255.0
+    # # low sf
+    # img2 = plt.imread("data/honey_badger.jpg") / 255.0
+
+    # # high sf
+    # img1 = read_img_as_float("data/burger.jpg")
+    # # low sf
+    # img2 = read_img_as_float("data/saturn.jpg")
+
+    # First load images
+    img1 = read_img_as_float(img1_file_path)
+    img2 = read_img_as_float(img2_file_path)
+
+    # Align images
+    img1_aligned, img2_aligned = align_images(img1, img2)
+
+    plt.imshow(img1_aligned)
+    plt.show()
+    plt.imshow(img2_aligned)
     plt.show()
 
-    # Compare with scipy.signal.convolve2d
-    scipy_out_Dx = scipy.signal.convolve2d(
-        img_grayscale, np.expand_dims(Dx, axis=0), mode="same", fillvalue=0
-    )
-    scipy_out_Dy = scipy.signal.convolve2d(img_grayscale, Dy, mode="same", fillvalue=0)
-    scipy_out_box = scipy.signal.convolve2d(
-        img_grayscale, box_filter, mode="same", fillvalue=0
-    )
+    # Trying a matrix of different sigma values for the high-pass and low-pass filters
+    # hf_candidates = [2, 2.5, 3, 3.5, 4]
+    # lf_candidates = [1, 2, 3, 4, 5]
 
-    assert np.allclose(out_Dx, scipy_out_Dx, atol=1e-8), (
-        "Convolution with Dx does not match scipy.signal.convolve2d"
-    )
-    assert np.allclose(out_Dy, scipy_out_Dy, atol=1e-8), (
-        "Convolution with Dy does not match scipy.signal.convolve2d"
-    )
-    assert np.allclose(out_box, scipy_out_box, atol=1e-8), (
-        "Convolution with box filter does not match scipy.signal.convolve2d"
-    )
+    # for i1, hf_s1 in enumerate(hf_candidates):
+    #     for i2, lf_s2 in enumerate(lf_candidates):
+    #         print(f"Processing hf sigma1 {hf_s1}, lf sigma2 {lf_s2}")
+    #         hybrid = hybrid_image(img1_aligned, img2_aligned, hf_s1, lf_s2)
+    #         # idx = i1 * 7 + i2
+    #         # axs[idx].imshow(hybrid)
+    #         # axs[idx].set_title(f"hf {hf_s1}, lf {lf_s2}")
+    #         # axs[idx].axis("off")
+
+    #         plt.imshow(hybrid)
+    #         plt.title(f"hf {hf_s1}, lf {lf_s2}")
+    #         plt.show()
+
+    hf_sigma = 2.75
+    lf_sigma = 3
+    hybrid = hybrid_image(img1_aligned, img2_aligned, hf_sigma, lf_sigma, show_ft=True)
+    plt.imshow(hybrid)
+    plt.show()
+
+
+def main():
+
+    load_align_hybrid()
+
+    # Dx, Dy, box_filter = make_difference_and_box_filters()
+
+    # img = read_img_as_float("data/deenasun_square.jpg")
+
+    # img_grayscale = sk.color.rgb2gray(img)  # dtype: float64, shape: (w, h)
+
+    # out_Dx = convolve_2d(img_grayscale, Dx)
+    # out_Dy = convolve_2d(img_grayscale, Dy)
+    # out_box = convolve_2d(img_grayscale, box_filter)
+
+    # fig, ax = plt.subplots(2, 2, figsize=(12, 12))
+    # ax[0, 0].imshow(img_grayscale, cmap="gray", vmin=0, vmax=1)
+    # ax[0, 0].set_title("Original (grayscale)")
+
+    # ax[0, 1].imshow(out_Dx, cmap="viridis", vmin=0, vmax=1)
+    # ax[0, 1].set_title("After convolving with Dx")
+
+    # ax[1, 0].imshow(out_Dy, cmap="viridis", vmin=0, vmax=1)
+    # ax[1, 0].set_title("After convolving with Dy")
+
+    # ax[1, 1].imshow(out_box, cmap="gray", vmin=0, vmax=1)
+    # ax[1, 1].set_title("After convolving with box filter")
+
+    # plt.show()
+
+    # # Compare with scipy.signal.convolve2d
+    # scipy_out_Dx = scipy.signal.convolve2d(
+    #     img_grayscale, np.expand_dims(Dx, axis=0), mode="same", fillvalue=0
+    # )
+    # scipy_out_Dy = scipy.signal.convolve2d(img_grayscale, Dy, mode="same", fillvalue=0)
+    # scipy_out_box = scipy.signal.convolve2d(
+    #     img_grayscale, box_filter, mode="same", fillvalue=0
+    # )
+
+    # assert np.allclose(out_Dx, scipy_out_Dx, atol=1e-8), (
+    #     "Convolution with Dx does not match scipy.signal.convolve2d"
+    # )
+    # assert np.allclose(out_Dy, scipy_out_Dy, atol=1e-8), (
+    #     "Convolution with Dy does not match scipy.signal.convolve2d"
+    # )
+    # assert np.allclose(out_box, scipy_out_box, atol=1e-8), (
+    #     "Convolution with box filter does not match scipy.signal.convolve2d"
+    # )
+
+
+if __name__ == "__main__":
+    main()

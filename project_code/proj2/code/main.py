@@ -1,17 +1,50 @@
 import numpy as np
+import cv2 as cv
 import scipy
 import skimage as sk
 import matplotlib.pyplot as plt
 
-# D_out = np.floor((D_in - K + 2P) / S) + 1
-# P = ((D_out - 1) * S - D_in + K) / 2
-Dx = np.array([1, 0, -1])
-Dy = np.array([[1], [0], [-1]])
-box_filter = np.ones((9, 9)) / 81
+
+def make_difference_and_box_filters():
+    """Quick helper function to quickly update Dx, Dy, and box_filter in a singel place"""
+    Dx = np.array([1, 0, -1])
+    Dx = np.expand_dims(Dx, axis=0)  # Reshape row vector into (d, 1)
+    Dy = np.array([[1], [0], [-1]])
+    box_filter = np.ones((9, 9)) / 81
+
+    return Dx, Dy, box_filter
+
+
+def make_2d_gaussian_kernel(size=3, sigma=None):
+    """Make a 2D Gaussian kernel"""
+    # Size needs to be odd and positive
+    if sigma:
+        gaussian_filter = cv.getGaussianKernel(size, sigma)
+    else:
+        # OpenCV will automatically calculate a sigma based on the size if sigma is non-positive
+        gaussian_filter = cv.getGaussianKernel(size, sigma=0)
+
+    return gaussian_filter @ gaussian_filter.T
+
+
+def make_box_filter(size=9):
+    """Make a box_filter of a given size"""
+    return np.ones((size, size)) / (size**2)
+
+
+def crop_into_square(matrix):
+    h, w = matrix.shape
+    min_dim = min(h, w)
+    start_y = (h - min_dim) // 2
+    start_x = (w - min_dim) // 2
+    return matrix[start_y : start_y + min_dim, start_x : start_x + min_dim]
 
 
 def convolve_2d(matrix, filter, quad_for_loop=False):
     """Part 1.1: Convolutions from Scratch!"""
+    # D_out = np.floor((D_in - K + 2P) / S) + 1
+    # P = ((D_out - 1) * S - D_in + K) / 2
+
     h, w = matrix.shape
 
     if len(filter.shape) < 2:
@@ -50,42 +83,136 @@ def convolve_2d(matrix, filter, quad_for_loop=False):
     return out
 
 
-def make_box_filter(size=9):
-    return np.ones((size, size)) / (size**2)
-
-
-def finite_difference_cameraman():
+def finite_difference_cameraman(input_file_path="data/cameraman.png"):
     """Part 1.2: Finite Difference Operator"""
-    cameraman_img = sk.io.imread("data/cameraman.png")  # in rgba format
+    Dx, Dy, _ = make_difference_and_box_filters()
+
+    cameraman_img = sk.io.imread(input_file_path)  # in rgba format
     cameraman_rgb = sk.color.rgba2rgb(cameraman_img)
     cameraman_grayscale = sk.color.rgb2gray(cameraman_rgb)
+    cameraman_square = crop_into_square(cameraman_grayscale)
 
-    fig, ax = plt.subplots(2, 2, figsize=(12, 12))
-    ax[0, 0].imshow(cameraman_grayscale, cmap="gray", vmin=0, vmax=1)
-    ax[0, 0].set_title("Original (grayscale)")
+    cameraman_out_Dx = scipy.signal.convolve2d(
+        cameraman_square, Dx, mode="same", fillvalue=0
+    )
+    cameraman_out_Dy = scipy.signal.convolve2d(
+        cameraman_square, Dy, mode="same", fillvalue=0
+    )
 
-    cameraman_out_Dx = convolve_2d(cameraman_grayscale, Dx)
-    cameraman_out_Dy = convolve_2d(cameraman_grayscale, Dy)
-
-    # edge strength = ||∇f|| = sqrt((df/dx)^2 + (df/dy)^2)
+    # Edge strength = ||∇f|| = sqrt((df/dx)^2 + (df/dy)^2)
+    # Values range from [0, sqrt(2)]
     cameraman_es = np.sqrt((cameraman_out_Dx**2) + (cameraman_out_Dy) ** 2)
 
-    # ax[0, 1].imshow(out_Dx, cmap="viridis", vmin=0, vmax=1)
-    # ax[0, 1].set_title("After convolving with Dx")
+    # Binarize edges: suppress noise and only keep edges above a certain threshold
+    # for th in np.arange(0.1, 0.31, 0.01):
+    #     threshold = th
+    #     above_threshold_mask = cameraman_es >= threshold  # bool mask
+    #     cameraman_be = cameraman_es * above_threshold_mask
 
-    # ax[1, 0].imshow(out_Dy, cmap="viridis", vmin=0, vmax=1)
-    # ax[1, 0].set_title("After convolving with Dy")
+    #     fig, ax = plt.subplots(1, 2, figsize=(12, 12))
+    #     ax[0].imshow(cameraman_square, cmap="gray", vmin=0, vmax=1)
+    #     ax[0].set_title("Original (grayscale)")
 
-    # ax[1, 1].imshow(out_box, cmap="gray", vmin=0, vmax=1)
-    # ax[1, 1].set_title("After convolving with box filter")
+    #     ax[1].imshow(cameraman_be, cmap="gray", vmin=0, vmax=1)
+    #     ax[1].set_title(f"Binarized edges with threshold {th:.3f}")
 
+    #     plt.show()
+
+    # Best threshold (visually) = 0.26
+    threshold = 0.26
+    above_threshold_mask = cameraman_es >= threshold  # bool mask
+    cameraman_be = cameraman_es * above_threshold_mask
+
+    fig, ax = plt.subplots(1, 2, figsize=(12, 12))
+    ax[0].imshow(cameraman_square, cmap="gray", vmin=0, vmax=1)
+    ax[0].set_title("Original (grayscale)")
+
+    ax[1].imshow(cameraman_be, cmap="gray", vmin=0, vmax=1)
+    ax[1].set_title(f"Binarized edges with threshold {threshold:.3f}")
+
+    plt.savefig("out/cameraman_fd_binarized_edges.jpg")
+    plt.show()
+
+
+def derivative_of_gaussian_filter(input_file_path="data/cameraman.png"):
+    """Derivative of Gaussian (DoG) Filter"""
+    gaussian_filter = make_2d_gaussian_kernel(3)
+    Dx, Dy, _ = make_difference_and_box_filters()
+
+    cameraman_img = sk.io.imread(input_file_path)  # in rgba format
+    cameraman_rgb = sk.color.rgba2rgb(cameraman_img)
+    cameraman_grayscale = sk.color.rgb2gray(cameraman_rgb)
+    cameraman_square = crop_into_square(cameraman_grayscale)
+
+    # 2-step DoG: apply Gaussian, then convolve with finite difference filters
+    cameraman_2step_blurred = scipy.signal.convolve2d(cameraman_square, gaussian_filter, mode="full", fillvalue=0)
+    cameraman_2step_out_Dx = scipy.signal.convolve2d(
+        cameraman_2step_blurred, Dx, mode="same", fillvalue=0
+    )
+    cameraman_2step_out_Dy = scipy.signal.convolve2d(
+        cameraman_2step_blurred, Dy, mode="same", fillvalue=0
+    )
+
+    cameraman_2step_es = np.sqrt(
+        (cameraman_2step_out_Dx**2) + (cameraman_2step_out_Dy) ** 2
+    )
+
+    # Binarize edges: suppress noise and only keep edges above a certain threshold
+    # for th in np.arange(0.05, 0.18, 0.01):
+    #     threshold = th
+    #     above_threshold_mask = cameraman_es >= threshold  # bool mask
+    #     cameraman_be = cameraman_es * above_threshold_mask
+
+    #     fig, ax = plt.subplots(1, 2, figsize=(12, 12))
+    #     ax[0].imshow(cameraman_grayscale, cmap="gray", vmin=0, vmax=1)
+    #     ax[0].set_title("Original (grayscale)")
+
+    #     ax[1].imshow(cameraman_be, cmap="gray", vmin=0, vmax=1)
+    #     ax[1].set_title(f"Binarized edges with threshold {th:.3f}")
+
+    #     plt.show()
+
+    # Best threshold (visually) = 0.13
+    threshold = 0.13
+    threshold_mask = cameraman_2step_es >= threshold  # bool mask
+    cameraman_2step_be = cameraman_2step_es * threshold_mask
+
+    fig, ax = plt.subplots(1, 2, figsize=(12, 12))
+    ax[0].imshow(cameraman_grayscale, cmap="gray", vmin=0, vmax=1)
+    ax[0].set_title("Original (grayscale)")
+
+    ax[1].imshow(cameraman_2step_be, cmap="gray", vmin=0, vmax=1)
+    ax[1].set_title(f"Gaussian blur then Dx, Dy: Binarized edges with threshold {threshold:.3f}")
+
+    plt.savefig("out/cameraman_2step_dog.jpg")
+    plt.show()
+
+    # 1-step DoG: convolve Gaussian finite difference filters, then convolve the result ONCE with the image
+    dog_filter_Dx = scipy.signal.convolve2d(gaussian_filter, Dx, mode="full", fillvalue=0)
+    dog_filter_Dy = scipy.signal.convolve2d(gaussian_filter, Dy, mode="full", fillvalue=0)
+    cameraman_1step_out_Dx = scipy.signal.convolve2d(cameraman_square, dog_filter_Dx, mode="same", fillvalue=0)
+    cameraman_1step_out_Dy = scipy.signal.convolve2d(cameraman_square, dog_filter_Dy, mode="same", fillvalue=0)
+
+    cameraman_1step_es = np.sqrt((cameraman_1step_out_Dx**2) + (cameraman_1step_out_Dy) ** 2)
+    threshold_mask_1step = cameraman_1step_es >= threshold
+    cameraman_1step_be = cameraman_1step_es * threshold_mask_1step
+
+    fig, ax = plt.subplots(1, 3, figsize=(12, 12))
+    ax[0].imshow(cameraman_square, cmap="gray", vmin=0, vmax=1)
+    ax[0].set_title("Original (grayscale)")
+
+    ax[1].imshow(cameraman_2step_be, cmap="gray", vmin=0, vmax=1)
+    ax[1].set_title(f"Gaussian blur then Dx, Dy: Binarized edges with threshold {threshold:.3f}")
+
+    ax[2].imshow(cameraman_1step_be, cmap="gray", vmin=0, vmax=1)
+    ax[2].set_title(f"DoG: Binarized edges with threshold {threshold:.3f}")
+
+    plt.savefig("out/cameraman_dog_comparison.jpg")
     plt.show()
 
 
 def main():
-    Dx = np.array([1, 0, -1])
-    Dy = np.array([[1], [0], [-1]])
-    box_filter = make_box_filter(size=9)
+    Dx, Dy, box_filter = make_difference_and_box_filters()
 
     img = sk.io.imread("data/deenasun_square.jpg")
 

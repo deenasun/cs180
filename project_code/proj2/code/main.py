@@ -22,14 +22,18 @@ def make_box_filter(size=9):
     return np.ones((size, size)) / (size**2)
 
 
-def make_2d_gaussian_kernel(size=3, sigma=None):
+def make_2d_gaussian_kernel(size=None, sigma=None):
     """Make a 2D Gaussian kernel"""
     # Size needs to be odd and positive
-    if sigma:
-        gaussian_filter = cv.getGaussianKernel(size, sigma)
-    else:
+    if size is not None:
         # OpenCV will automatically calculate a sigma based on the size if sigma is non-positive
         gaussian_filter = cv.getGaussianKernel(size, sigma=0)
+    elif sigma is not None:
+        # Rule of thumb for Gaussians: set filter half-width to about 3 sigma
+        kernel_size = 2 * int(np.ceil(3 * sigma)) + 1
+        gaussian_filter = cv.getGaussianKernel(kernel_size, sigma)
+    else:
+        gaussian_filter = cv.getGaussianKernel(size=3, sigma=0)
 
     return gaussian_filter @ gaussian_filter.T
 
@@ -529,6 +533,115 @@ def load_align_hybrid(
     hybrid = hybrid_image(img1_aligned, img2_aligned, hf_sigma, lf_sigma, show_ft=True)
     plt.imshow(hybrid)
     plt.show()
+
+
+def gaussian_stack(
+    input_img=None, input_file_path="data/burt_apple.jpg", display=False
+):
+    """
+    Part 2.3: Gaussian and Laplacian Stacks
+    """
+    if input_img is not None:
+        img = input_img
+    else:
+        img = read_img_as_float(input_file_path)
+
+    h, w = img.shape[:2]
+    r, g, b = img[:, :, 0], img[:, :, 1], img[:, :, 2]
+
+    # Rule of thumb for Gaussians: set filter half-width to about 3 sigma
+    # Set max kernel size to ~ 1/2 width
+    max_kernel_size = min(h, w) // 2
+    max_sigma = (max_kernel_size) // 6
+
+    sigma = 1
+    stack = [img]
+
+    # Implement Gaussian stack by applying bigger blurs (bigger sigma + kernel size)
+    while sigma <= max_sigma and len(stack) < 8:
+        print(f"Level {len(stack)}: applying gaussian with sigma {sigma}")
+        gaussian_kernel = make_2d_gaussian_kernel(sigma=sigma)
+        conv_r = scipy.signal.convolve2d(r, gaussian_kernel, mode="same", fillvalue=0)
+        conv_g = scipy.signal.convolve2d(g, gaussian_kernel, mode="same", fillvalue=0)
+        conv_b = scipy.signal.convolve2d(b, gaussian_kernel, mode="same", fillvalue=0)
+
+        conv_stacked = np.dstack([conv_r, conv_g, conv_b])
+        stack.append(conv_stacked)
+        sigma *= 2
+
+    if display:
+        n_rows = (len(stack) + 1) // 2
+        fig, ax = plt.subplots(nrows=n_rows, ncols=2, figsize=(6, 10))
+
+        ax_flat = ax.flatten()
+
+        for idx, s in enumerate(stack):
+            ax_flat[idx].imshow(s)
+            ax_flat[idx].set_title(f"Level {idx}")
+
+        # Hide empty subplots
+        for ax in fig.axes:
+            if not ax.has_data():
+                fig.delaxes(ax)
+
+        plt.show()
+
+    return stack
+
+
+def laplacian_stack(
+    input_img=None, input_file_path="data/burt_apple.jpg", display=False
+):
+    """
+    Part 2.3: Gaussian and Laplacian Stacks
+    """
+    if input_img is not None:
+        img = input_img
+    else:
+        img = read_img_as_float(input_file_path)
+    
+    # level 0 = highest freq, level[-1] = lowest freq (most blurred)
+    gaussian_levels = gaussian_stack(img)
+    stack = []
+
+    # Compute Laplacian levels by subtracting adjacent Gaussian levels
+    # L_i = G_i - G_{i + 1}
+    # L_i represents the info lost when going from G_i to G_{i + 1}
+    for i in range(len(gaussian_levels) - 1):
+        G_i = gaussian_levels[i]
+        G_iplus1 = gaussian_levels[i + 1]
+        L_i = G_i - G_iplus1
+        stack.append(L_i)
+    
+    # Final level of Laplacian stack should be the coarsest (blurriest) Gaussian level
+    stack.append(gaussian_levels[-1])
+
+    if display:
+        n_rows = (len(stack) + 1) // 2
+        fig, ax = plt.subplots(nrows=n_rows, ncols=2, figsize=(6, 10))
+
+        ax_flat = ax.flatten()
+
+        for idx, s in enumerate(stack):
+            # Laplacian levels can have negative values
+            # For clearer displays, re-map values s.t. the middle value is 0.5 (gray)
+            half_range = np.max(np.abs(s))
+            if half_range > 0:
+                display = 0.5 + s / (2 * half_range)
+            else:
+                display = np.full(s.shape, fill_value=0.5)
+            ax_flat[idx].imshow(display)
+            
+            ax_flat[idx].set_title(f"Level {idx}")
+
+        # Hide empty subplots
+        for ax in fig.axes:
+            if not ax.has_data():
+                fig.delaxes(ax)
+
+        plt.show()
+
+    return stack
 
 
 def main():

@@ -128,7 +128,7 @@ def finite_difference_operator(input_file_path="data/cameraman.png"):
     # Values range from [0, sqrt(2)]
     img_es = np.sqrt((img_out_Dx**2) + (img_out_Dy) ** 2)
 
-    # Binarize edges: suppress noise and only keep edges above a certain threshold
+    # Try different thresholds to select the best one for binarizing edges
     # for th in np.arange(0.1, 0.31, 0.01):
     #     threshold = th
     #     above_threshold_mask = img_es >= threshold  # bool mask
@@ -143,17 +143,21 @@ def finite_difference_operator(input_file_path="data/cameraman.png"):
 
     #     plt.show()
 
+    # Binarize edges: suppress noise and only keep edges above a certain threshold
     # Best threshold (visually) = 0.26
     threshold = 0.26
     above_threshold_mask = img_es >= threshold  # bool mask
-    img_be = img_es * above_threshold_mask
+    # img_be = img_es * above_threshold_mask
+    img_be = (above_threshold_mask).astype(float)
 
     fig, ax = plt.subplots(1, 2, figsize=(12, 12))
     ax[0].imshow(img_square, cmap="gray", vmin=0, vmax=1)
     ax[0].set_title("Original (grayscale)")
 
     ax[1].imshow(img_be, cmap="gray", vmin=0, vmax=1)
-    ax[1].set_title(f"Binarized edges with threshold {threshold:.3f}")
+    ax[1].set_title(
+        f"Finite difference operators w/ threshold {threshold:.3f} (binarized edges)"
+    )
 
     path = Path(input_file_path)
     stem = path.stem
@@ -163,7 +167,7 @@ def finite_difference_operator(input_file_path="data/cameraman.png"):
 
 
 def derivative_of_gaussian_filter(input_file_path="data/cameraman.png"):
-    """Derivative of Gaussian (DoG) Filter"""
+    """Part 1.3: Derivative of Gaussian (DoG) Filter"""
     gaussian_filter = make_2d_gaussian_kernel(3)
     Dx, Dy, _ = make_difference_and_box_filters()
 
@@ -184,7 +188,7 @@ def derivative_of_gaussian_filter(input_file_path="data/cameraman.png"):
 
     img_2step_es = np.sqrt((img_2step_out_Dx**2) + (img_2step_out_Dy) ** 2)
 
-    # Binarize edges: suppress noise and only keep edges above a certain threshold
+    # Try different thresholds to select the best one for binarizing edges
     # for th in np.arange(0.05, 0.18, 0.01):
     #     threshold = th
     #     above_threshold_mask = img_es >= threshold  # bool mask
@@ -199,10 +203,11 @@ def derivative_of_gaussian_filter(input_file_path="data/cameraman.png"):
 
     #     plt.show()
 
+    # Binarize edges: suppress noise and only keep edges above a certain threshold
     # Best threshold (visually) = 0.13
     threshold = 0.13
     threshold_mask = img_2step_es >= threshold  # bool mask
-    img_2step_be = img_2step_es * threshold_mask
+    img_2step_be = (threshold_mask).astype(float)
 
     fig, ax = plt.subplots(1, 2, figsize=(12, 12))
     ax[0].imshow(img_grayscale, cmap="gray", vmin=0, vmax=1)
@@ -234,19 +239,19 @@ def derivative_of_gaussian_filter(input_file_path="data/cameraman.png"):
 
     img_1step_es = np.sqrt((img_1step_out_Dx**2) + (img_1step_out_Dy) ** 2)
     threshold_mask_1step = img_1step_es >= threshold
-    img_1step_be = img_1step_es * threshold_mask_1step
+    img_1step_be = (threshold_mask_1step).astype(float)
 
-    fig, ax = plt.subplots(1, 3, figsize=(12, 12))
+    fig, ax = plt.subplots(3, 1, figsize=(12, 12))
     ax[0].imshow(img_square, cmap="gray", vmin=0, vmax=1)
     ax[0].set_title("Original (grayscale)")
 
     ax[1].imshow(img_2step_be, cmap="gray", vmin=0, vmax=1)
     ax[1].set_title(
-        f"Gaussian blur then Dx, Dy: Binarized edges with threshold {threshold:.3f}"
+        f"Gaussian then Dx, Dy w/ threshold: {threshold:.3f} (binarized edges)"
     )
 
     ax[2].imshow(img_1step_be, cmap="gray", vmin=0, vmax=1)
-    ax[2].set_title(f"DoG: Binarized edges with threshold {threshold:.3f}")
+    ax[2].set_title(f"DoG w/ threshold: {threshold:.3f} (binarized edges)")
 
     path = Path(input_file_path)
     stem = path.stem
@@ -359,7 +364,7 @@ def hybrid_image(img1, img2, hf_sigma, lf_sigma, show_ft=False):
     """
 
     def high_pass_filter(img, sigma):
-        # Rule of thumb for Gaussians: set filter half-width to about 3 sigma
+        # Rule of thumb for Gaussian filters: set filter half-width to about 3 sigma
         kernel_size = 2 * int(np.ceil(3 * sigma)) + 1
         gaussian = make_2d_gaussian_kernel(size=kernel_size, sigma=sigma)
         if len(img.shape) == 2:
@@ -386,7 +391,7 @@ def hybrid_image(img1, img2, hf_sigma, lf_sigma, show_ft=False):
         return high_pass_out
 
     def low_pass_filter(img, sigma):
-        # Rule of thumb for Gaussians: set filter half-width to about 3 sigma
+        # Rule of thumb for Gaussian filters: set filter half-width to about 3 sigma
         kernel_size = 2 * int(np.ceil(3 * sigma)) + 1
         gaussian = make_2d_gaussian_kernel(size=kernel_size, sigma=sigma)
         if len(img.shape) == 2:

@@ -64,13 +64,13 @@ def rescale_images(im1: np.ndarray, im2: np.ndarray, pts: tuple) -> tuple:
     return im1, im2
 
 
-def rotate_im1(im1: np.ndarray, pts: tuple) -> tuple:
+def rotate_im2(im2: np.ndarray, pts: tuple) -> tuple:
     p1, p2, p3, p4 = pts
     theta1 = math.atan2(-(p2[1] - p1[1]), (p2[0] - p1[0]))
     theta2 = math.atan2(-(p4[1] - p3[1]), (p4[0] - p3[0]))
-    dtheta = theta2 - theta1
-    im1 = sktr.rotate(im1, dtheta * 180 / np.pi)
-    return im1, dtheta
+    dtheta = theta1 - theta2
+    im2 = sktr.rotate(im2, dtheta * 180 / np.pi)
+    return im2, dtheta
 
 
 def match_img_size(im1: np.ndarray, im2: np.ndarray) -> tuple:
@@ -90,6 +90,7 @@ def match_img_size(im1: np.ndarray, im2: np.ndarray) -> tuple:
 
 
 def align_images(im1: np.ndarray, im2: np.ndarray) -> tuple:
+    """Use im1 as the base image that im2 is rotated and cropped to"""
     # Collect points once
     pts = get_points(im1, im2)
 
@@ -97,21 +98,22 @@ def align_images(im1: np.ndarray, im2: np.ndarray) -> tuple:
     mask2 = np.ones(im2.shape[:2], dtype=float)
 
     def align(mat1, mat2):
+        """mat1 serves as the reference that mat1 is rotated to match"""
         mat1, mat2 = align_image_centers(mat1, mat2, pts)
         mat1, mat2 = rescale_images(mat1, mat2, pts)
-        mat1, _ = rotate_im1(mat1, pts)
+        mat2, _ = rotate_im2(mat2, pts)
         mat1, mat2 = match_img_size(mat1, mat2)
         return mat1, mat2
 
     # Apply the alignment pipeline with the same points to the actual images and masks
     im1, im2 = align(im1, im2)
 
-    # return im1, im2
-
     mask1, mask2 = align(mask1, mask2)
 
-    # Find overlapping regions
-    valid = (mask1 >= 1 - 1e-6) & (mask2 >= 1 - 1e-6)
+    # Crop to only keep the valid regions from im1 (the base image)
+    # During alignment, both images may be padded. Mask1 contains 1's if
+    # its pixels came from the original im1
+    valid = (mask1 >= 1 - 1e-6)
 
     h, w = valid.shape
     center_x, center_y = w // 2, h // 2

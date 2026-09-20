@@ -72,9 +72,6 @@ def crop_into_square(matrix):
 
 def convolve_2d(matrix, filter, quad_for_loop=False):
     """Part 1.1: Convolutions from Scratch!"""
-    # D_out = np.floor((D_in - K + 2P) / S) + 1
-    # P = ((D_out - 1) * S - D_in + K) / 2
-
     h, w = matrix.shape
 
     if len(filter.shape) < 2:
@@ -82,14 +79,15 @@ def convolve_2d(matrix, filter, quad_for_loop=False):
         filter = np.expand_dims(filter, axis=0)
     fh, fw = filter.shape
 
-    # Pad the input image using same-padding (output shape = input shape), filling with constant value = 0
+    # D_out = np.floor((D_in - K + 2P) / S) + 1
+    # P = ((D_out - 1) * S - D_in + K) / 2
+    # Pad input image using same-padding s.t. output shape = input shape
+    # Fill with constant value = 0
     y_pad = (fh - 1) // 2
     x_pad = (fw - 1) // 2
     padded = np.pad(
         matrix, ((y_pad, y_pad), (x_pad, x_pad)), mode="constant", constant_values=0
     )
-    # pad_h, pad_w = padded.shape
-    # print(padded)
 
     flip_filter = np.flip(filter)
 
@@ -109,6 +107,12 @@ def convolve_2d(matrix, filter, quad_for_loop=False):
                 out[oy, ox] = np.sum(
                     flip_filter * padded[oy : oy + fh, ox : ox + fw], axis=None
                 )
+
+    # Compare with scipy.signal.convolve2d
+    scipy_out = scipy.signal.convolve2d(matrix, filter, mode="same", fillvalue=0)
+    assert np.allclose(out, scipy_out, atol=1e-8), (
+        "Convolution does not match scipy.signal.convolve2d"
+    )
 
     return out
 
@@ -664,8 +668,7 @@ def multiresolution_blend(
     #   - 1's on the top where we want img1 to be visible
     #   - 0's on the bottom where we want img2 to be visible
     horizonal_spline_mask = np.zeros_like(img1)
-    horizonal_spline_mask[: h//2, :] = 1
-
+    horizonal_spline_mask[: h // 2, :] = 1
 
     laplacian1 = laplacian_stack(input_img=img1, display=True)
     laplacian2 = laplacian_stack(input_img=img2, display=True)
@@ -690,57 +693,41 @@ def multiresolution_blend(
 
     ax[2].imshow(blend_out)
     ax[2].set_title("Blended")
+
+    plt.savefig(f"out/multiresolution_blend_{img1_path.stem}_{img2_path.stem}.jpg", bbox_inches="tight")
     plt.show()
 
     return blend_out
 
 
 def main():
-    # Dx, Dy, box_filter = make_difference_and_box_filters()
+    Dx, Dy, box_filter = make_difference_and_box_filters()
 
-    # img = read_img_as_float("data/deenasun_square.jpg")
+    img = read_img_as_float("data/deenasun_square.jpg")
 
-    # img_grayscale = sk.color.rgb2gray(img)  # dtype: float64, shape: (w, h)
+    img_grayscale = sk.color.rgb2gray(img)  # dtype: float64, shape: (w, h)
 
-    # out_Dx = convolve_2d(img_grayscale, Dx)
-    # out_Dy = convolve_2d(img_grayscale, Dy)
-    # out_box = convolve_2d(img_grayscale, box_filter)
+    out_Dx = convolve_2d(img_grayscale, Dx)
+    out_Dy = convolve_2d(img_grayscale, Dy)
+    out_box = convolve_2d(img_grayscale, box_filter)
 
-    # fig, ax = plt.subplots(2, 2, figsize=(12, 12))
-    # ax[0, 0].imshow(img_grayscale, cmap="gray", vmin=0, vmax=1)
-    # ax[0, 0].set_title("Original (grayscale)")
+    fig, ax = plt.subplots(2, 2, figsize=(12, 12))
+    ax[0, 0].imshow(img_grayscale, cmap="gray", vmin=0, vmax=1)
+    ax[0, 0].set_title("Original (grayscale)")
 
-    # ax[0, 1].imshow(out_Dx, cmap="viridis", vmin=0, vmax=1)
-    # ax[0, 1].set_title("After convolving with Dx")
+    ax[0, 1].imshow(out_Dx, cmap="viridis", vmin=0, vmax=1)
+    ax[0, 1].set_title("After convolving with Dx")
 
-    # ax[1, 0].imshow(out_Dy, cmap="viridis", vmin=0, vmax=1)
-    # ax[1, 0].set_title("After convolving with Dy")
+    ax[1, 0].imshow(out_Dy, cmap="viridis", vmin=0, vmax=1)
+    ax[1, 0].set_title("After convolving with Dy")
 
-    # ax[1, 1].imshow(out_box, cmap="gray", vmin=0, vmax=1)
-    # ax[1, 1].set_title("After convolving with box filter")
+    ax[1, 1].imshow(out_box, cmap="gray", vmin=0, vmax=1)
+    ax[1, 1].set_title("After convolving with a 9x9 box filter")
 
-    # plt.show()
+    plt.savefig("out/convolution_comparisons.jpg", bbox_inches="tight")
+    plt.show()
 
-    # # Compare with scipy.signal.convolve2d
-    # scipy_out_Dx = scipy.signal.convolve2d(
-    #     img_grayscale, np.expand_dims(Dx, axis=0), mode="same", fillvalue=0
-    # )
-    # scipy_out_Dy = scipy.signal.convolve2d(img_grayscale, Dy, mode="same", fillvalue=0)
-    # scipy_out_box = scipy.signal.convolve2d(
-    #     img_grayscale, box_filter, mode="same", fillvalue=0
-    # )
-
-    # assert np.allclose(out_Dx, scipy_out_Dx, atol=1e-8), (
-    #     "Convolution with Dx does not match scipy.signal.convolve2d"
-    # )
-    # assert np.allclose(out_Dy, scipy_out_Dy, atol=1e-8), (
-    #     "Convolution with Dy does not match scipy.signal.convolve2d"
-    # )
-    # assert np.allclose(out_box, scipy_out_box, atol=1e-8), (
-    #     "Convolution with box filter does not match scipy.signal.convolve2d"
-    # )
-
-    load_align_hybrid()
+    # load_align_hybrid()
     pass
 
 

@@ -540,9 +540,7 @@ def load_align_hybrid(
     plt.show()
 
 
-def gaussian_stack(
-    input_img=None, input_file_path="data/burt_apple.jpg", display=False
-):
+def gaussian_stack(input_img=None, input_file_path="data/apple.jpg", display=False):
     """
     Part 2.3: Gaussian and Laplacian Stacks
     """
@@ -591,12 +589,10 @@ def gaussian_stack(
 
         plt.show()
 
-    return stack
+    return np.array(stack)
 
 
-def laplacian_stack(
-    input_img=None, input_file_path="data/burt_apple.jpg", display=False
-):
+def laplacian_stack(input_img=None, input_file_path="data/apple.jpg", display=False):
     """
     Part 2.3: Gaussian and Laplacian Stacks
     """
@@ -604,7 +600,7 @@ def laplacian_stack(
         img = input_img
     else:
         img = read_img_as_float(input_file_path)
-    
+
     # level 0 = highest freq, level[-1] = lowest freq (most blurred)
     gaussian_levels = gaussian_stack(img)
     stack = []
@@ -617,7 +613,7 @@ def laplacian_stack(
         G_iplus1 = gaussian_levels[i + 1]
         L_i = G_i - G_iplus1
         stack.append(L_i)
-    
+
     # Final level of Laplacian stack should be the coarsest (blurriest) Gaussian level
     stack.append(gaussian_levels[-1])
 
@@ -632,11 +628,11 @@ def laplacian_stack(
             # For clearer displays, re-map values s.t. the middle value is 0.5 (gray)
             half_range = np.max(np.abs(s))
             if half_range > 0:
-                display = 0.5 + s / (2 * half_range)
+                remapped_s = 0.5 + s / (2 * half_range)
             else:
-                display = np.full(s.shape, fill_value=0.5)
-            ax_flat[idx].imshow(display)
-            
+                remapped_s = np.full(s.shape, fill_value=0.5)
+            ax_flat[idx].imshow(remapped_s)
+
             ax_flat[idx].set_title(f"Level {idx}")
 
         # Hide empty subplots
@@ -646,13 +642,60 @@ def laplacian_stack(
 
         plt.show()
 
-    return stack
+    return np.array(stack)
+
+
+def multiresolution_blend(
+    img1_file_path="data/apple.jpg", img2_file_path="data/orange.jpg"
+):
+    """Part 2.4: Multiresolution Blending (a.k.a. the oraple!)"""
+    img1 = read_img_as_float(img1_file_path)
+    img2 = read_img_as_float(img2_file_path)
+
+    h, w = img1.shape[:2]
+
+    # Mask for a vertical spline:
+    #   - 1's on the left where we want img1 to be visible
+    #   - 0's on the right where we want img2 to be visible
+    vertical_spline_mask = np.zeros_like(img1)
+    vertical_spline_mask[:, : w // 2] = 1
+
+    # Mask for a horizonal spline:
+    #   - 1's on the top where we want img1 to be visible
+    #   - 0's on the bottom where we want img2 to be visible
+    horizonal_spline_mask = np.zeros_like(img1)
+    horizonal_spline_mask[: h//2, :] = 1
+
+
+    laplacian1 = laplacian_stack(input_img=img1, display=True)
+    laplacian2 = laplacian_stack(input_img=img2, display=True)
+    gaussian_weights = gaussian_stack(input_img=vertical_spline_mask, display=True)
+
+    blend_out = np.zeros_like(img1)
+    for lap1, lap2, gw in zip(laplacian1, laplacian2, gaussian_weights):
+        blend = gw * lap1 + (1 - gw) * lap2
+        blend_out += blend
+
+    blend_out = np.clip(blend_out, 0, 1.0)
+
+    fig, ax = plt.subplots(1, 3, figsize=(10, 6))
+
+    img1_path = Path(img1_file_path)
+    ax[0].imshow(img1)
+    ax[0].set_title(f"{img1_path.name}")
+
+    img2_path = Path(img2_file_path)
+    ax[1].imshow(img2)
+    ax[1].set_title(f"{img2_path.name}")
+
+    ax[2].imshow(blend_out)
+    ax[2].set_title("Blended")
+    plt.show()
+
+    return blend_out
 
 
 def main():
-
-    load_align_hybrid()
-
     # Dx, Dy, box_filter = make_difference_and_box_filters()
 
     # img = read_img_as_float("data/deenasun_square.jpg")
@@ -696,6 +739,9 @@ def main():
     # assert np.allclose(out_box, scipy_out_box, atol=1e-8), (
     #     "Convolution with box filter does not match scipy.signal.convolve2d"
     # )
+
+    load_align_hybrid()
+    pass
 
 
 if __name__ == "__main__":

@@ -5,6 +5,7 @@ import SyntaxHighlighter from "react-syntax-highlighter";
 import Figure from "@/components/Figure";
 import TableOfContents from "@/components/TableOfContents";
 
+const ALPHA_UNICODE = "\u03B1"
 
 export default function Page() {
     const contents = [
@@ -133,6 +134,13 @@ export default function Page() {
     const derivativeTheoremOfConvolution = String.raw`\frac{\partial}{\partial x} \left( h * f \right) = \left( \frac{\partial}{\partial x} h \right) * f`
 
     const derivativeTheoremOfConvolutionRendered = katex.renderToString(derivativeTheoremOfConvolution, {
+        displayMode: true,
+        throwOnError: false,
+    });
+
+    const sharpeningFilter = String.raw`f + \alpha(f - f * g) = f * \left( (1 + \alpha) e - \alpha g \right)`
+
+    const sharpeningFilterRendered = katex.renderToString(sharpeningFilter, {
         displayMode: true,
         throwOnError: false,
     });
@@ -338,6 +346,87 @@ export default function Page() {
                 </section>
                 <section id="part_2.1_sharpening" className="space-y-5">
                     <h2 className="font-medium">Part 2.1: Image Sharpening</h2>
+                    <p>Applying (convolving) a Gaussian kernel to an image produces a blurrier version of that image —
+                        the Gaussian kernel acts as a low-pass filter such that the result only contains the low frequencies of the image.
+
+                        Subtracting the blurred version from the original image gives us the image's high frequencies.
+
+                        We can then add the high frequencies back to the original image (sometimes scaled by some ɑ to control the "sharpness") to make it look sharper!
+                    </p>
+                    <p>This sequence of operations — blur an image using a Gaussian kernel, subtract the blurred image from the original image to get the high frequencies, then
+                        adding the high frequencies back to the original image to create a sharpened version — can be combined into a single convolution called the unsharp mask filter (AKA the sharpening filter).
+
+                        In the following formula for the sharpening filter, f represents the original image, g represents the Gaussian kernel,
+                        and e is the unit impulse (essentially an identity kernel whose response is the same input it is convolved with).
+                        Alpha is a scalar value that determines how "sharp" the result looks.
+                    </p>
+                    <div
+                        className="my-6 overflow-x-auto text-center"
+                        aria-label="A formula to calculate the output dimensions of a convolution"
+                        dangerouslySetInnerHTML={{ __html: sharpeningFilterRendered }}
+                    />
+                    <div className="grid grid-cols-1 gap-x-4 gap-y-8 md:grid-cols-2 justify-items-center">
+                        <Figure
+                            src={"/proj2/taj.jpg"}
+                            caption={"taj.jpg (original)"}
+                            style_width="25vw"
+                        />
+                        <Figure
+                            src={"/proj2/taj_sharpen_0.01.jpg"}
+                            caption={`taj.jpg sharpened with a single-conv sharpening mask (${ALPHA_UNICODE} = 0.01)`}
+                            style_width="25vw"
+                        />
+                        <Figure
+                            src={"/proj2/taj_sharpen_0.1.jpg"}
+                            caption={`taj.jpg sharpened with a single-conv sharpening mask (${ALPHA_UNICODE} = 0.1)`}
+                            style_width="25vw"
+                        />
+                        <Figure
+                            src={"/proj2/taj_sharpen_0.25.jpg"}
+                            caption={`taj.jpg sharpened with a single-conv sharpening mask (${ALPHA_UNICODE} = 0.25)`}
+                            style_width="25vw"
+                        />
+                        <Figure
+                            src={"/proj2/taj_sharpen_0.5.jpg"}
+                            caption={`taj.jpg sharpened with a single-conv sharpening mask (${ALPHA_UNICODE} = 0.5)`}
+                            style_width="25vw"
+                        />
+                        <Figure
+                            src={"/proj2/taj_sharpen_1.0.jpg"}
+                            caption={`taj.jpg sharpened with a single-conv sharpening mask (${ALPHA_UNICODE} = 1.0)`}
+                            style_width="25vw"
+                        />
+                        <Figure
+                            src={"/proj2/taj_sharpen_2.0.jpg"}
+                            caption={`taj.jpg sharpened with a single-conv sharpening mask (${ALPHA_UNICODE} = 2.0)`}
+                            style_width="25vw"
+                        />
+                        <Figure
+                            src={"/proj2/taj_sharpen_5.0.jpg"}
+                            caption={`taj.jpg sharpened with a single-conv sharpening mask (${ALPHA_UNICODE} = 5.0)`}
+                            style_width="25vw"
+                        />
+                    </div>
+                    <p>Here are some additional images of my own that I tried sharpening!</p>
+                    <div className="grid grid-cols-1 gap-x-4 gap-y-8 md:grid-cols-2 justify-items-center">
+                        TODO
+                    </div>
+                    <p>As an additional experiment, I also tried picking a sharp image, blurring it, then re-sharpening it.
+
+                        Blurring then re-sharpening didn't seem to recover the original image.
+                        Blurring discards some of the fine details in the original image.
+                        Applying the sharpening mask boosts the high-frequency details remaining in the blurred image,
+                        but it can't recover the information that was lost.
+
+                        Moreover, in the real world, rounding and numerical representation can make it impossible to reconstruct image data after it's been transformed.
+                    </p>
+                    <div className="flex flex-row w-full justify-center space-x-20">
+                        <Figure
+                            src={"/proj2/taj_sharpen_blur_sharpen.jpg"}
+                            caption={"Sharpening an image, blurring it, and then re-sharpening it again does not recover the original image or the sharpened image"}
+                            style_width="50vw"
+                        />
+                    </div>
                 </section>
                 <section id="part_2.2_hybrid" className="space-y-5">
                     <h2 className="font-medium">Part 2.2: Hybrid Images</h2>

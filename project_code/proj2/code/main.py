@@ -314,12 +314,10 @@ def derivative_of_gaussian_filter(input_file_path=f"{DATA_DIR}/cameraman.png"):
     img_1step_be = (threshold_mask_1step).astype(float)
 
     plt.imshow(img_1step_be, cmap="gray", vmin=0, vmax=1)
-    plt.title(
-        f"DoG in a single conv (binarized edges, threshold: {threshold:.3f})"
-    )
+    plt.title(f"DoG in a single conv (binarized edges, threshold: {threshold:.3f})")
     plt.savefig(f"{OUTPUT_DIR}/{input_stem}_1step_dog.jpg", bbox_inches="tight")
 
-    fig, ax = plt.subplots(1,3, figsize=(8,12))
+    fig, ax = plt.subplots(1, 3, figsize=(8, 12))
     ax[0].imshow(img_square, cmap="gray", vmin=0, vmax=1)
     ax[0].set_title("Original (grayscale)")
 
@@ -334,16 +332,18 @@ def derivative_of_gaussian_filter(input_file_path=f"{DATA_DIR}/cameraman.png"):
     plt.show()
 
 
-def sharpen(input_img=None, input_file_path=f"{DATA_DIR}/taj.jpg", alpha=0.25):
+def sharpen(input_img=None, input_file_path=f"{DATA_DIR}/taj.jpg", alpha=1.0):
     """
     Part 2.1: Image "Sharpening"
     """
-    sharpening_filter = make_sharpening_filter(alpha=alpha, size=3)
+    sharpening_filter = make_sharpening_filter(alpha=alpha, size=9)
 
     if input_img is not None:
         img = input_img
+        stem = "img"
     else:
         img = read_img_as_float(input_file_path)
+        stem = Path(input_file_path).stem
 
     img_r = img[:, :, 0]
     img_g = img[:, :, 1]
@@ -362,6 +362,10 @@ def sharpen(input_img=None, input_file_path=f"{DATA_DIR}/taj.jpg", alpha=0.25):
     sharp_img = np.dstack((sharp_r, sharp_g, sharp_b))
     sharp_img = np.clip(sharp_img, 0.0, 1.0)
 
+    plt.imshow(sharp_img)
+    plt.title(f"Sharpened with alpha {alpha}")
+    plt.savefig(f"{OUTPUT_DIR}/{stem}_sharpen_{alpha}.jpg", bbox_inches="tight")
+
     fig, ax = plt.subplots(1, 2, figsize=(8, 4), layout="constrained")
     ax[0].imshow(img, vmin=0, vmax=1)
     ax[0].set_title("Original")
@@ -371,23 +375,63 @@ def sharpen(input_img=None, input_file_path=f"{DATA_DIR}/taj.jpg", alpha=0.25):
 
     fig.suptitle('Part 2.1: Image "Sharpening"')
 
-    path = Path(input_file_path)
-    stem = path.stem
-
     plt.savefig(f"{OUTPUT_DIR}/{stem}_compare_sharpened.jpg", bbox_inches="tight")
     plt.show()
 
     return sharp_img
 
 
-def sharpen_then_blur_then_sharpen(input_file_path=f"{DATA_DIR}/taj.jpg", alpha=0.25):
+def sharpen_alpha_experiments(input_file_path=f"{DATA_DIR}/taj.jpg"):
+    """Sharpen images with different alphas, display, and save results"""
+    img = read_img_as_float(input_file_path)
+    input_stem = Path(input_file_path).stem
+
+    alphas = [0.01, 0.1, 0.25, 0.5, 1.0, 2.0, 5.0]
+    sharpened_images = {}
+    for alpha in alphas:
+        res = sharpen(img, alpha=alpha)
+        sharpened_images[alpha] = res
+
+    fig, ax = plt.subplots(4, 2, figsize=(8, 20), layout="constrained")
+    ax[0, 0].imshow(img, vmin=0, vmax=1)
+    ax[0, 0].set_title("Original")
+
+    ax[0, 1].imshow(sharpened_images[0.01], vmin=0, vmax=1)
+    ax[0, 1].set_title(f"Sharpened with alpha {0.01}")
+
+    ax[1, 0].imshow(sharpened_images[0.1], vmin=0, vmax=1)
+    ax[1, 0].set_title(f"Sharpened with alpha {0.1}")
+
+    ax[1, 1].imshow(sharpened_images[0.25], vmin=0, vmax=1)
+    ax[1, 1].set_title(f"Sharpened with alpha {0.25}")
+
+    ax[2, 0].imshow(sharpened_images[0.5], vmin=0, vmax=1)
+    ax[2, 0].set_title(f"Sharpened with alpha {0.5}")
+
+    ax[2, 1].imshow(sharpened_images[1.0], vmin=0, vmax=1)
+    ax[2, 1].set_title(f"Sharpened with alpha {1.0}")
+
+    ax[3, 0].imshow(sharpened_images[2.0], vmin=0, vmax=1)
+    ax[3, 0].set_title(f"Sharpened with alpha {2.0}")
+
+    ax[3, 1].imshow(sharpened_images[5.0], vmin=0, vmax=1)
+    ax[3, 1].set_title(f"Sharpened with alpha {5.0}")
+
+    fig.suptitle('Part 2.1: Image "Sharpening"')
+
+    plt.savefig(f"{OUTPUT_DIR}/{input_stem}_sharpen_alphas.jpg", bbox_inches="tight")
+    plt.show()
+
+
+def sharpen_then_blur_then_sharpen(input_file_path=f"{DATA_DIR}/taj.jpg", alpha=1.0):
     """
     Part 2.1: Image "Sharpening" continued
     """
     original_img = read_img_as_float(input_file_path)
     sharp_img1 = sharpen(input_file_path=input_file_path)
+    input_stem = Path(input_file_path).stem
 
-    gaussian = make_2d_gaussian_kernel(size=3)
+    gaussian = make_2d_gaussian_kernel(size=9)
     sharp_img1_r = sharp_img1[:, :, 0]
     sharp_img1_g = sharp_img1[:, :, 1]
     sharp_img1_b = sharp_img1[:, :, 2]
@@ -404,7 +448,7 @@ def sharpen_then_blur_then_sharpen(input_file_path=f"{DATA_DIR}/taj.jpg", alpha=
 
     blur_img = np.dstack((blur_img_r, blur_img_g, blur_img_b))
 
-    sharp_img2 = sharpen(input_img=blur_img, alpha=0.25)
+    sharp_img2 = sharpen(input_img=blur_img, alpha=alpha)
 
     fig, ax = plt.subplots(2, 2, figsize=(8, 8), layout="constrained")
     ax[0, 0].imshow(original_img, vmin=0, vmax=1)
@@ -420,11 +464,8 @@ def sharpen_then_blur_then_sharpen(input_file_path=f"{DATA_DIR}/taj.jpg", alpha=
     ax[1, 1].set_title("Sharpened then blurred then re-sharpened")
 
     fig.suptitle("Part 2.1: Sharpen + Blur + Sharpen")
-
-    path = Path(input_file_path)
-    stem = path.stem
     plt.savefig(
-        f"{OUTPUT_DIR}/{stem}_compare_sharpen_blur_sharpen.jpg", bbox_inches="tight"
+        f"{OUTPUT_DIR}/{input_stem}_sharpen_blur_sharpen.jpg", bbox_inches="tight"
     )
     plt.show()
 

@@ -18,7 +18,23 @@ export default function Page() {
         },
         {
             sectionLink: "part_1.3_dog",
-            text: "Part 1.3: Derivative of Gaussians"
+            text: "Part 1.3: Derivative of Gaussians Part"
+        },
+        {
+            sectionLink: "part_2.1_sharpening",
+            text: "2.1: Image Sharpening"
+        },
+        {
+            sectionLink: "part_2.2_hybrid",
+            text: "Part 2.2: Hybrid Images"
+        },
+        {
+            sectionLink: "part_2.3_stacks",
+            text: "Part 2.3: Gaussian and Laplacian Stacks"
+        },
+        {
+            sectionLink: "part_2.4_blend",
+            text: "Part 2.4: Multiresolution Blending"
         },
     ]
 
@@ -319,6 +335,18 @@ export default function Page() {
                             style_width="50vw"
                         />
                     </div>
+                </section>
+                <section id="part_2.1_sharpening" className="space-y-5">
+                    <h2 className="font-medium">Part 2.1: Image Sharpening</h2>
+                </section>
+                <section id="part_2.2_hybrid" className="space-y-5">
+                    <h2 className="font-medium">Part 2.2: Hybrid Images</h2>
+                </section>
+                <section id="part_2.3_stacks" className="space-y-5">
+                    <h2 className="font-medium">Part 2.3: Gaussian and Laplacian Stacks</h2>
+                </section>
+                <section id="part_2.4_blend" className="space-y-5">
+                    <h2 className="font-medium">Part 2.4: Multiresolution Blending (AKA the oraple!)</h2>
                 </section>
             </article>
             <aside className="fixed right-0 top-20 hidden h-fit max-h-[70vh] w-[15vw] min-w-[150px] px-4 overflow-y-auto border-l-2 border-gray-200 md:block">

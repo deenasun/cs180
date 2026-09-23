@@ -143,12 +143,12 @@ def finite_difference_operator(input_file_path=f"{DATA_DIR}/cameraman.png"):
 
     plt.imshow(img_out_Dx, cmap="gray")
     plt.title("Convolution with Dx")
-    plt.savefig(f"{OUTPUT_DIR}/{input_stem}_conv_dx.jpg")
+    plt.savefig(f"{OUTPUT_DIR}/{input_stem}_conv_dx.jpg", bbox_inches="tight")
 
     img_out_Dy = scipy.signal.convolve2d(img_square, Dy, mode="same", fillvalue=0)
     plt.imshow(img_out_Dy, cmap="gray")
     plt.title("Convolution with Dy")
-    plt.savefig(f"{OUTPUT_DIR}/{input_stem}_conv_dy.jpg")
+    plt.savefig(f"{OUTPUT_DIR}/{input_stem}_conv_dy.jpg", bbox_inches="tight")
 
     # Edge strength = ||∇f|| = sqrt((df/dx)^2 + (df/dy)^2)
     # Values range from [0, sqrt(2)]
@@ -179,7 +179,7 @@ def finite_difference_operator(input_file_path=f"{DATA_DIR}/cameraman.png"):
     plt.imshow(img_be, cmap="gray")
     plt.title(f"Edge strength (binarized) w/ threshold {threshold:.3f}")
     plt.savefig(
-        f"{OUTPUT_DIR}/{input_stem}_binarized_edge_magnitude.jpg",
+        f"{OUTPUT_DIR}/{input_stem}_binarized_edge_magnitude.jpg", bbox_inches="tight"
     )
 
     fig, ax = plt.subplots(2, 2, figsize=(12, 12))
@@ -197,13 +197,16 @@ def finite_difference_operator(input_file_path=f"{DATA_DIR}/cameraman.png"):
 
     plt.savefig(
         f"{OUTPUT_DIR}/{input_stem}_finite_difference_operators.jpg",
+        bbox_inches="tight",
     )
     plt.show()
 
 
 def derivative_of_gaussian_filter(input_file_path=f"{DATA_DIR}/cameraman.png"):
     """Part 1.3: Derivative of Gaussian (DoG) Filter"""
-    gaussian_filter = make_2d_gaussian_kernel(3)
+    input_stem = Path(input_file_path).stem
+    guassian_size = 9
+    gaussian_filter = make_2d_gaussian_kernel(guassian_size)
     Dx, Dy, _ = make_difference_and_box_filters()
 
     img = read_img_as_float(input_file_path)  # in rgba format
@@ -214,12 +217,26 @@ def derivative_of_gaussian_filter(input_file_path=f"{DATA_DIR}/cameraman.png"):
     img_2step_blurred = scipy.signal.convolve2d(
         img_square, gaussian_filter, mode="full", fillvalue=0
     )
+
+    plt.imshow(img_2step_blurred, cmap="gray")
+    plt.title("Convolve with a Gaussian filter to blur")
+    plt.savefig(
+        f"{OUTPUT_DIR}/{input_stem}_2step_dog_gaussian.jpg", bbox_inches="tight"
+    )
+
     img_2step_out_Dx = scipy.signal.convolve2d(
         img_2step_blurred, Dx, mode="same", fillvalue=0
     )
+    plt.imshow(img_2step_out_Dx, cmap="gray")
+    plt.title("Convolve blurred image with Dx")
+    plt.savefig(f"{OUTPUT_DIR}/{input_stem}_2step_dog_dx.jpg", bbox_inches="tight")
+
     img_2step_out_Dy = scipy.signal.convolve2d(
         img_2step_blurred, Dy, mode="same", fillvalue=0
     )
+    plt.imshow(img_2step_out_Dy, cmap="gray")
+    plt.title("Convolve blurred image with Dy")
+    plt.savefig(f"{OUTPUT_DIR}/{input_stem}_2step_dog_dy.jpg", bbox_inches="tight")
 
     img_2step_es = np.sqrt((img_2step_out_Dx**2) + (img_2step_out_Dy) ** 2)
 
@@ -244,18 +261,10 @@ def derivative_of_gaussian_filter(input_file_path=f"{DATA_DIR}/cameraman.png"):
     threshold_mask = img_2step_es >= threshold  # bool mask
     img_2step_be = (threshold_mask).astype(float)
 
-    fig, ax = plt.subplots(1, 2, figsize=(12, 12))
-    ax[0].imshow(img_grayscale, cmap="gray", vmin=0, vmax=1)
-    ax[0].set_title("Original (grayscale)")
+    plt.imshow(img_2step_be, cmap="gray", vmin=0, vmax=1)
+    plt.title(f"Blur then Dx, Dy (binarized edges, threshold: {threshold:.3f})")
 
-    ax[1].imshow(img_2step_be, cmap="gray", vmin=0, vmax=1)
-    ax[1].set_title(
-        f"Gaussian blur then Dx, Dy: Binarized edges with threshold {threshold:.3f}"
-    )
-
-    path = Path(input_file_path)
-    stem = path.stem
-    plt.savefig(f"{OUTPUT_DIR}/{stem}_2step_dog.jpg")
+    plt.savefig(f"{OUTPUT_DIR}/{input_stem}_2step_dog.jpg", bbox_inches="tight")
     plt.show()
 
     # 1-step DoG: convolve Gaussian finite difference filters, then convolve the result ONCE with the image
@@ -265,33 +274,63 @@ def derivative_of_gaussian_filter(input_file_path=f"{DATA_DIR}/cameraman.png"):
     dog_filter_Dy = scipy.signal.convolve2d(
         gaussian_filter, Dy, mode="full", fillvalue=0
     )
+
+    # Visualize the DoG filters
+    fig, ax = plt.subplots(1, 2, figsize=(12, 12))
+    # ax[0].imshow(dog_filter_Dx, cmap="gray", vmin=0, vmax=1)
+    ax[0].imshow(dog_filter_Dx)
+    ax[0].set_title(
+        f"Derivative of a {guassian_size}x{guassian_size} Gaussian (Gaussian * Dx)"
+    )
+
+    # ax[1].imshow(dog_filter_Dy, cmap="gray", vmin=0, vmax=1)
+    ax[1].imshow(dog_filter_Dy)
+
+    ax[1].set_title(
+        f"Derivative of a {guassian_size}x{guassian_size} Gaussian (Gaussian * Dy)"
+    )
+
+    plt.savefig(
+        f"{OUTPUT_DIR}/{input_stem}_gaussian_derivatives.jpg", bbox_inches="tight"
+    )
+    plt.show()
+
     img_1step_out_Dx = scipy.signal.convolve2d(
         img_square, dog_filter_Dx, mode="same", fillvalue=0
     )
+    plt.imshow(img_1step_out_Dx, cmap="gray", vmin=0, vmax=1)
+    plt.title("DoG in a single conv (Dx)")
+    plt.savefig(f"{OUTPUT_DIR}/{input_stem}_1step_dog_dx.jpg", bbox_inches="tight")
+
     img_1step_out_Dy = scipy.signal.convolve2d(
         img_square, dog_filter_Dy, mode="same", fillvalue=0
     )
+    plt.imshow(img_1step_out_Dy, cmap="gray", vmin=0, vmax=1)
+    plt.title("DoG in a single conv (Dy)")
+    plt.savefig(f"{OUTPUT_DIR}/{input_stem}_1step_dog_dy.jpg", bbox_inches="tight")
 
     img_1step_es = np.sqrt((img_1step_out_Dx**2) + (img_1step_out_Dy) ** 2)
     threshold_mask_1step = img_1step_es >= threshold
     img_1step_be = (threshold_mask_1step).astype(float)
 
-    fig, ax = plt.subplots(3, 1, figsize=(12, 12))
+    plt.imshow(img_1step_be, cmap="gray", vmin=0, vmax=1)
+    plt.title(
+        f"DoG in a single conv (binarized edges, threshold: {threshold:.3f})"
+    )
+    plt.savefig(f"{OUTPUT_DIR}/{input_stem}_1step_dog.jpg", bbox_inches="tight")
+
+    fig, ax = plt.subplots(1,3, figsize=(8,12))
     ax[0].imshow(img_square, cmap="gray", vmin=0, vmax=1)
     ax[0].set_title("Original (grayscale)")
 
     ax[1].imshow(img_2step_be, cmap="gray", vmin=0, vmax=1)
-    ax[1].set_title(
-        f"Gaussian then Dx, Dy w/ threshold: {threshold:.3f} (binarized edges)"
-    )
+    ax[1].set_title("2-conv DoG")
 
     ax[2].imshow(img_1step_be, cmap="gray", vmin=0, vmax=1)
-    ax[2].set_title(f"DoG w/ threshold: {threshold:.3f} (binarized edges)")
+    ax[2].set_title("1-conv DoG")
 
-    path = Path(input_file_path)
-    stem = path.stem
-
-    plt.savefig(f"{OUTPUT_DIR}/{stem}_dog_comparison.jpg")
+    plt.tight_layout()
+    plt.savefig(f"{OUTPUT_DIR}/{input_stem}_dog_comparison.jpg", bbox_inches="tight")
     plt.show()
 
 
@@ -335,7 +374,7 @@ def sharpen(input_img=None, input_file_path=f"{DATA_DIR}/taj.jpg", alpha=0.25):
     path = Path(input_file_path)
     stem = path.stem
 
-    plt.savefig(f"{OUTPUT_DIR}/{stem}_compare_sharpened.jpg")
+    plt.savefig(f"{OUTPUT_DIR}/{stem}_compare_sharpened.jpg", bbox_inches="tight")
     plt.show()
 
     return sharp_img
@@ -384,7 +423,9 @@ def sharpen_then_blur_then_sharpen(input_file_path=f"{DATA_DIR}/taj.jpg", alpha=
 
     path = Path(input_file_path)
     stem = path.stem
-    plt.savefig(f"{OUTPUT_DIR}/{stem}_compare_sharpen_blur_sharpen.jpg")
+    plt.savefig(
+        f"{OUTPUT_DIR}/{stem}_compare_sharpen_blur_sharpen.jpg", bbox_inches="tight"
+    )
     plt.show()
 
 

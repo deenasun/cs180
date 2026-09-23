@@ -114,6 +114,13 @@ export default function Page() {
         throwOnError: false,
     });
 
+    const derivativeTheoremOfConvolution = String.raw`\frac{\partial}{\partial x} \left( h * f \right) = \left( \frac{\partial}{\partial x} h \right) * f`
+
+    const derivativeTheoremOfConvolutionRendered = katex.renderToString(derivativeTheoremOfConvolution, {
+        displayMode: true,
+        throwOnError: false,
+    });
+
     return (
         <main className="mx-4 my-2 sm:mx-8">
             <article className="mr-[17vw] space-y-12">
@@ -164,7 +171,7 @@ export default function Page() {
                     <SyntaxHighlighter language="python">
                         {convCode}
                     </SyntaxHighlighter>
-                    <p>I used my homemade convolution to convolve a grayscale image of myself with 3 different filters:</p>
+                    <p>I used my homemade convolution to convolve a grayscale image of myself with 3 different kernels/filters:</p>
                     <ul>
                         <li>- <b>Dx:</b> a finite difference filter that detects changes in the x-direction (vertical edges)</li>
                         <div
@@ -243,6 +250,75 @@ export default function Page() {
                 </section>
                 <section id="part_1.3_dog" className="space-y-5">
                     <h2 className="font-medium">Part 1.3: Derivative of Gaussian Filter</h2>
+                    <p>Directly convolving the image with finite difference operator filters can result in noisy edges.
+                        To reduce noisiness, I first blurred camerman.jpg by convolving it with a Gaussian filter before convolving it with Dx and Dy.
+                    </p>
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+                        <Figure
+                            src={"/proj2/cameraman_2step_dog_gaussian.jpg"}
+                            caption={"Step 1: blur the image by convolving with a Gaussian filter"}
+                            style_width="15vw"
+                        />
+                        <Figure
+                            src={"/proj2/cameraman_2step_dog_dx.jpg"}
+                            caption={"Step 2A: convolve the blurred image with Dx"}
+                            style_width="15vw"
+                        />
+                        <Figure
+                            src={"/proj2/cameraman_2step_dog_dy.jpg"}
+                            caption={"Step 2B: convolve the blurred image with Dy"}
+                            style_width="15vw"
+                        />
+                        <Figure
+                            src={"/proj2/cameraman_2step_dog.jpg"}
+                            caption={"Step 3: Compute the magnitude of the gradients and binarize edges"}
+                            style_width="15vw"
+                        />
+                    </div>
+                    <p>For each of Dx and Dy, this requires convolving the image with 2 separate filters (convolve with a Gaussian, then convolve again with either Dx or Dy).
+                        Based on the derivative theorem of convolution, the same process can be implemented by convolving the image with a single filter: a derivative of a Gaussian (DoG).
+                        To produce this filter, I first convolved a Gaussian filter with Dx and Dy respectively.
+                    </p>
+                    <div
+                        className="my-6 overflow-x-auto text-center"
+                        aria-label="The derivative theorem of convolution"
+                        dangerouslySetInnerHTML={{ __html: derivativeTheoremOfConvolutionRendered }}
+                    />
+                    <p>This is what taking the derivative of a 9x9 Gaussian looks like! AKA convolving the Gaussian kernel with the Dx kernel and the Dy kernel.
+                    </p>
+                    <div className="flex flex-row w-full justify-center space-x-20">
+                        <Figure
+                            src={"/proj2/cameraman_gaussian_derivatives.jpg"}
+                            caption={"Taking the derivative of a Gaussian by convolving the Gaussian kernel with Dx and Dy"}
+                            style_width="50vw"
+                        />
+                    </div>
+                    <p>And these are the results of convolving the same cameraman.jpg image with the single-step DoG filters for detecting vertical and horizontal edges, then calculating its gradient magintidue and binarizing edges.
+                    </p>
+                    <div className="grid grid-cols-1 items-center gap-4 md:grid-cols-3">
+                        <Figure
+                            src={"/proj2/cameraman_1step_dog_dx.jpg"}
+                            caption={"Single-conv DoG filter to detect vertical edges"}
+                            style_width="25vw"
+                        />
+                        <Figure
+                            src={"/proj2/cameraman_1step_dog_dy.jpg"}
+                            caption={"Single-conv DoG filter to detect horizontal edges"}
+                            style_width="25vw"
+                        />
+                        <Figure
+                            src={"/proj2/cameraman_1step_dog.jpg"}
+                            caption={"Binarized edges from the single-conv DoG filters"}
+                            style_width="25vw"
+                        />
+                    </div>
+                    <div className="flex flex-row w-full justify-center space-x-20">
+                        <Figure
+                            src={"/proj2/cameraman_dog_comparison.jpg"}
+                            caption={"Comparing two-conv versus single-conv DoG filter results"}
+                            style_width="50vw"
+                        />
+                    </div>
                 </section>
             </article>
             <aside className="fixed right-0 top-20 hidden h-fit max-h-[70vh] w-[15vw] min-w-[150px] px-4 overflow-y-auto border-l-2 border-gray-200 md:block">

@@ -6,6 +6,9 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 from align_image_code import align_images
 
+DATA_DIR = "data"
+OUTPUT_DIR = "out"
+
 
 def make_difference_and_box_filters():
     """Quick helper function to quickly update Dx, Dy, and box_filter in a singel place"""
@@ -36,6 +39,16 @@ def make_2d_gaussian_kernel(size=None, sigma=None):
         gaussian_filter = cv.getGaussianKernel(size=3, sigma=0)
 
     return gaussian_filter @ gaussian_filter.T
+
+
+def ndarray_to_uint8_img(arr):
+    """Helper function to convert a NumPy ndarray into uint8 for saving"""
+    is_float = np.issubdtype(arr.dtype, np.floating)
+    if is_float:
+        arr_uint8 = (arr * 255.0).astype(np.uint8)
+        return arr_uint8
+    else:
+        return arr.astype(np.uint8)
 
 
 def read_img_as_float(input_file_path, grayscale=False):
@@ -117,8 +130,9 @@ def convolve_2d(matrix, filter, quad_for_loop=False):
     return out
 
 
-def finite_difference_operator(input_file_path="data/cameraman.png"):
+def finite_difference_operator(input_file_path=f"{DATA_DIR}/cameraman.png"):
     """Part 1.2: Finite Difference Operator"""
+    input_stem = Path(input_file_path).stem
     Dx, Dy, _ = make_difference_and_box_filters()
 
     img = read_img_as_float(input_file_path)
@@ -126,7 +140,15 @@ def finite_difference_operator(input_file_path="data/cameraman.png"):
     img_square = crop_into_square(img_grayscale)
 
     img_out_Dx = scipy.signal.convolve2d(img_square, Dx, mode="same", fillvalue=0)
+
+    plt.imshow(img_out_Dx, cmap="gray")
+    plt.title("Convolution with Dx")
+    plt.savefig(f"{OUTPUT_DIR}/{input_stem}_conv_dx.jpg")
+
     img_out_Dy = scipy.signal.convolve2d(img_square, Dy, mode="same", fillvalue=0)
+    plt.imshow(img_out_Dy, cmap="gray")
+    plt.title("Convolution with Dy")
+    plt.savefig(f"{OUTPUT_DIR}/{input_stem}_conv_dy.jpg")
 
     # Edge strength = ||∇f|| = sqrt((df/dx)^2 + (df/dy)^2)
     # Values range from [0, sqrt(2)]
@@ -154,23 +176,32 @@ def finite_difference_operator(input_file_path="data/cameraman.png"):
     # img_be = img_es * above_threshold_mask
     img_be = (above_threshold_mask).astype(float)
 
-    fig, ax = plt.subplots(1, 2, figsize=(12, 12))
-    ax[0].imshow(img_square, cmap="gray", vmin=0, vmax=1)
-    ax[0].set_title("Original (grayscale)")
-
-    ax[1].imshow(img_be, cmap="gray", vmin=0, vmax=1)
-    ax[1].set_title(
-        f"Finite difference operators w/ threshold {threshold:.3f} (binarized edges)"
+    plt.imshow(img_be, cmap="gray")
+    plt.title(f"Edge strength (binarized) w/ threshold {threshold:.3f}")
+    plt.savefig(
+        f"{OUTPUT_DIR}/{input_stem}_binarized_edge_magnitude.jpg",
     )
 
-    path = Path(input_file_path)
-    stem = path.stem
+    fig, ax = plt.subplots(2, 2, figsize=(12, 12))
+    ax[0, 0].imshow(img_square, cmap="gray", vmin=0, vmax=1)
+    ax[0, 0].set_title("Original (grayscale)")
 
-    plt.savefig(f"out/{stem}_fd_binarized_edges.jpg")
+    ax[0, 1].imshow(img_be, cmap="gray", vmin=0, vmax=1)
+    ax[0, 1].set_title(f"Edge strength (binarized) w/ threshold {threshold:.3f}")
+
+    ax[1, 1].imshow(img_out_Dx, cmap="gray")
+    ax[1, 1].set_title("Convolution with Dx")
+
+    ax[1, 0].imshow(img_out_Dy, cmap="gray")
+    ax[1, 0].set_title("Convolution with Dy")
+
+    plt.savefig(
+        f"{OUTPUT_DIR}/{input_stem}_finite_difference_operators.jpg",
+    )
     plt.show()
 
 
-def derivative_of_gaussian_filter(input_file_path="data/cameraman.png"):
+def derivative_of_gaussian_filter(input_file_path=f"{DATA_DIR}/cameraman.png"):
     """Part 1.3: Derivative of Gaussian (DoG) Filter"""
     gaussian_filter = make_2d_gaussian_kernel(3)
     Dx, Dy, _ = make_difference_and_box_filters()
@@ -224,7 +255,7 @@ def derivative_of_gaussian_filter(input_file_path="data/cameraman.png"):
 
     path = Path(input_file_path)
     stem = path.stem
-    plt.savefig(f"out/{stem}_2step_dog.jpg")
+    plt.savefig(f"{OUTPUT_DIR}/{stem}_2step_dog.jpg")
     plt.show()
 
     # 1-step DoG: convolve Gaussian finite difference filters, then convolve the result ONCE with the image
@@ -260,11 +291,11 @@ def derivative_of_gaussian_filter(input_file_path="data/cameraman.png"):
     path = Path(input_file_path)
     stem = path.stem
 
-    plt.savefig(f"out/{stem}_dog_comparison.jpg")
+    plt.savefig(f"{OUTPUT_DIR}/{stem}_dog_comparison.jpg")
     plt.show()
 
 
-def sharpen(input_img=None, input_file_path="data/taj.jpg", alpha=0.25):
+def sharpen(input_img=None, input_file_path=f"{DATA_DIR}/taj.jpg", alpha=0.25):
     """
     Part 2.1: Image "Sharpening"
     """
@@ -304,13 +335,13 @@ def sharpen(input_img=None, input_file_path="data/taj.jpg", alpha=0.25):
     path = Path(input_file_path)
     stem = path.stem
 
-    plt.savefig(f"out/{stem}_compare_sharpened.jpg")
+    plt.savefig(f"{OUTPUT_DIR}/{stem}_compare_sharpened.jpg")
     plt.show()
 
     return sharp_img
 
 
-def sharpen_then_blur_then_sharpen(input_file_path="data/taj.jpg", alpha=0.25):
+def sharpen_then_blur_then_sharpen(input_file_path=f"{DATA_DIR}/taj.jpg", alpha=0.25):
     """
     Part 2.1: Image "Sharpening" continued
     """
@@ -353,7 +384,7 @@ def sharpen_then_blur_then_sharpen(input_file_path="data/taj.jpg", alpha=0.25):
 
     path = Path(input_file_path)
     stem = path.stem
-    plt.savefig(f"out/{stem}_compare_sharpen_blur_sharpen.jpg")
+    plt.savefig(f"{OUTPUT_DIR}/{stem}_compare_sharpen_blur_sharpen.jpg")
     plt.show()
 
 
@@ -486,7 +517,8 @@ def hybrid_image(img1, img2, hf_sigma, lf_sigma, show_ft=False):
 
 
 def load_align_hybrid(
-    img1_file_path="data/DerekPicture.jpg", img2_file_path="data/nutmeg.jpg"
+    img1_file_path=f"{DATA_DIR}/DerekPicture.jpg",
+    img2_file_path=f"{DATA_DIR}/nutmeg.jpg",
 ):
     """
     Part 2.2: Hybrid Images
@@ -494,19 +526,19 @@ def load_align_hybrid(
     This function implements the full pipeline for part 2.2: loading 2 images, aligning them, then hybridizing them.
     """
     # high sf
-    # img1 = plt.imread("data/DerekPicture.jpg") / 255.0
+    # img1 = plt.imread("{DATA_DIR}/DerekPicture.jpg") / 255.0
     # # low sf
-    # img2 = plt.imread("data/nutmeg.jpg") / 255.0
+    # img2 = plt.imread("{DATA_DIR}/nutmeg.jpg") / 255.0
 
     # # high sf
-    # img1 = plt.imread("data/cheetah.jpg") / 255.0
+    # img1 = plt.imread("{DATA_DIR}/cheetah.jpg") / 255.0
     # # low sf
-    # img2 = plt.imread("data/honey_badger.jpg") / 255.0
+    # img2 = plt.imread("{DATA_DIR}/honey_badger.jpg") / 255.0
 
     # # high sf
-    # img1 = read_img_as_float("data/burger.jpg")
+    # img1 = read_img_as_float("{DATA_DIR}/burger.jpg")
     # # low sf
-    # img2 = read_img_as_float("data/saturn.jpg")
+    # img2 = read_img_as_float("{DATA_DIR}/saturn.jpg")
 
     # First load images
     img1 = read_img_as_float(img1_file_path)
@@ -544,7 +576,9 @@ def load_align_hybrid(
     plt.show()
 
 
-def gaussian_stack(input_img=None, input_file_path="data/apple.jpg", display=False):
+def gaussian_stack(
+    input_img=None, input_file_path=f"{DATA_DIR}/apple.jpg", display=False
+):
     """
     Part 2.3: Gaussian and Laplacian Stacks
     """
@@ -596,7 +630,9 @@ def gaussian_stack(input_img=None, input_file_path="data/apple.jpg", display=Fal
     return np.array(stack)
 
 
-def laplacian_stack(input_img=None, input_file_path="data/apple.jpg", display=False):
+def laplacian_stack(
+    input_img=None, input_file_path="{DATA_DIR}/apple.jpg", display=False
+):
     """
     Part 2.3: Gaussian and Laplacian Stacks
     """
@@ -650,7 +686,7 @@ def laplacian_stack(input_img=None, input_file_path="data/apple.jpg", display=Fa
 
 
 def multiresolution_blend(
-    img1_file_path="data/apple.jpg", img2_file_path="data/orange.jpg"
+    img1_file_path="{DATA_DIR}/apple.jpg", img2_file_path="{DATA_DIR}/orange.jpg"
 ):
     """Part 2.4: Multiresolution Blending (a.k.a. the oraple!)"""
     img1 = read_img_as_float(img1_file_path)
@@ -694,7 +730,10 @@ def multiresolution_blend(
     ax[2].imshow(blend_out)
     ax[2].set_title("Blended")
 
-    plt.savefig(f"out/multiresolution_blend_{img1_path.stem}_{img2_path.stem}.jpg", bbox_inches="tight")
+    plt.savefig(
+        f"{OUTPUT_DIR}/multiresolution_blend_{img1_path.stem}_{img2_path.stem}.jpg",
+        bbox_inches="tight",
+    )
     plt.show()
 
     return blend_out
@@ -703,7 +742,7 @@ def multiresolution_blend(
 def main():
     Dx, Dy, box_filter = make_difference_and_box_filters()
 
-    img = read_img_as_float("data/deenasun_square.jpg")
+    img = read_img_as_float("{DATA_DIR}/deenasun_square.jpg")
 
     img_grayscale = sk.color.rgb2gray(img)  # dtype: float64, shape: (w, h)
 
@@ -724,7 +763,7 @@ def main():
     ax[1, 1].imshow(out_box, cmap="gray", vmin=0, vmax=1)
     ax[1, 1].set_title("After convolving with a 9x9 box filter")
 
-    plt.savefig("out/convolution_comparisons.jpg", bbox_inches="tight")
+    plt.savefig("{OUTPUT_DIR}/convolution_comparisons.jpg", bbox_inches="tight")
     plt.show()
 
     # load_align_hybrid()

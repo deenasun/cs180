@@ -75,14 +75,14 @@ export default function Page() {
         throwOnError: false,
     });
 
-    const Dx = String.raw`D_x = \begin{bmatrix}1 & 0 & -1\end{bmatrix}`
+    const Dx = String.raw`D_x = \begin{bmatrix}1 & 0 & -1 \end{bmatrix}`
 
     const DxRendered = katex.renderToString(Dx, {
         displayMode: true,
         throwOnError: false,
     });
 
-    const Dy = String.raw`D_y = \begin{bmatrix}1 \\ 0 \\ -1\end{bmatrix}`
+    const Dy = String.raw`D_y = \begin{bmatrix}1 \\ 0 \\ -1 \end{bmatrix}`
 
     const DyRendered = katex.renderToString(Dy, {
         displayMode: true,
@@ -96,6 +96,20 @@ export default function Page() {
 \end{bmatrix}`
 
     const boxFilterRendered = katex.renderToString(boxFilter, {
+        displayMode: true,
+        throwOnError: false,
+    });
+
+    const gradient = String.raw`\nabla f = \begin{bmatrix} \frac{\partial f}{\partial x}, \frac{\partial f}{\partial y} \end{bmatrix}`
+
+    const gradientRendered = katex.renderToString(gradient, {
+        displayMode: true,
+        throwOnError: false,
+    });
+
+    const gradientMagnitude = String.raw`\lVert \nabla f \rVert = \sqrt{ \left( \frac{\partial f}{\partial x} \right) ^2 + \left( \frac{\partial f}{\partial y} \right) ^2}`
+
+    const gradientMagnitudeRendered = katex.renderToString(gradientMagnitude, {
         displayMode: true,
         throwOnError: false,
     });
@@ -172,7 +186,6 @@ export default function Page() {
                         />
                     </ul>
                     <div className="flex flex-row w-full justify-center space-x-20">
-
                         <Figure
                             src={"/proj2/convolution_comparisons.jpg"}
                             caption={"Convolving a picture of myself with Dx, Dy, and a 9x9 box filter"}
@@ -183,6 +196,50 @@ export default function Page() {
                 </section>
                 <section id="part_1.2_fdo" className="space-y-5">
                     <h2 className="font-medium">Part 1.2: Finite Difference Operators</h2>
+                    <p>By convolving an image with Dx or Dy, we can detect different kinds of edges!
+                        Convolving an image with Dx detects vertical edges (i.e. changes in intensity between horizontally-adjacent pixels).
+                        Likewise, convolving an image with Dy detects horizontal edges (i.e.changes in intensity between vertically-adjacent pixels).
+                    </p>
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <Figure
+                            src={"/proj2/cameraman_conv_dx.jpg"}
+                            caption={"Convolving camerman.jpg with Dx"}
+                            style_width="50vw"
+                        />
+                        <Figure
+                            src={"/proj2/cameraman_conv_dy.jpg"}
+                            caption={"Convolving camerman.jpg with Dy"}
+                            style_width="50vw"
+                        />
+                    </div>
+                    <p>The gradient is a vector of partial derivatives.
+                        Therefore, the gradient of an image at each coordinate is a vector containing the corresponding pixels in the response after convolving the image with Dx and Dy.
+                        Taking the magnitude of the gradient measures edge strength for all edge orientations in the image.
+                        To better visualize the edges, I also binarized them: I identified all coordinates where the magnitude of the gradient at that position was above a certain threshold (found through visual trial and error),
+                        then mapped those pixels to 1 and masked all other pixels to 0.
+                    </p>
+                    <div
+                        className="my-6 overflow-x-auto text-center"
+                        aria-label="The gradient is a vector of partial derivatives"
+                        dangerouslySetInnerHTML={{ __html: gradientRendered }}
+                    />
+                    <div
+                        className="my-6 overflow-x-auto text-center"
+                        aria-label="A formula for the magnitude of the gradient"
+                        dangerouslySetInnerHTML={{ __html: gradientMagnitudeRendered }}
+                    />
+                    <div className="grid grid-cols-1 gap-4 items-center md:grid-cols-2 ">
+                        <Figure
+                            src={"/proj2/cameraman_binarized_edge_magnitude.jpg"}
+                            caption={"Edge strengths (binarized) of cameraman.jpg"}
+                            style_width="50vw"
+                        />
+                        <Figure
+                            src={"/proj2/cameraman_finite_difference_operators.jpg"}
+                            caption={"Comparing the results of convolving cameraman.jpg with finite difference operators"}
+                            style_width="50vw"
+                        />
+                    </div>
                 </section>
                 <section id="part_1.3_dog" className="space-y-5">
                     <h2 className="font-medium">Part 1.3: Derivative of Gaussian Filter</h2>

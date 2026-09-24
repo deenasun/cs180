@@ -249,6 +249,12 @@ export default function Page() {
                         To better visualize the edges, I also binarized them: I identified all coordinates where the magnitude of the gradient at that position was above a certain threshold (found through visual trial and error),
                         then mapped those pixels to 1 and masked all other pixels to 0.
                     </p>
+                    <p>
+                        Picking a lower threshold for binarizing edges meant that a greater proportion of edges had strengths above that threshold — so the result had more noise.
+                        Picking a higher threshold for binarizing edges meant only very strong edges showed. But this sometimes meant that background details or soft edges were omitted.
+                        For instance, in cameramn.jpg, choosing a high enough threshold such that the result didn't have noisy grass meant the edges of the background tower
+                        were also usually discarded.
+                    </p>
                     <div
                         className="my-6 overflow-x-auto text-center"
                         aria-label="The gradient is a vector of partial derivatives"

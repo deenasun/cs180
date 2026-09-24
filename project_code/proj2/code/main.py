@@ -41,14 +41,15 @@ def make_2d_gaussian_kernel(size=None, sigma=None):
     return gaussian_filter @ gaussian_filter.T
 
 
-def ndarray_to_uint8_img(arr):
+def save_hi_res_img(output_path, arr):
     """Helper function to convert a NumPy ndarray into uint8 for saving"""
     is_float = np.issubdtype(arr.dtype, np.floating)
-    if is_float:
-        arr_uint8 = (arr * 255.0).astype(np.uint8)
-        return arr_uint8
-    else:
-        return arr.astype(np.uint8)
+    if np.issubdtype(arr.dtype, np.floating):
+        arr = (arr * 255.0).astype(np.uint8)
+
+    sk.io.imsave(output_path, arr)
+
+    print(f"Saved image to {output_path}")
 
 
 def read_img_as_float(input_file_path, grayscale=False):
@@ -363,7 +364,7 @@ def sharpen(input_img=None, input_file_path=f"{DATA_DIR}/taj.jpg", alpha=1.0):
     sharp_img = np.clip(sharp_img, 0.0, 1.0)
 
     # Save sharpened image in high resolution
-    sk.io.imsave(f"{OUTPUT_DIR}/{stem}_sharpen_{alpha}.jpg", ndarray_to_uint8_img(sharp_img))
+    save_hi_res_img(f"{OUTPUT_DIR}/{stem}_sharpen_{alpha}.jpg", sharp_img)
 
     fig, ax = plt.subplots(1, 2, figsize=(8, 4), layout="constrained")
     ax[0].imshow(img, vmin=0, vmax=1)
@@ -592,6 +593,9 @@ def hybrid_image(img1, img2, hf_sigma, lf_sigma, show_ft=False):
         ax[4, 1].imshow(hybrid_ft, cmap="gray", vmin=ft_min, vmax=ft_max)
         ax[4, 1].set_title("Hybrid image (FT log magnitude)")
 
+        plt.savefig(
+            f"{OUTPUT_DIR}/hybrid_image_frequency_analysis.jpg", bbox_inches="tight"
+        )
         plt.show()
 
     return hybrid
@@ -625,6 +629,9 @@ def load_align_hybrid(
     img1 = read_img_as_float(img1_file_path)
     img2 = read_img_as_float(img2_file_path)
 
+    img1_path_stem = Path(img1_file_path).stem
+    img2_path_stem = Path(img2_file_path).stem
+
     # Align images
     img1_aligned, img2_aligned = align_images(img1, img2)
 
@@ -655,6 +662,10 @@ def load_align_hybrid(
     hybrid = hybrid_image(img1_aligned, img2_aligned, hf_sigma, lf_sigma, show_ft=True)
     plt.imshow(hybrid)
     plt.show()
+
+    save_hi_res_img(
+        f"{OUTPUT_DIR}/hybrid_{img1_path_stem}_{img2_path_stem}.jpg", hybrid
+    )
 
 
 def gaussian_stack(
@@ -821,34 +832,40 @@ def multiresolution_blend(
 
 
 def main():
-    Dx, Dy, box_filter = make_difference_and_box_filters()
+    # Dx, Dy, box_filter = make_difference_and_box_filters()
 
-    img = read_img_as_float("{DATA_DIR}/deenasun_square.jpg")
+    # img = read_img_as_float("{DATA_DIR}/deenasun_square.jpg")
 
-    img_grayscale = sk.color.rgb2gray(img)  # dtype: float64, shape: (w, h)
+    # img_grayscale = sk.color.rgb2gray(img)  # dtype: float64, shape: (w, h)
 
-    out_Dx = convolve_2d(img_grayscale, Dx)
-    out_Dy = convolve_2d(img_grayscale, Dy)
-    out_box = convolve_2d(img_grayscale, box_filter)
+    # out_Dx = convolve_2d(img_grayscale, Dx)
+    # out_Dy = convolve_2d(img_grayscale, Dy)
+    # out_box = convolve_2d(img_grayscale, box_filter)
 
-    fig, ax = plt.subplots(2, 2, figsize=(12, 12))
-    ax[0, 0].imshow(img_grayscale, cmap="gray", vmin=0, vmax=1)
-    ax[0, 0].set_title("Original (grayscale)")
+    # fig, ax = plt.subplots(2, 2, figsize=(12, 12))
+    # ax[0, 0].imshow(img_grayscale, cmap="gray", vmin=0, vmax=1)
+    # ax[0, 0].set_title("Original (grayscale)")
 
-    ax[0, 1].imshow(out_Dx, cmap="viridis", vmin=0, vmax=1)
-    ax[0, 1].set_title("After convolving with Dx")
+    # ax[0, 1].imshow(out_Dx, cmap="viridis", vmin=0, vmax=1)
+    # ax[0, 1].set_title("After convolving with Dx")
 
-    ax[1, 0].imshow(out_Dy, cmap="viridis", vmin=0, vmax=1)
-    ax[1, 0].set_title("After convolving with Dy")
+    # ax[1, 0].imshow(out_Dy, cmap="viridis", vmin=0, vmax=1)
+    # ax[1, 0].set_title("After convolving with Dy")
 
-    ax[1, 1].imshow(out_box, cmap="gray", vmin=0, vmax=1)
-    ax[1, 1].set_title("After convolving with a 9x9 box filter")
+    # ax[1, 1].imshow(out_box, cmap="gray", vmin=0, vmax=1)
+    # ax[1, 1].set_title("After convolving with a 9x9 box filter")
 
-    plt.savefig("{OUTPUT_DIR}/convolution_comparisons.jpg", bbox_inches="tight")
-    plt.show()
+    # plt.savefig("{OUTPUT_DIR}/convolution_comparisons.jpg", bbox_inches="tight")
+    # plt.show()
 
-    # load_align_hybrid()
-    pass
+    load_align_hybrid(
+        img1_file_path="data/DerekPicture.jpg",
+        img2_file_path="data/nutmeg.jpg",
+    )
+    load_align_hybrid(
+        img1_file_path="data/burger.jpg",
+        img2_file_path="data/saturn.jpg",
+    )
 
 
 if __name__ == "__main__":

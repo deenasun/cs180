@@ -474,6 +474,81 @@ export default function Page() {
                 </section>
                 <section id="part_2.2_hybrid" className="space-y-5">
                     <h2 className="font-medium">Part 2.2: Hybrid Images</h2>
+                    <p>Our visions don't perceive the full range of frequencies equally at different distances.
+                        When we are closer to an image, we are able to pick up higher frequencies: precise details and fine textures.
+                        When we are further away from an image, only low frequencies in an image are perceivable: broad patterns and smoother textures.
+                        Hybrid images play on this phenomena!
+                    </p>
+                    <p>
+                        To create a hybrid image, I took two images but blended only specific frequencies from each one into a single image.
+                        I first selected 2 points in each image to use to align them together.
+
+                        Then I applied a high-pass filter to the first image, keeping only its high frequencies.
+                        For the high-pass filter, I subtracted a blurred version of the first image from its original image.
+
+                        And, I applied a low-pass filter to the second image, keeping only the low frequencies of that image.
+                        For the low-pass filter, I convolved the image with a 2D Gaussian kernel.
+
+                        I picked the cut-off frequency for each filter (i.e. the lower limit on which high frequencies to keep from the first image
+                        and a separate lower-limit on which low frequencies to keep from the second image) via visual experimentation.
+
+                        Lastly, I layered the two filtered images on top of each other based on the alignment.
+                        As a result, you may perceive the hybrid image as different things depending on your viewing distance.
+                    </p>
+                    <h3 className="text-center mt-8">Hybrid image 1: a human named Derek and a cat named Nutmeg</h3>
+                    <div className="grid grid-cols-1 justify-items-center items-center gap-4 md:grid-cols-2">
+                        {/* Left column: originals and hybrid stacked vertically */}
+                        <div className="grid grid-cols-1 justify-items-center gap-y-8">
+                            <Figure
+                                src="/proj2/DerekPicture.jpg"
+                                caption="Derek (kept the high frequencies)"
+                                style_width="15vw"
+                            />
+                            <Figure
+                                src="/proj2/nutmeg.jpg"
+                                caption="Derek's cat Nutmeg (kept the low frequencies)"
+                                style_width="15vw"
+                            />
+                            <Figure
+                                src="/proj2/hybrid_derek_nutmeg.jpg"
+                                caption="Hybrid image of Derek and Nutmeg. Up close, you can see Derek! From far away, it's almost all Nutmeg"
+                                style_width="15vw"
+                            />
+                        </div>
+                        {/* Right column: frequency analysis */}
+                        <Figure
+                            src="/proj2/hybrid_derek_nutmeg_frequency_analysis.jpg"
+                            caption="Plots of the log magnitude of the Fourier transforms for each image"
+                            style_width="30vw"
+                        />
+                    </div>
+                    <h3 className="text-center mt-8">Hybrid image 2: a RT Rotisserie burger and Saturn</h3>
+                    <div className="grid grid-cols-1 justify-items-center items-center gap-4 md:grid-cols-2">
+                        {/* Left column: originals and hybrid stacked vertically */}
+                        <div className="grid grid-cols-1 justify-items-center gap-y-8">
+                            <Figure
+                                src="/proj2/burger.jpg"
+                                caption="A RT Rotisserie burger (kept the high frequencies)"
+                                style_width="20vw"
+                            />
+                            <Figure
+                                src="/proj2/Saturn.jpg"
+                                caption="Saturn (kept the low frequencies)"
+                                style_width="20vw"
+                            />
+                            <Figure
+                                src="/proj2/hybrid_burger_saturn.jpg"
+                                caption="Hybrid image of a burger and Saturn. Up close, you can see the burger! From far away, it's mostly Saturn"
+                                style_width="20vw"
+                            />
+                        </div>
+                        {/* Right column: frequency analysis */}
+                        <Figure
+                            src="/proj2/hybrid_burger_saturn_frequency_analysis.jpg"
+                            caption="Plots of the log magnitude of the Fourier transforms for each image"
+                            style_width="30vw"
+                        />
+                    </div>
                 </section>
                 <section id="part_2.3_stacks" className="space-y-5">
                     <h2 className="font-medium">Part 2.3: Gaussian and Laplacian Stacks</h2>

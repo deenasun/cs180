@@ -717,6 +717,7 @@ def gaussian_stack(
             if not ax.has_data():
                 fig.delaxes(ax)
 
+        plt.tight_layout()
         plt.show()
 
     return np.array(stack)
@@ -757,7 +758,7 @@ def laplacian_stack(
 
         for idx, s in enumerate(stack):
             # Laplacian levels can have negative values
-            # For clearer displays, re-map values s.t. the middle value is 0.5 (gray)
+            # For clearer displays, re-map values s.t. the middle value is 0.5
             half_range = np.max(np.abs(s))
             if half_range > 0:
                 remapped_s = 0.5 + s / (2 * half_range)
@@ -772,17 +773,21 @@ def laplacian_stack(
             if not ax.has_data():
                 fig.delaxes(ax)
 
+        plt.tight_layout()
         plt.show()
 
     return np.array(stack)
 
 
 def multiresolution_blend(
-    img1_file_path="{DATA_DIR}/apple.jpg", img2_file_path="{DATA_DIR}/orange.jpg"
+    img1_file_path=f"{DATA_DIR}/apple.jpg", img2_file_path=f"{DATA_DIR}/orange.jpg"
 ):
     """Part 2.4: Multiresolution Blending (a.k.a. the oraple!)"""
     img1 = read_img_as_float(img1_file_path)
     img2 = read_img_as_float(img2_file_path)
+
+    img1_path_stem = Path(img1_file_path).stem
+    img2_path_stem = Path(img2_file_path).stem
 
     h, w = img1.shape[:2]
 
@@ -798,32 +803,93 @@ def multiresolution_blend(
     horizonal_spline_mask = np.zeros_like(img1)
     horizonal_spline_mask[: h // 2, :] = 1
 
-    laplacian1 = laplacian_stack(input_img=img1, display=True)
-    laplacian2 = laplacian_stack(input_img=img2, display=True)
-    gaussian_weights = gaussian_stack(input_img=vertical_spline_mask, display=True)
+    laplacian1 = laplacian_stack(input_img=img1, display=False)
+    laplacian2 = laplacian_stack(input_img=img2, display=False)
+    gaussian_weights = gaussian_stack(input_img=vertical_spline_mask, display=False)
 
+    blended_levels = []
     blend_out = np.zeros_like(img1)
     for lap1, lap2, gw in zip(laplacian1, laplacian2, gaussian_weights):
         blend = gw * lap1 + (1 - gw) * lap2
         blend_out += blend
+        blended_levels.append(blend)
 
     blend_out = np.clip(blend_out, 0, 1.0)
+    save_hi_res_img(
+        f"{OUTPUT_DIR}/multires_blend_{img1_path_stem}_{img2_path_stem}.jpg", blend_out
+    )
 
-    fig, ax = plt.subplots(1, 3, figsize=(10, 6))
+    num_levels = len(blended_levels)
 
-    img1_path = Path(img1_file_path)
+    fig, ax = plt.subplots(
+        nrows=num_levels + 1, ncols=4, figsize=(8, (num_levels + 1) * 2)
+    )
+
+    def remap_middle(level):
+        # Laplacian levels can have negative values
+        # For clearer displays, re-map values s.t. the middle value is 0.5
+        half_range = np.max(np.abs(level))
+        if half_range > 0:
+            remapped = 0.5 + level / (2 * half_range)
+        else:
+            # Fill with all grays if the input is filled with a constant pixel value
+            remapped = np.full(level.shape, fill_value=0.5)
+        return remapped
+
+    for i in range(num_levels):
+        ax[i, 0].imshow(
+            remap_middle(laplacian1[i]),
+        )
+        ax[i, 0].set_title(f"{Path(img1_file_path).name}")
+
+        ax[i, 1].imshow(remap_middle(laplacian2[i]))
+        ax[i, 1].set_title(f"{Path(img2_file_path).name}")
+
+        ax[i, 2].imshow(gaussian_weights[i])
+        ax[i, 2].set_title("Gaussian mask")
+
+        ax[i, 3].imshow(remap_middle(blended_levels[i]))
+        ax[i, 3].set_title(f"Blended (level {i})")
+
+    # Final row: squash all stacks into a single image
+    gaussian_squashed = np.sum(gaussian_weights, axis=0)
+    img1_squashed = np.sum(gaussian_weights * laplacian1, axis=0)
+    img2_squashed = np.sum((1 - gaussian_weights) * laplacian2, axis=0)
+
+    ax[-1, 0].imshow(img1_squashed)
+    ax[-1, 0].set_title(f"{Path(img1_file_path).name}")
+
+    ax[-1, 1].imshow(img2_squashed)
+    ax[-1, 1].set_title(f"{Path(img2_file_path).name}")
+
+    ax[-1, 2].imshow(gaussian_squashed)
+    ax[-1, 2].set_title("Gaussian mask")
+
+    ax[-1, 3].imshow(blend_out)
+    ax[-1, 3].set_title("Final blend")
+
+    plt.tight_layout()
+    plt.savefig(
+        f"{OUTPUT_DIR}/multires_levels_{img1_path_stem}_{img2_path_stem}.jpg",
+        bbox_inches="tight",
+    )
+    plt.show()
+
+    # Plot side-by-side of original images and blended result
+    fig, ax = plt.subplots(1, 3)
+
     ax[0].imshow(img1)
-    ax[0].set_title(f"{img1_path.name}")
+    ax[0].set_title(f"{Path(img1_file_path).name}")
 
-    img2_path = Path(img2_file_path)
     ax[1].imshow(img2)
-    ax[1].set_title(f"{img2_path.name}")
+    ax[1].set_title(f"{Path(img2_file_path).name}")
 
     ax[2].imshow(blend_out)
     ax[2].set_title("Blended")
 
+    plt.tight_layout()
     plt.savefig(
-        f"{OUTPUT_DIR}/multiresolution_blend_{img1_path.stem}_{img2_path.stem}.jpg",
+        f"{OUTPUT_DIR}/multires_sidebyside_{img1_path_stem}_{img2_path_stem}.jpg",
         bbox_inches="tight",
     )
     plt.show()
@@ -858,14 +924,16 @@ def main():
     # plt.savefig("{OUTPUT_DIR}/convolution_comparisons.jpg", bbox_inches="tight")
     # plt.show()
 
-    load_align_hybrid(
-        img1_file_path="data/DerekPicture.jpg",
-        img2_file_path="data/nutmeg.jpg",
-    )
-    load_align_hybrid(
-        img1_file_path="data/burger.jpg",
-        img2_file_path="data/saturn.jpg",
-    )
+    # load_align_hybrid(
+    #     img1_file_path="data/DerekPicture.jpg",
+    #     img2_file_path="data/nutmeg.jpg",
+    # )
+    # load_align_hybrid(
+    #     img1_file_path="data/burger.jpg",
+    #     img2_file_path="data/saturn.jpg",
+    # )
+
+    multiresolution_blend()
 
 
 if __name__ == "__main__":

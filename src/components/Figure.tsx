@@ -83,9 +83,9 @@ export default function Figure({
                         }}
                     />
                     {isHovering && (
-                        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded bg-space-black/80 px-3 py-1 text-sm text-cream">
-                            <span className="mr-2">Hover to zoom</span>
-                            <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-cream border-t-transparent" />
+                        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center justify-center gap-2 rounded bg-space-black/80 px-3 py-1 text-sm text-cream">
+                            <span className="text-center">Hover to zoom</span>
+                            <span className="h-3 w-3 shrink-0 animate-spin rounded-full border-2 border-cream border-t-transparent" />
                         </div>
                     )}
                 </div>

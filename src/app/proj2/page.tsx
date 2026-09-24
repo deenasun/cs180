@@ -145,6 +145,20 @@ export default function Page() {
         throwOnError: false,
     });
 
+    const laplacianStack = String.raw`L_i = G_i - G_{i + 1}`
+
+    const laplacianStackRendered = katex.renderToString(laplacianStack, {
+        displayMode: true,
+        throwOnError: false,
+    });
+
+    const multiresolutionLevel = String.raw`L^c_i = G_i \cdot L^a_i + (1 - Gi) \cdot L^b_i`
+
+    const multiresolutionLevelRendered = katex.renderToString(multiresolutionLevel, {
+        displayMode: true,
+        throwOnError: false,
+    });
+
     return (
         <main className="mx-4 my-2 sm:mx-8">
             <article className="mr-[17vw] space-y-12">
@@ -184,7 +198,6 @@ export default function Page() {
                         aria-label="A formula to calculate the output dimensions of a convolution"
                         dangerouslySetInnerHTML={{ __html: convolutionShapeFormulaRendered }}
                     />
-
                     <p>
                         The runtime of my double for-loop is much faster than my quadruple for-loop, but both are outpaced by SciPy's convolution implementation!
                         SciPy's implementation includes optimizations like automatically switching between direct computations or a Fast Fourier Transform method
@@ -558,9 +571,116 @@ export default function Page() {
                 </section>
                 <section id="part_2.3_stacks" className="space-y-5">
                     <h2 className="font-medium">Part 2.3: Gaussian and Laplacian Stacks</h2>
+                    <p>Gaussian and Laplacian stacks are ways to iteratively apply a Gaussian or Laplacian transformation to the same image without actually changing the image's dimensions.
+                        An image pyramid downsamples between each level, so the images at each level get smaller in smaller.
+                        In a stack, the image dimensions don't change from level to level. One advantage of this is that all the levels of a stack can then be saved into one big array of matrices!
+                        To create successive levels of a Gaussian stack without downsampling, we can use a larger Gaussian kernel ("larger" in the sense that it has a bigger sigma value and therefore also a bigger kernel size)
+                        from one level to the next. I.e. by doubling the value of sigma (and Gaussian kernel's size) at each level, the Gaussian stack behaves similarly to a
+                        Gaussian pyramid that downsamples to 1/2 the size at each level.
+                    </p>
+                    <p>
+                        The Laplacian stack can be created by subtracting adjacent levels in the Gaussian stack.
+                        In this way, we can think of L_i as representing the information lost when going from the ith level in the Gaussian stack to the (i + 1)-th level.
+                        Since convolving Gaussian kernels with an image is like applying a low-pass filter, and applying Gaussian kernels of different
+                        sigmas/sizes means different cut-offs for what the range of frequenices can pass through are, L_i captures a band-pass of frequencies
+                        in between the cut-offs of G_i and G_{"{"}i + 1{"}"}.
+                        Generally, we set L_n = G_n (where n is the deepest level in the stack, or the coarsest, most blurred level).
+                        For each Laplacian level:
+                    </p>
+                    <div
+                        className="my-6 overflow-x-auto text-center"
+                        aria-label="Box filters average the pixel values"
+                        dangerouslySetInnerHTML={{ __html: laplacianStackRendered }}
+                    />
+                    <p>
+                        Where Laplacian stacks and Gaussian stacks really become handy is in multi-resolution blending!
+                    </p>
                 </section>
                 <section id="part_2.4_blend" className="space-y-5">
-                    <h2 className="font-medium">Part 2.4: Multiresolution Blending (AKA the oraple!)</h2>
+                    <h2 className="font-medium">Part 2.4: Multi-resolution Blending (AKA the oraple!)</h2>
+                    <p>Blending two images together involves strategically distorting them to create a smooth seam between them.
+                        If the blending window between the two images is too narrow, then the image spline will appear very sharp!
+                        On the other hand, if the blending window between the two images is too wide, then there may be ghost or duplicate artifacts in the transition region.
+                        In 1983, Burt and Adelson introduced a method for multi-resolution blending that involves
+                        creating Laplacian stacks of the images, blending the images at each level in the Laplacian stacks using a corresponding mask whose blending region
+                        matches that level's resolution scale, and recombining all the levels into one blended result.
+                    </p>
+
+                    <p>
+                        To implement multi-resolution blending, I started with two images. I built Laplacian stacks from each image (which I will denote as L^a and L^b, and refer to individual levels within each stack as L^a_i).
+                        The 0-th level in each image's Laplacian stacks held the highest frequencies, and the n-th level in each image's Laplacian stacks held the lowest frequencies.
+
+                        I also created a mask of the same dimensions as my two images! I put 1's in the mask at coordinates in the final result where I wanted image 1 to be visible
+                        and 0's in the mask where I wanted image 2 to be visible. For the mask to create the right amount of "smoothing" at each level, I used my Gaussian stack implementation
+                        to create a Gaussian stack of the mask.
+                    </p>
+                    <p>
+                        So now I have n levels, and 3 elements to blend together at each level: image 1's Laplacian representation at that level, image 2's Laplacian representation at that level, and
+                        the mask's Gaussian representation at that level.
+
+                        To combine them together, I use the mask as weights (multiplying the mask element-wise). So the combined result at each level is:
+                    </p>
+                    <div
+                        className="my-6 overflow-x-auto text-center"
+                        aria-label="A formula to calculate the output dimensions of a convolution"
+                        dangerouslySetInnerHTML={{ __html: multiresolutionLevelRendered }}
+                    />
+                    <p>
+                        And finally, to put all the puzzle pieces together into a single, multi-resolution-blended masterpiece, I just add all the combined Laplacian layers!
+                    </p>
+                    <p>
+                        I wrote some code to visualize each level of the multi-resolution blending stack.
+                        The first column is the Laplacian stack for image 1, the second column is the Laplacian stack for image 2,
+                        the third column is the Gaussian mask at that level, and the fourth column is the combined result at that level.
+                        The final row represents all the rows above it "squashed" into a single image (AKA summing all the levels in a stack into a single image).
+                        One implementation detail for producing the Laplacian stack visuals: Laplacian levels can have negative values so to display them visually,
+                        I remapped their values to make the middle value in each channel of each Laplacian stack have pixel intensity 0.5.
+                    </p>
+                    <h3 className="text-center mt-8">Multi-resolution blending example 1: the oraple</h3>
+                    <div className="grid grid-cols-1 justify-items-center items-center gap-4 md:grid-cols-2">
+                        {/* Left column: originals and final blend stacked vertically */}
+                        <div className="grid grid-cols-1 justify-items-center gap-y-8">
+                            <Figure
+                                src="/proj2/apple.jpg"
+                                caption="An apple"
+                                style_width="15vw"
+                            />
+                            <Figure
+                                src="/proj2/orange.jpg"
+                                caption="An orange"
+                                style_width="15vw"
+                            />
+                            <Figure
+                                src="/proj2/multires_blend_apple_orange.jpg"
+                                caption="Boom: an oraple!"
+                                style_width="15vw"
+                            />
+                        </div>
+                        {/* Right column: Multi-resolution blend stacks */}
+                        <Figure
+                            src="/proj2/multires_levels_apple_orange.jpg"
+                            caption="Visualizing each level of the Laplacian and Gaussian stacks for the oraple"
+                            style_width="40vw"
+                        />
+                    </div>
+                    <h3 className="text-center mt-8">Multi-resolution blending example 2: TODO pick image and use a straight-line mask</h3>
+                    <div className="grid grid-cols-1 justify-items-center items-center gap-4 md:grid-cols-2">
+                        {/* Left column: originals and final blend stacked vertically */}
+                        <div className="grid grid-cols-1 justify-items-center gap-y-8">
+                            TODO
+                        </div>
+                        {/* Right column: Multi-resolution blend stacks */}
+                        TODO
+                    </div>
+                    <h3 className="text-center mt-8">Multi-resolution blending example 3: TODO pick image and use an irregular mask</h3>
+                    <div className="grid grid-cols-1 justify-items-center items-center gap-4 md:grid-cols-2">
+                        {/* Left column: originals and final blend stacked vertically */}
+                        <div className="grid grid-cols-1 justify-items-center gap-y-8">
+                            TODO
+                        </div>
+                        {/* Right column: Multi-resolution blend stacks */}
+                        TODO
+                    </div>
                 </section>
             </article>
             <aside className="fixed right-0 top-20 hidden h-fit max-h-[70vh] w-[15vw] min-w-[150px] px-4 overflow-y-auto border-l-2 border-gray-200 md:block">

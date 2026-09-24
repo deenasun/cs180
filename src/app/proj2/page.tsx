@@ -35,7 +35,7 @@ export default function Page() {
         },
         {
             sectionLink: "part_2.4_blend",
-            text: "Part 2.4: Multiresolution Blending"
+            text: "Part 2.4: Multi-resolution Blending"
         },
     ]
 
@@ -408,8 +408,52 @@ export default function Page() {
                         />
                     </div>
                     <p>Here are some additional images of my own that I tried sharpening!</p>
-                    <div className="grid grid-cols-1 gap-x-4 gap-y-8 md:grid-cols-2 justify-items-center">
-                        TODO
+                    <div className="grid grid-cols-1 gap-x-4 gap-y-8 md:grid-cols-3 justify-items-center">
+                        <Figure
+                            src={"/proj2/clownfish.jpg"}
+                            caption={`clownfish.jpg (original)`}
+                            style_width="25vw"
+                        />
+                        <Figure
+                            src={"/proj2/clownfish_sharpen_1.0.jpg"}
+                            caption={`clownfish.jpg sharpened with a single-conv sharpening mask (${ALPHA_UNICODE} = 1.0)`}
+                            style_width="25vw"
+                        />
+                        <Figure
+                            src={"/proj2/clownfish_sharpen_2.0.jpg"}
+                            caption={`clownfish.jpg sharpened with a single-conv sharpening mask (${ALPHA_UNICODE} = 2.0)`}
+                            style_width="25vw"
+                        />
+                        <Figure
+                            src={"/proj2/chinatown.jpg"}
+                            caption={`chinatown.jpg (original)`}
+                            style_width="25vw"
+                        />
+                        <Figure
+                            src={"/proj2/chinatown_sharpen_1.0.jpg"}
+                            caption={`chinatown.jpg sharpened with a single-conv sharpening mask (${ALPHA_UNICODE} = 1.0)`}
+                            style_width="25vw"
+                        />
+                        <Figure
+                            src={"/proj2/chinatown_sharpen_2.0.jpg"}
+                            caption={`chinatown.jpg sharpened with a single-conv sharpening mask (${ALPHA_UNICODE} = 2.0)`}
+                            style_width="25vw"
+                        />
+                        <Figure
+                            src={"/proj2/tetons.jpg"}
+                            caption={`tetons.jpg (original)`}
+                            style_width="25vw"
+                        />
+                        <Figure
+                            src={"/proj2/tetons_sharpen_1.0.jpg"}
+                            caption={`tetons.jpg sharpened with a single-conv sharpening mask (${ALPHA_UNICODE} = 1.0)`}
+                            style_width="25vw"
+                        />
+                        <Figure
+                            src={"/proj2/tetons_sharpen_2.0.jpg"}
+                            caption={`tetons.jpg sharpened with a single-conv sharpening mask (${ALPHA_UNICODE} = 2.0)`}
+                            style_width="25vw"
+                        />
                     </div>
                     <p>As an additional experiment, I also tried picking a sharp image, blurring it, then re-sharpening it.
 

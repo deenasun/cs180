@@ -362,9 +362,8 @@ def sharpen(input_img=None, input_file_path=f"{DATA_DIR}/taj.jpg", alpha=1.0):
     sharp_img = np.dstack((sharp_r, sharp_g, sharp_b))
     sharp_img = np.clip(sharp_img, 0.0, 1.0)
 
-    plt.imshow(sharp_img)
-    plt.title(f"Sharpened with alpha {alpha}")
-    plt.savefig(f"{OUTPUT_DIR}/{stem}_sharpen_{alpha}.jpg", bbox_inches="tight")
+    # Save sharpened image in high resolution
+    sk.io.imsave(f"{OUTPUT_DIR}/{stem}_sharpen_{alpha}.jpg", ndarray_to_uint8_img(sharp_img))
 
     fig, ax = plt.subplots(1, 2, figsize=(8, 4), layout="constrained")
     ax[0].imshow(img, vmin=0, vmax=1)

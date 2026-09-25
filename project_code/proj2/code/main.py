@@ -3,6 +3,7 @@ import cv2 as cv
 import scipy
 import skimage as sk
 import matplotlib.pyplot as plt
+from matplotlib.widgets import PolygonSelector
 from pathlib import Path
 from align_image_code import align_images
 
@@ -669,7 +670,10 @@ def load_align_hybrid(
 
 
 def gaussian_stack(
-    input_img=None, input_file_path=f"{DATA_DIR}/apple.jpg", display=False
+    input_img=None,
+    input_file_path=f"{DATA_DIR}/apple.jpg",
+    max_levels=6,
+    display=False,
 ):
     """
     Part 2.3: Gaussian and Laplacian Stacks
@@ -691,7 +695,7 @@ def gaussian_stack(
     stack = [img]
 
     # Implement Gaussian stack by applying bigger blurs (bigger sigma + kernel size)
-    while sigma <= max_sigma and len(stack) < 8:
+    while sigma <= max_sigma and len(stack) < max_levels:
         print(f"Level {len(stack)}: applying gaussian with sigma {sigma}")
         gaussian_kernel = make_2d_gaussian_kernel(sigma=sigma)
         conv_r = scipy.signal.convolve2d(r, gaussian_kernel, mode="same", fillvalue=0)
@@ -724,7 +728,7 @@ def gaussian_stack(
 
 
 def laplacian_stack(
-    input_img=None, input_file_path="{DATA_DIR}/apple.jpg", display=False
+    input_img=None, input_file_path="{DATA_DIR}/apple.jpg", max_levels=6, display=False
 ):
     """
     Part 2.3: Gaussian and Laplacian Stacks
@@ -735,7 +739,7 @@ def laplacian_stack(
         img = read_img_as_float(input_file_path)
 
     # level 0 = highest freq, level[-1] = lowest freq (most blurred)
-    gaussian_levels = gaussian_stack(img)
+    gaussian_levels = gaussian_stack(img, max_levels=max_levels)
     stack = []
 
     # Compute Laplacian levels by subtracting adjacent Gaussian levels
@@ -780,9 +784,24 @@ def laplacian_stack(
 
 
 def multiresolution_blend(
-    img1_file_path=f"{DATA_DIR}/apple.jpg", img2_file_path=f"{DATA_DIR}/orange.jpg"
+    img1_file_path=f"{DATA_DIR}/apple.jpg",
+    img2_file_path=f"{DATA_DIR}/orange.jpg",
+    mask_type=None,
+    max_levels=6,
 ):
-    """Part 2.4: Multiresolution Blending (a.k.a. the oraple!)"""
+    """
+    Part 2.4: Multiresolution Blending (a.k.a. the oraple!)
+
+    Args:
+        img1_file_path: file path to the first input image
+        img2_file_path: file path to the second input image
+        mask_type: string of "vertical", "horizontal", or "custom".
+            - "vertical" uses a vertical_spline_mask that shows img1 on the left and img2 on the right
+            - "horizontal" uses a horizontal_spline_mask that shows img1 on the top and img2 on the bottom
+            - "custom" calls `make_multiresolution_mask`, which starts an interactive widget where users can
+                use a PolygonSelector to select a region of img1 to use as the mask.
+        max_levels: the maximum number of levels in the Gaussian and Laplacian stacks. Note that levels are 0-indexed
+    """
     img1 = read_img_as_float(img1_file_path)
     img2 = read_img_as_float(img2_file_path)
 
@@ -791,21 +810,28 @@ def multiresolution_blend(
 
     h, w = img1.shape[:2]
 
-    # Mask for a vertical spline:
-    #   - 1's on the left where we want img1 to be visible
-    #   - 0's on the right where we want img2 to be visible
-    vertical_spline_mask = np.zeros_like(img1)
-    vertical_spline_mask[:, : w // 2] = 1
+    if mask_type == "vertical":
+        # Mask for a vertical spline:
+        #   - 1's on the left where we want img1 to be visible
+        #   - 0's on the right where we want img2 to be visible
+        vertical_spline_mask = np.zeros_like(img1)
+        vertical_spline_mask[:, : w // 2] = 1
+        mask = vertical_spline_mask
+    elif mask_type == "horizontal":
+        # Mask for a horizonal spline:
+        #   - 1's on the top where we want img1 to be visible
+        #   - 0's on the bottom where we want img2 to be visible
+        horizonal_spline_mask = np.zeros_like(img1)
+        horizonal_spline_mask[: h // 2, :] = 1
+        mask = horizonal_spline_mask
+    else:
+        mask = make_multiresolution_mask(img1)
 
-    # Mask for a horizonal spline:
-    #   - 1's on the top where we want img1 to be visible
-    #   - 0's on the bottom where we want img2 to be visible
-    horizonal_spline_mask = np.zeros_like(img1)
-    horizonal_spline_mask[: h // 2, :] = 1
-
-    laplacian1 = laplacian_stack(input_img=img1, display=False)
-    laplacian2 = laplacian_stack(input_img=img2, display=False)
-    gaussian_weights = gaussian_stack(input_img=vertical_spline_mask, display=False)
+    laplacian1 = laplacian_stack(input_img=img1, max_levels=max_levels, display=False)
+    laplacian2 = laplacian_stack(input_img=img2, max_levels=max_levels, display=False)
+    gaussian_weights = gaussian_stack(
+        input_img=mask, max_levels=max_levels, display=False
+    )
 
     blended_levels = []
     blend_out = np.zeros_like(img1)
@@ -897,6 +923,57 @@ def multiresolution_blend(
     return blend_out
 
 
+def make_multiresolution_mask(image_data):
+    """
+    Display an image, and allow user to select points on the image as vertices for a polygon mask
+
+    Returns:
+        mask: an np.ndarray with the same shape as the input.
+            The values are floats with 1.0's in the pixels of the filled-in polygon
+    """
+    h, w = image_data.shape[:2]
+    fig, ax = plt.subplots()
+    ax.imshow(image_data)
+    ax.set_title(
+        "Click to draw polygon vertices!\nRe-click the first vertex to finish.\nPress 'esc' to start over."
+    )
+
+    selected_points = []
+
+    def on_select(vertices):
+        """
+        Callback function triggered when user re-clicks the first vertex
+
+        Saves the vertices into selected_points and closes the figure.
+        """
+        nonlocal selected_points
+        selected_points = np.asarray(vertices)
+        plt.close(fig)  # Close figure and unblock plt.show()
+
+    selector = PolygonSelector(ax, on_select)
+
+    plt.tight_layout()
+    plt.show(block=True)  # Pause execution to wait for user interaction
+
+    # Each vertex is stored as [x, y]
+    xs, ys = selected_points[:, 0], selected_points[:, 1]
+    # skimage.draw.polygon expects vertices in (row_coords, col_coords)
+    row_coords, col_coords = ys, xs
+
+    # Returns (rr, cc): pixel coordinates corresponding to the filled-in polygon
+    rr, cc = sk.draw.polygon(row_coords, col_coords, shape=(h, w))
+
+    mask = np.zeros(image_data.shape)
+    mask[rr, cc] = 1.0
+
+    plt.imshow(mask)
+    plt.title("Selected mask\n(close to continue multi-resolution blending)")
+    plt.tight_layout()
+    plt.show()
+
+    return mask
+
+
 def main():
     # Dx, Dy, box_filter = make_difference_and_box_filters()
 
@@ -933,7 +1010,22 @@ def main():
     #     img2_file_path="data/saturn.jpg",
     # )
 
-    multiresolution_blend()
+    multiresolution_blend(
+        f"{DATA_DIR}/dinosaur_nuggets.jpg",
+        f"{DATA_DIR}/jurassic_park.jpg",
+        max_levels=4,
+        mask_type="custom",
+    )
+    # multiresolution_blend(f"{DATA_DIR}/oski.jpg", f"{DATA_DIR}/stanford_tree.jpg")
+
+    # apple_image_data = read_img_as_float(f"{DATA_DIR}/apple.jpg")
+
+    # mask = make_multiresolution_mask(apple_image_data)
+
+    # plt.imshow(mask)
+    # plt.show()
+
+    pass
 
 
 if __name__ == "__main__":

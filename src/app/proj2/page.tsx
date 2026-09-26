@@ -663,23 +663,68 @@ export default function Page() {
                             style_width="40vw"
                         />
                     </div>
-                    <h3 className="text-center mt-8">Multi-resolution blending example 2: TODO pick image and use a straight-line mask</h3>
+                    <h3 className="text-center mt-8">Multi-resolution blending example 2: Oski and the Stanford Tree, blended with a horizontal image spline</h3>
                     <div className="grid grid-cols-1 justify-items-center items-center gap-4 md:grid-cols-2">
                         {/* Left column: originals and final blend stacked vertically */}
                         <div className="grid grid-cols-1 justify-items-center gap-y-8">
-                            TODO
+                            <Figure
+                                src="/proj2/oski.jpg"
+                                caption="Oski the bear"
+                                style_width="15vw"
+                            />
+                            <Figure
+                                src="/proj2/stanford_tree.jpg"
+                                caption="The Stanford Tree"
+                                style_width="15vw"
+                            />
+                            <Figure
+                                src="/proj2/multires_blend_oski_stanford_tree.jpg"
+                                caption="Os-tree!"
+                                style_width="15vw"
+                            />
                         </div>
                         {/* Right column: Multi-resolution blend stacks */}
-                        TODO
+                        <Figure
+                            src="/proj2/multires_levels_oski_stanford_tree.jpg"
+                            caption="Visualizing each level of the Laplacian and Gaussian stacks for Oski and the Stanford Tree"
+                            style_width="40vw"
+                        />
                     </div>
-                    <h3 className="text-center mt-8">Multi-resolution blending example 3: TODO pick image and use an irregular mask</h3>
+                    <h3 className="text-center mt-8">Multi-resolution blending example 3: a dinosaur nugget in Jurassic Park</h3>
+                    <p>I also implemented an interactive widget using <code>matplotlib.widgets.PolygonSelector</code> and <code>skimage.draw.polygon</code> which let me freely
+                    select points in an image, join them into the vertices of a polygon, and use the filled polygon region as a custom mask for multi-resolution blending.
+                    
+                    Using my custom mask creation function, I also blended together an image of a dinosaur chicken nugget and the iconic scene from Jurassic Park when Alan Grant and Ellie Sattler see live dinosaurs for the first time.</p>
                     <div className="grid grid-cols-1 justify-items-center items-center gap-4 md:grid-cols-2">
                         {/* Left column: originals and final blend stacked vertically */}
                         <div className="grid grid-cols-1 justify-items-center gap-y-8">
-                            TODO
+                            <Figure
+                                src="/proj2/dinosaur_nuggets.jpg"
+                                caption="Dino Buddy dinosaur nuggets"
+                                style_width="20vw"
+                            />
+                            <Figure
+                                src="/proj2/jurassic_park.jpg"
+                                caption="The moment in Jurassic Park when Ellie and Alan see live dinosaurs for the first time"
+                                style_width="20vw"
+                            />
+                            <Figure
+                                src="/proj2/multires_custom_mask.jpg"
+                                caption="Selecting points to outline a dinosaur nugget and create a custom mask"
+                                style_width="20vw"
+                            />
+                            <Figure
+                                src="/proj2/multires_blend_dinosaur_nuggets_jurassic_park.jpg"
+                                caption={"\"Life, uh, finds a way\""}
+                                style_width="20vw"
+                            />
                         </div>
                         {/* Right column: Multi-resolution blend stacks */}
-                        TODO
+                        <Figure
+                            src="/proj2/multires_levels_dinosaur_nuggets_jurassic_park.jpg"
+                            caption="Visualizing each level of the Laplacian and Gaussian stacks for dinosaur nuggets and Jurassic Park"
+                            style_width="40vw"
+                        />
                     </div>
                 </section>
             </article>

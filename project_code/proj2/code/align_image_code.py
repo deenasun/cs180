@@ -13,9 +13,11 @@ import skimage.transform as sktr
 def get_points(im1: np.ndarray, im2: np.ndarray) -> tuple:
     print("Please select 2 points in each image for alignment.")
     plt.imshow(im1)
+    plt.title("Please select 2 points in the image")
     p1, p2 = plt.ginput(2)
     plt.close()
     plt.imshow(im2)
+    plt.title("Please select 2 points in the image")
     p3, p4 = plt.ginput(2)
     plt.close()
     return (p1, p2, p3, p4)
@@ -166,7 +168,9 @@ if __name__ == "__main__":
     im1_aligned, im2_aligned = align_images(im1, im2)
 
     plt.imshow(im1_aligned)
+    plt.title("img1 after alignment")
     plt.show()
 
     plt.imshow(im2_aligned)
+    plt.title("img2 after alignment")
     plt.show()

@@ -146,11 +146,13 @@ def finite_difference_operator(input_file_path=f"{DATA_DIR}/cameraman.png"):
     plt.imshow(img_out_Dx, cmap="gray")
     plt.title("Convolution with Dx")
     plt.savefig(f"{OUTPUT_DIR}/{input_stem}_conv_dx.jpg", bbox_inches="tight")
+    print(f"Saved figure to {OUTPUT_DIR}/{input_stem}_conv_dx.jpg")
 
     img_out_Dy = scipy.signal.convolve2d(img_square, Dy, mode="same", fillvalue=0)
     plt.imshow(img_out_Dy, cmap="gray")
     plt.title("Convolution with Dy")
     plt.savefig(f"{OUTPUT_DIR}/{input_stem}_conv_dy.jpg", bbox_inches="tight")
+    print(f"Saved figure to {OUTPUT_DIR}/{input_stem}_conv_dy.jpg")
 
     # Edge strength = ||∇f|| = sqrt((df/dx)^2 + (df/dy)^2)
     # Values range from [0, sqrt(2)]
@@ -162,7 +164,7 @@ def finite_difference_operator(input_file_path=f"{DATA_DIR}/cameraman.png"):
     #     above_threshold_mask = img_es >= threshold  # bool mask
     #     img_be = img_es * above_threshold_mask
 
-    #     fig, ax = plt.subplots(1, 2, figsize=(12, 12))
+    #     fig, ax = plt.subplots(1, 2, figsize=(8, 8))
     #     ax[0].imshow(img_square, cmap="gray", vmin=0, vmax=1)
     #     ax[0].set_title("Original (grayscale)")
 
@@ -183,8 +185,9 @@ def finite_difference_operator(input_file_path=f"{DATA_DIR}/cameraman.png"):
     plt.savefig(
         f"{OUTPUT_DIR}/{input_stem}_binarized_edge_magnitude.jpg", bbox_inches="tight"
     )
+    print(f"Saved figure to {OUTPUT_DIR}/{input_stem}_binarized_edge_magnitude.jpg")
 
-    fig, ax = plt.subplots(2, 2, figsize=(12, 12))
+    fig, ax = plt.subplots(2, 2, figsize=(8, 8))
     ax[0, 0].imshow(img_square, cmap="gray", vmin=0, vmax=1)
     ax[0, 0].set_title("Original (grayscale)")
 
@@ -201,14 +204,15 @@ def finite_difference_operator(input_file_path=f"{DATA_DIR}/cameraman.png"):
         f"{OUTPUT_DIR}/{input_stem}_finite_difference_operators.jpg",
         bbox_inches="tight",
     )
+    print(f"Saved figure to {OUTPUT_DIR}/{input_stem}_finite_difference_operators.jpg")
     plt.show()
 
 
 def derivative_of_gaussian_filter(input_file_path=f"{DATA_DIR}/cameraman.png"):
     """Part 1.3: Derivative of Gaussian (DoG) Filter"""
     input_stem = Path(input_file_path).stem
-    guassian_size = 9
-    gaussian_filter = make_2d_gaussian_kernel(guassian_size)
+    gaussian_size = 9
+    gaussian_filter = make_2d_gaussian_kernel(gaussian_size)
     Dx, Dy, _ = make_difference_and_box_filters()
 
     img = read_img_as_float(input_file_path)  # in rgba format
@@ -225,6 +229,7 @@ def derivative_of_gaussian_filter(input_file_path=f"{DATA_DIR}/cameraman.png"):
     plt.savefig(
         f"{OUTPUT_DIR}/{input_stem}_2step_dog_gaussian.jpg", bbox_inches="tight"
     )
+    print(f"Saved figure to {OUTPUT_DIR}/{input_stem}_2step_dog_gaussian.jpg")
 
     img_2step_out_Dx = scipy.signal.convolve2d(
         img_2step_blurred, Dx, mode="same", fillvalue=0
@@ -232,6 +237,7 @@ def derivative_of_gaussian_filter(input_file_path=f"{DATA_DIR}/cameraman.png"):
     plt.imshow(img_2step_out_Dx, cmap="gray")
     plt.title("Convolve blurred image with Dx")
     plt.savefig(f"{OUTPUT_DIR}/{input_stem}_2step_dog_dx.jpg", bbox_inches="tight")
+    print(f"Saved figure to {OUTPUT_DIR}/{input_stem}_2step_dog_dx.jpg")
 
     img_2step_out_Dy = scipy.signal.convolve2d(
         img_2step_blurred, Dy, mode="same", fillvalue=0
@@ -239,6 +245,7 @@ def derivative_of_gaussian_filter(input_file_path=f"{DATA_DIR}/cameraman.png"):
     plt.imshow(img_2step_out_Dy, cmap="gray")
     plt.title("Convolve blurred image with Dy")
     plt.savefig(f"{OUTPUT_DIR}/{input_stem}_2step_dog_dy.jpg", bbox_inches="tight")
+    print(f"Saved figure to {OUTPUT_DIR}/{input_stem}_2step_dog_dy.jpg")
 
     img_2step_es = np.sqrt((img_2step_out_Dx**2) + (img_2step_out_Dy) ** 2)
 
@@ -248,7 +255,7 @@ def derivative_of_gaussian_filter(input_file_path=f"{DATA_DIR}/cameraman.png"):
     #     above_threshold_mask = img_es >= threshold  # bool mask
     #     img_be = img_es * above_threshold_mask
 
-    #     fig, ax = plt.subplots(1, 2, figsize=(12, 12))
+    #     fig, ax = plt.subplots(1, 2, figsize=(8, 8))
     #     ax[0].imshow(img_grayscale, cmap="gray", vmin=0, vmax=1)
     #     ax[0].set_title("Original (grayscale)")
 
@@ -267,6 +274,7 @@ def derivative_of_gaussian_filter(input_file_path=f"{DATA_DIR}/cameraman.png"):
     plt.title(f"Blur then Dx, Dy (binarized edges, threshold: {threshold:.3f})")
 
     plt.savefig(f"{OUTPUT_DIR}/{input_stem}_2step_dog.jpg", bbox_inches="tight")
+    print(f"Saved figure to {OUTPUT_DIR}/{input_stem}_2step_dog.jpg")
     plt.show()
 
     # 1-step DoG: convolve Gaussian finite difference filters, then convolve the result ONCE with the image
@@ -278,23 +286,20 @@ def derivative_of_gaussian_filter(input_file_path=f"{DATA_DIR}/cameraman.png"):
     )
 
     # Visualize the DoG filters
-    fig, ax = plt.subplots(1, 2, figsize=(12, 12))
+    fig, ax = plt.subplots(1, 2)
     # ax[0].imshow(dog_filter_Dx, cmap="gray", vmin=0, vmax=1)
     ax[0].imshow(dog_filter_Dx)
-    ax[0].set_title(
-        f"Derivative of a {guassian_size}x{guassian_size} Gaussian (Gaussian * Dx)"
-    )
+    ax[0].set_title(f"{gaussian_size}x{gaussian_size} Gaussian convolved w/ Dx")
 
     # ax[1].imshow(dog_filter_Dy, cmap="gray", vmin=0, vmax=1)
     ax[1].imshow(dog_filter_Dy)
 
-    ax[1].set_title(
-        f"Derivative of a {guassian_size}x{guassian_size} Gaussian (Gaussian * Dy)"
-    )
+    ax[1].set_title(f"{gaussian_size}x{gaussian_size} Gaussian convolved w/ Dy")
 
     plt.savefig(
         f"{OUTPUT_DIR}/{input_stem}_gaussian_derivatives.jpg", bbox_inches="tight"
     )
+    print(f"Saved figure to {OUTPUT_DIR}/{input_stem}_gaussian_derivatives.jpg")
     plt.show()
 
     img_1step_out_Dx = scipy.signal.convolve2d(
@@ -303,6 +308,8 @@ def derivative_of_gaussian_filter(input_file_path=f"{DATA_DIR}/cameraman.png"):
     plt.imshow(img_1step_out_Dx, cmap="gray", vmin=0, vmax=1)
     plt.title("DoG in a single conv (Dx)")
     plt.savefig(f"{OUTPUT_DIR}/{input_stem}_1step_dog_dx.jpg", bbox_inches="tight")
+    print(f"Saved figure to {OUTPUT_DIR}/{input_stem}_1step_dog_dx.jpg")
+    plt.close()
 
     img_1step_out_Dy = scipy.signal.convolve2d(
         img_square, dog_filter_Dy, mode="same", fillvalue=0
@@ -310,6 +317,8 @@ def derivative_of_gaussian_filter(input_file_path=f"{DATA_DIR}/cameraman.png"):
     plt.imshow(img_1step_out_Dy, cmap="gray", vmin=0, vmax=1)
     plt.title("DoG in a single conv (Dy)")
     plt.savefig(f"{OUTPUT_DIR}/{input_stem}_1step_dog_dy.jpg", bbox_inches="tight")
+    print(f"Saved figure to {OUTPUT_DIR}/{input_stem}_1step_dog_dy.jpg")
+    plt.close()
 
     img_1step_es = np.sqrt((img_1step_out_Dx**2) + (img_1step_out_Dy) ** 2)
     threshold_mask_1step = img_1step_es >= threshold
@@ -318,8 +327,10 @@ def derivative_of_gaussian_filter(input_file_path=f"{DATA_DIR}/cameraman.png"):
     plt.imshow(img_1step_be, cmap="gray", vmin=0, vmax=1)
     plt.title(f"DoG in a single conv (binarized edges, threshold: {threshold:.3f})")
     plt.savefig(f"{OUTPUT_DIR}/{input_stem}_1step_dog.jpg", bbox_inches="tight")
+    print(f"Saved figure to {OUTPUT_DIR}/{input_stem}_1step_dog.jpg")
+    plt.close()
 
-    fig, ax = plt.subplots(1, 3, figsize=(8, 12))
+    fig, ax = plt.subplots(1, 3)
     ax[0].imshow(img_square, cmap="gray", vmin=0, vmax=1)
     ax[0].set_title("Original (grayscale)")
 
@@ -331,10 +342,13 @@ def derivative_of_gaussian_filter(input_file_path=f"{DATA_DIR}/cameraman.png"):
 
     plt.tight_layout()
     plt.savefig(f"{OUTPUT_DIR}/{input_stem}_dog_comparison.jpg", bbox_inches="tight")
+    print(f"Saved figure to {OUTPUT_DIR}/{input_stem}_dog_comparison.jpg")
     plt.show()
 
 
-def sharpen(input_img=None, input_file_path=f"{DATA_DIR}/taj.jpg", alpha=1.0):
+def sharpen(
+    input_img=None, input_file_path=f"{DATA_DIR}/taj.jpg", alpha=1.0, display=False
+):
     """
     Part 2.1: Image "Sharpening"
     """
@@ -367,17 +381,19 @@ def sharpen(input_img=None, input_file_path=f"{DATA_DIR}/taj.jpg", alpha=1.0):
     # Save sharpened image in high resolution
     save_hi_res_img(f"{OUTPUT_DIR}/{stem}_sharpen_{alpha}.jpg", sharp_img)
 
-    fig, ax = plt.subplots(1, 2, figsize=(8, 4), layout="constrained")
-    ax[0].imshow(img, vmin=0, vmax=1)
-    ax[0].set_title("Original")
+    if display:
+        fig, ax = plt.subplots(1, 2, figsize=(8, 4), layout="constrained")
+        ax[0].imshow(img, vmin=0, vmax=1)
+        ax[0].set_title("Original")
 
-    ax[1].imshow(sharp_img, vmin=0, vmax=1)
-    ax[1].set_title(f"Sharpened with alpha {alpha}")
+        ax[1].imshow(sharp_img, vmin=0, vmax=1)
+        ax[1].set_title(f"Sharpened with alpha {alpha}")
 
-    fig.suptitle('Part 2.1: Image "Sharpening"')
+        fig.suptitle('Part 2.1: Image "Sharpening"')
 
-    plt.savefig(f"{OUTPUT_DIR}/{stem}_compare_sharpened.jpg", bbox_inches="tight")
-    plt.show()
+        plt.savefig(f"{OUTPUT_DIR}/{stem}_compare_sharpened.jpg", bbox_inches="tight")
+        print(f"Saved figure to {OUTPUT_DIR}/{stem}_compare_sharpened.jpg")
+        plt.show()
 
     return sharp_img
 
@@ -393,7 +409,7 @@ def sharpen_alpha_experiments(input_file_path=f"{DATA_DIR}/taj.jpg"):
         res = sharpen(img, alpha=alpha)
         sharpened_images[alpha] = res
 
-    fig, ax = plt.subplots(4, 2, figsize=(8, 20), layout="constrained")
+    fig, ax = plt.subplots(4, 2, figsize=(6, 10), layout="constrained")
     ax[0, 0].imshow(img, vmin=0, vmax=1)
     ax[0, 0].set_title("Original")
 
@@ -418,9 +434,10 @@ def sharpen_alpha_experiments(input_file_path=f"{DATA_DIR}/taj.jpg"):
     ax[3, 1].imshow(sharpened_images[5.0], vmin=0, vmax=1)
     ax[3, 1].set_title(f"Sharpened with alpha {5.0}")
 
-    fig.suptitle('Part 2.1: Image "Sharpening"')
-
+    fig.suptitle("Image Sharpening with Different Alphas")
+    plt.tight_layout()
     plt.savefig(f"{OUTPUT_DIR}/{input_stem}_sharpen_alphas.jpg", bbox_inches="tight")
+    print(f"Saved figure to {OUTPUT_DIR}/{input_stem}_sharpen_alphas.jpg")
     plt.show()
 
 
@@ -429,7 +446,7 @@ def sharpen_then_blur_then_sharpen(input_file_path=f"{DATA_DIR}/taj.jpg", alpha=
     Part 2.1: Image "Sharpening" continued
     """
     original_img = read_img_as_float(input_file_path)
-    sharp_img1 = sharpen(input_file_path=input_file_path)
+    sharp_img1 = sharpen(input_file_path=input_file_path, alpha=alpha, display=False)
     input_stem = Path(input_file_path).stem
 
     gaussian = make_2d_gaussian_kernel(size=9)
@@ -449,7 +466,7 @@ def sharpen_then_blur_then_sharpen(input_file_path=f"{DATA_DIR}/taj.jpg", alpha=
 
     blur_img = np.dstack((blur_img_r, blur_img_g, blur_img_b))
 
-    sharp_img2 = sharpen(input_img=blur_img, alpha=alpha)
+    sharp_img2 = sharpen(input_img=blur_img, alpha=alpha, display=False)
 
     fig, ax = plt.subplots(2, 2, figsize=(8, 8), layout="constrained")
     ax[0, 0].imshow(original_img, vmin=0, vmax=1)
@@ -464,10 +481,12 @@ def sharpen_then_blur_then_sharpen(input_file_path=f"{DATA_DIR}/taj.jpg", alpha=
     ax[1, 1].imshow(sharp_img2, vmin=0, vmax=1)
     ax[1, 1].set_title("Sharpened then blurred then re-sharpened")
 
-    fig.suptitle("Part 2.1: Sharpen + Blur + Sharpen")
+    fig.suptitle("Sharpen + Blur + Sharpen")
+    plt.tight_layout()
     plt.savefig(
         f"{OUTPUT_DIR}/{input_stem}_sharpen_blur_sharpen.jpg", bbox_inches="tight"
     )
+    print(f"Saved figure to {OUTPUT_DIR}/{input_stem}_sharpen_blur_sharpen.jpg")
     plt.show()
 
 
@@ -544,7 +563,7 @@ def hybrid_image(img1, img2, hf_sigma, lf_sigma, show_ft=False):
     # np.fft.fftshift moves the zero-frequency to the center;
     #   low frequencies are near the center and high frequences are on the periphery
     if show_ft:
-        fig, ax = plt.subplots(nrows=5, ncols=2, figsize=(10, 20), layout="constrained")
+        fig, ax = plt.subplots(nrows=5, ncols=2, figsize=(6, 12), layout="constrained")
 
         img1_gray = sk.color.rgb2gray(img1)
         img1_ft = np.log(np.abs(np.fft.fftshift(np.fft.fft2(img1_gray))))
@@ -594,9 +613,12 @@ def hybrid_image(img1, img2, hf_sigma, lf_sigma, show_ft=False):
         ax[4, 1].imshow(hybrid_ft, cmap="gray", vmin=ft_min, vmax=ft_max)
         ax[4, 1].set_title("Hybrid image (FT log magnitude)")
 
+        plt.suptitle("Frequency Analysis of Creating Hybrid Images")
+        plt.tight_layout()
         plt.savefig(
             f"{OUTPUT_DIR}/hybrid_image_frequency_analysis.jpg", bbox_inches="tight"
         )
+        print(f"Saved figure to {OUTPUT_DIR}/hybrid_image_frequency_analysis.jpg")
         plt.show()
 
     return hybrid
@@ -611,21 +633,6 @@ def load_align_hybrid(
 
     This function implements the full pipeline for part 2.2: loading 2 images, aligning them, then hybridizing them.
     """
-    # high sf
-    # img1 = plt.imread("{DATA_DIR}/DerekPicture.jpg") / 255.0
-    # # low sf
-    # img2 = plt.imread("{DATA_DIR}/nutmeg.jpg") / 255.0
-
-    # # high sf
-    # img1 = plt.imread("{DATA_DIR}/cheetah.jpg") / 255.0
-    # # low sf
-    # img2 = plt.imread("{DATA_DIR}/honey_badger.jpg") / 255.0
-
-    # # high sf
-    # img1 = read_img_as_float("{DATA_DIR}/burger.jpg")
-    # # low sf
-    # img2 = read_img_as_float("{DATA_DIR}/saturn.jpg")
-
     # First load images
     img1 = read_img_as_float(img1_file_path)
     img2 = read_img_as_float(img2_file_path)
@@ -637,8 +644,11 @@ def load_align_hybrid(
     img1_aligned, img2_aligned = align_images(img1, img2)
 
     plt.imshow(img1_aligned)
+    plt.title("img1 after alignment")
     plt.show()
+
     plt.imshow(img2_aligned)
+    plt.title("img2 after alignment")
     plt.show()
 
     # Trying a matrix of different sigma values for the high-pass and low-pass filters
@@ -662,6 +672,7 @@ def load_align_hybrid(
     lf_sigma = 3
     hybrid = hybrid_image(img1_aligned, img2_aligned, hf_sigma, lf_sigma, show_ft=True)
     plt.imshow(hybrid)
+    plt.suptitle(f"Part 2.2: Hybrid Image of {img1_path_stem} and {img2_path_stem}")
     plt.show()
 
     save_hi_res_img(
@@ -708,7 +719,7 @@ def gaussian_stack(
 
     if display:
         n_rows = (len(stack) + 1) // 2
-        fig, ax = plt.subplots(nrows=n_rows, ncols=2, figsize=(6, 10))
+        fig, ax = plt.subplots(nrows=n_rows, ncols=2, figsize=(6, 8))
 
         ax_flat = ax.flatten()
 
@@ -721,6 +732,7 @@ def gaussian_stack(
             if not ax.has_data():
                 fig.delaxes(ax)
 
+        plt.suptitle("Part 2.3: Gaussian Stack")
         plt.tight_layout()
         plt.show()
 
@@ -756,7 +768,7 @@ def laplacian_stack(
 
     if display:
         n_rows = (len(stack) + 1) // 2
-        fig, ax = plt.subplots(nrows=n_rows, ncols=2, figsize=(6, 10))
+        fig, ax = plt.subplots(nrows=n_rows, ncols=2, figsize=(6, 8))
 
         ax_flat = ax.flatten()
 
@@ -777,6 +789,7 @@ def laplacian_stack(
             if not ax.has_data():
                 fig.delaxes(ax)
 
+        plt.suptitle("Part 2.3: Laplacian Stack")
         plt.tight_layout()
         plt.show()
 
@@ -894,11 +907,13 @@ def multiresolution_blend(
     ax[-1, 3].imshow(blend_out)
     ax[-1, 3].set_title("Final blend")
 
+    plt.suptitle("Part 2.4: Multi-resolution Blend Levels")
     plt.tight_layout()
     plt.savefig(
         f"{OUTPUT_DIR}/multires_levels_{img1_path_stem}_{img2_path_stem}.jpg",
         bbox_inches="tight",
     )
+    print(f"Saved figure to {OUTPUT_DIR}/multires_levels_{img1_path_stem}_{img2_path_stem}.jpg")
     plt.show()
 
     # Plot side-by-side of original images and blended result
@@ -918,6 +933,7 @@ def multiresolution_blend(
         f"{OUTPUT_DIR}/multires_sidebyside_{img1_path_stem}_{img2_path_stem}.jpg",
         bbox_inches="tight",
     )
+    print(f"Saved figure to {OUTPUT_DIR}/multires_sidebyside_{img1_path_stem}_{img2_path_stem}.jpg")
     plt.show()
 
     return blend_out
@@ -975,17 +991,15 @@ def make_multiresolution_mask(image_data):
 
 
 def main():
+    # Part 1.1: Convolutions from Scratch!
     # Dx, Dy, box_filter = make_difference_and_box_filters()
-
-    # img = read_img_as_float("{DATA_DIR}/deenasun_square.jpg")
-
+    # img = read_img_as_float(f"{DATA_DIR}/deenasun_square.jpg")
     # img_grayscale = sk.color.rgb2gray(img)  # dtype: float64, shape: (w, h)
-
     # out_Dx = convolve_2d(img_grayscale, Dx)
     # out_Dy = convolve_2d(img_grayscale, Dy)
     # out_box = convolve_2d(img_grayscale, box_filter)
 
-    # fig, ax = plt.subplots(2, 2, figsize=(12, 12))
+    # fig, ax = plt.subplots(2, 2, figsize=(8, 8))
     # ax[0, 0].imshow(img_grayscale, cmap="gray", vmin=0, vmax=1)
     # ax[0, 0].set_title("Original (grayscale)")
 
@@ -998,34 +1012,56 @@ def main():
     # ax[1, 1].imshow(out_box, cmap="gray", vmin=0, vmax=1)
     # ax[1, 1].set_title("After convolving with a 9x9 box filter")
 
-    # plt.savefig("{OUTPUT_DIR}/convolution_comparisons.jpg", bbox_inches="tight")
+    # plt.savefig(f"{OUTPUT_DIR}/convolution_comparisons.jpg", bbox_inches="tight")
+    # print(f"Saved figure to {OUTPUT_DIR}/convolution_comparisons.jpg")
     # plt.show()
 
-    # load_align_hybrid(
-    #     img1_file_path="data/DerekPicture.jpg",
-    #     img2_file_path="data/nutmeg.jpg",
-    # )
-    # load_align_hybrid(
-    #     img1_file_path="data/burger.jpg",
-    #     img2_file_path="data/saturn.jpg",
-    # )
+    # # Part 1.2: Finite Difference Operator
+    # finite_difference_operator(input_file_path=f"{DATA_DIR}/cameraman.png")
 
+    # # Part 1.3: Derivative of Gaussian (DoG) Filter
+    # derivative_of_gaussian_filter(input_file_path=f"{DATA_DIR}/cameraman.png")
+
+    # # Part 2.1: Image "Sharpening"
+    # sharpen(input_file_path=f"{DATA_DIR}/taj.jpg", alpha=1.0, display=True)
+    # sharpen_alpha_experiments(input_file_path=f"{DATA_DIR}/taj.jpg")
+    sharpen_then_blur_then_sharpen(input_file_path=f"{DATA_DIR}/taj.jpg", alpha=1.0)
+    sharpen_then_blur_then_sharpen(input_file_path=f"{DATA_DIR}/clownfish.jpg", alpha=1.0)
+    sharpen_then_blur_then_sharpen(input_file_path=f"{DATA_DIR}/chinatown.jpg", alpha=1.0)
+    sharpen_then_blur_then_sharpen(input_file_path=f"{DATA_DIR}/tetons.jpg", alpha=1.0)
+
+    # Part 2.2: Hybrid Images
+    load_align_hybrid(
+        img1_file_path="data/DerekPicture.jpg",
+        img2_file_path="data/nutmeg.jpg",
+    )
+    load_align_hybrid(
+        img1_file_path="data/burger.jpg",
+        img2_file_path="data/saturn.jpg",
+    )
+
+    # Part 2.3: Gaussian and Laplacian Stacks
+    gaussian_stack(input_file_path=f"{DATA_DIR}/apple.jpg", display=True)
+    laplacian_stack(input_file_path=f"{DATA_DIR}/apple.jpg", display=True)
+
+    # Part 2.4: Multi-resolution Blending
+    # Oraple
+    multiresolution_blend(
+        f"{DATA_DIR}/apple.jpg", f"{DATA_DIR}/orange.jpg", mask_type="vertical"
+    )
+
+    # Oski and the Stanford Tree
+    multiresolution_blend(
+        f"{DATA_DIR}/oski.jpg", f"{DATA_DIR}/stanford_tree.jpg", mask_type="horizontal"
+    )
+
+    # Dinosaur nuggest in Jurassic Park
     multiresolution_blend(
         f"{DATA_DIR}/dinosaur_nuggets.jpg",
         f"{DATA_DIR}/jurassic_park.jpg",
         max_levels=4,
         mask_type="custom",
     )
-    # multiresolution_blend(f"{DATA_DIR}/oski.jpg", f"{DATA_DIR}/stanford_tree.jpg")
-
-    # apple_image_data = read_img_as_float(f"{DATA_DIR}/apple.jpg")
-
-    # mask = make_multiresolution_mask(apple_image_data)
-
-    # plt.imshow(mask)
-    # plt.show()
-
-    pass
 
 
 if __name__ == "__main__":

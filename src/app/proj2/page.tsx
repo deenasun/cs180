@@ -164,7 +164,7 @@ export default function Page() {
             <article className="mr-[17vw] space-y-12">
                 <h1 className="font-bold">Project 2: Fun with Filters and Frequencies!</h1>
                 <div className="flex flex-row w-full justify-center space-x-20">
-                    <Figure src={"/proj2/multiresolution_blend_apple_orange.jpg"}
+                    <Figure src={"/proj2/part2_4/multiresolution_blend_apple_orange.jpg"}
                         caption={"Multi-resolution blending with Laplacian and Gaussian stacks: Oraple"}
                         loading="eager"
                         style_width="50vw"
@@ -231,7 +231,7 @@ export default function Page() {
                     </ul>
                     <div className="flex flex-row w-full justify-center space-x-20">
                         <Figure
-                            src={"/proj2/convolution_comparisons.jpg"}
+                            src={"/proj2/part1_1/convolution_comparisons.jpg"}
                             caption={"Convolving a picture of myself with Dx, Dy, and a 9x9 box filter"}
                             loading="eager"
                             style_width="50vw"
@@ -246,12 +246,12 @@ export default function Page() {
                     </p>
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                         <Figure
-                            src={"/proj2/cameraman_conv_dx.jpg"}
+                            src={"/proj2/part1_2/cameraman_conv_dx.jpg"}
                             caption={"Convolving camerman.jpg with Dx"}
                             style_width="50vw"
                         />
                         <Figure
-                            src={"/proj2/cameraman_conv_dy.jpg"}
+                            src={"/proj2/part1_2/cameraman_conv_dy.jpg"}
                             caption={"Convolving camerman.jpg with Dy"}
                             style_width="50vw"
                         />
@@ -280,12 +280,12 @@ export default function Page() {
                     />
                     <div className="grid grid-cols-1 gap-4 items-center md:grid-cols-2 ">
                         <Figure
-                            src={"/proj2/cameraman_binarized_edge_magnitude.jpg"}
+                            src={"/proj2/part1_2/cameraman_binarized_edge_magnitude.jpg"}
                             caption={"Edge strengths (binarized) of cameraman.jpg"}
                             style_width="50vw"
                         />
                         <Figure
-                            src={"/proj2/cameraman_finite_difference_operators.jpg"}
+                            src={"/proj2/part1_2/cameraman_finite_difference_operators.jpg"}
                             caption={"Comparing the results of convolving cameraman.jpg with finite difference operators"}
                             style_width="50vw"
                         />
@@ -298,22 +298,22 @@ export default function Page() {
                     </p>
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
                         <Figure
-                            src={"/proj2/cameraman_2step_dog_gaussian.jpg"}
+                            src={"/proj2/part1_3/cameraman_2step_dog_gaussian.jpg"}
                             caption={"Step 1: blur the image by convolving with a Gaussian filter"}
                             style_width="15vw"
                         />
                         <Figure
-                            src={"/proj2/cameraman_2step_dog_dx.jpg"}
+                            src={"/proj2/part1_3/cameraman_2step_dog_dx.jpg"}
                             caption={"Step 2A: convolve the blurred image with Dx"}
                             style_width="15vw"
                         />
                         <Figure
-                            src={"/proj2/cameraman_2step_dog_dy.jpg"}
+                            src={"/proj2/part1_3/cameraman_2step_dog_dy.jpg"}
                             caption={"Step 2B: convolve the blurred image with Dy"}
                             style_width="15vw"
                         />
                         <Figure
-                            src={"/proj2/cameraman_2step_dog.jpg"}
+                            src={"/proj2/part1_3/cameraman_2step_dog.jpg"}
                             caption={"Step 3: Compute the magnitude of the gradients and binarize edges"}
                             style_width="15vw"
                         />
@@ -331,7 +331,7 @@ export default function Page() {
                     </p>
                     <div className="flex flex-row w-full justify-center space-x-20">
                         <Figure
-                            src={"/proj2/cameraman_gaussian_derivatives.jpg"}
+                            src={"/proj2/part1_3/cameraman_gaussian_derivatives.jpg"}
                             caption={"Taking the derivative of a Gaussian by convolving the Gaussian kernel with Dx and Dy"}
                             style_width="50vw"
                         />
@@ -340,24 +340,24 @@ export default function Page() {
                     </p>
                     <div className="grid grid-cols-1 items-center gap-4 md:grid-cols-3">
                         <Figure
-                            src={"/proj2/cameraman_1step_dog_dx.jpg"}
+                            src={"/proj2/part1_3/cameraman_1step_dog_dx.jpg"}
                             caption={"Single-conv DoG filter to detect vertical edges"}
                             style_width="25vw"
                         />
                         <Figure
-                            src={"/proj2/cameraman_1step_dog_dy.jpg"}
+                            src={"/proj2/part1_3/cameraman_1step_dog_dy.jpg"}
                             caption={"Single-conv DoG filter to detect horizontal edges"}
                             style_width="25vw"
                         />
                         <Figure
-                            src={"/proj2/cameraman_1step_dog.jpg"}
+                            src={"/proj2/part1_3/cameraman_1step_dog.jpg"}
                             caption={"Binarized edges from the single-conv DoG filters"}
                             style_width="25vw"
                         />
                     </div>
                     <div className="flex flex-row w-full justify-center space-x-20">
                         <Figure
-                            src={"/proj2/cameraman_dog_comparison.jpg"}
+                            src={"/proj2/part1_3/cameraman_dog_comparison.jpg"}
                             caption={"Comparing two-conv versus single-conv DoG filter results"}
                             style_width="50vw"
                         />
@@ -386,42 +386,42 @@ export default function Page() {
                     />
                     <div className="grid grid-cols-1 gap-x-4 gap-y-8 md:grid-cols-2 justify-items-center">
                         <Figure
-                            src={"/proj2/taj.jpg"}
+                            src={"/proj2/part2_1/taj.jpg"}
                             caption={"taj.jpg (original)"}
                             style_width="25vw"
                         />
                         <Figure
-                            src={"/proj2/taj_sharpen_0.01.jpg"}
+                            src={"/proj2/part2_1/taj_sharpen_0.01.jpg"}
                             caption={`taj.jpg sharpened with a single-conv sharpening mask (${ALPHA_UNICODE} = 0.01)`}
                             style_width="25vw"
                         />
                         <Figure
-                            src={"/proj2/taj_sharpen_0.1.jpg"}
+                            src={"/proj2/part2_1/taj_sharpen_0.1.jpg"}
                             caption={`taj.jpg sharpened with a single-conv sharpening mask (${ALPHA_UNICODE} = 0.1)`}
                             style_width="25vw"
                         />
                         <Figure
-                            src={"/proj2/taj_sharpen_0.25.jpg"}
+                            src={"/proj2/part2_1/taj_sharpen_0.25.jpg"}
                             caption={`taj.jpg sharpened with a single-conv sharpening mask (${ALPHA_UNICODE} = 0.25)`}
                             style_width="25vw"
                         />
                         <Figure
-                            src={"/proj2/taj_sharpen_0.5.jpg"}
+                            src={"/proj2/part2_1/taj_sharpen_0.5.jpg"}
                             caption={`taj.jpg sharpened with a single-conv sharpening mask (${ALPHA_UNICODE} = 0.5)`}
                             style_width="25vw"
                         />
                         <Figure
-                            src={"/proj2/taj_sharpen_1.0.jpg"}
+                            src={"/proj2/part2_1/taj_sharpen_1.0.jpg"}
                             caption={`taj.jpg sharpened with a single-conv sharpening mask (${ALPHA_UNICODE} = 1.0)`}
                             style_width="25vw"
                         />
                         <Figure
-                            src={"/proj2/taj_sharpen_2.0.jpg"}
+                            src={"/proj2/part2_1/taj_sharpen_2.0.jpg"}
                             caption={`taj.jpg sharpened with a single-conv sharpening mask (${ALPHA_UNICODE} = 2.0)`}
                             style_width="25vw"
                         />
                         <Figure
-                            src={"/proj2/taj_sharpen_5.0.jpg"}
+                            src={"/proj2/part2_1/taj_sharpen_5.0.jpg"}
                             caption={`taj.jpg sharpened with a single-conv sharpening mask (${ALPHA_UNICODE} = 5.0)`}
                             style_width="25vw"
                         />
@@ -429,47 +429,47 @@ export default function Page() {
                     <p>Here are some additional images of my own that I tried sharpening!</p>
                     <div className="grid grid-cols-1 gap-x-4 gap-y-8 md:grid-cols-3 justify-items-center">
                         <Figure
-                            src={"/proj2/clownfish.jpg"}
+                            src={"/proj2/part2_1/clownfish.jpg"}
                             caption={`clownfish.jpg (original)`}
                             style_width="25vw"
                         />
                         <Figure
-                            src={"/proj2/clownfish_sharpen_1.0.jpg"}
+                            src={"/proj2/part2_1/clownfish_sharpen_1.0.jpg"}
                             caption={`clownfish.jpg sharpened with a single-conv sharpening mask (${ALPHA_UNICODE} = 1.0)`}
                             style_width="25vw"
                         />
                         <Figure
-                            src={"/proj2/clownfish_sharpen_2.0.jpg"}
+                            src={"/proj2/part2_1/clownfish_sharpen_2.0.jpg"}
                             caption={`clownfish.jpg sharpened with a single-conv sharpening mask (${ALPHA_UNICODE} = 2.0)`}
                             style_width="25vw"
                         />
                         <Figure
-                            src={"/proj2/chinatown.jpg"}
+                            src={"/proj2/part2_1/chinatown.jpg"}
                             caption={`chinatown.jpg (original)`}
                             style_width="25vw"
                         />
                         <Figure
-                            src={"/proj2/chinatown_sharpen_1.0.jpg"}
+                            src={"/proj2/part2_1/chinatown_sharpen_1.0.jpg"}
                             caption={`chinatown.jpg sharpened with a single-conv sharpening mask (${ALPHA_UNICODE} = 1.0)`}
                             style_width="25vw"
                         />
                         <Figure
-                            src={"/proj2/chinatown_sharpen_2.0.jpg"}
+                            src={"/proj2/part2_1/chinatown_sharpen_2.0.jpg"}
                             caption={`chinatown.jpg sharpened with a single-conv sharpening mask (${ALPHA_UNICODE} = 2.0)`}
                             style_width="25vw"
                         />
                         <Figure
-                            src={"/proj2/tetons.jpg"}
+                            src={"/proj2/part2_1/tetons.jpg"}
                             caption={`tetons.jpg (original)`}
                             style_width="25vw"
                         />
                         <Figure
-                            src={"/proj2/tetons_sharpen_1.0.jpg"}
+                            src={"/proj2/part2_1/tetons_sharpen_1.0.jpg"}
                             caption={`tetons.jpg sharpened with a single-conv sharpening mask (${ALPHA_UNICODE} = 1.0)`}
                             style_width="25vw"
                         />
                         <Figure
-                            src={"/proj2/tetons_sharpen_2.0.jpg"}
+                            src={"/proj2/part2_1/tetons_sharpen_2.0.jpg"}
                             caption={`tetons.jpg sharpened with a single-conv sharpening mask (${ALPHA_UNICODE} = 2.0)`}
                             style_width="25vw"
                         />
@@ -485,7 +485,7 @@ export default function Page() {
                     </p>
                     <div className="flex flex-row w-full justify-center space-x-20">
                         <Figure
-                            src={"/proj2/taj_sharpen_blur_sharpen.jpg"}
+                            src={"/proj2/part2_1/taj_sharpen_blur_sharpen.jpg"}
                             caption={"Sharpening an image, blurring it, and then re-sharpening it again does not recover the original image or the sharpened image"}
                             style_width="50vw"
                         />
@@ -519,24 +519,24 @@ export default function Page() {
                         {/* Left column: originals and hybrid stacked vertically */}
                         <div className="grid grid-cols-1 justify-items-center gap-y-8">
                             <Figure
-                                src="/proj2/DerekPicture.jpg"
+                                src="/proj2/part2_2/DerekPicture.jpg"
                                 caption="Derek (kept the high frequencies)"
                                 style_width="15vw"
                             />
                             <Figure
-                                src="/proj2/nutmeg.jpg"
+                                src="/proj2/part2_2/nutmeg.jpg"
                                 caption="Derek's cat Nutmeg (kept the low frequencies)"
                                 style_width="15vw"
                             />
                             <Figure
-                                src="/proj2/hybrid_derek_nutmeg.jpg"
+                                src="/proj2/part2_2/hybrid_derek_nutmeg.jpg"
                                 caption="Hybrid image of Derek and Nutmeg. Up close, you can see Derek! From far away, it's almost all Nutmeg"
                                 style_width="15vw"
                             />
                         </div>
                         {/* Right column: frequency analysis */}
                         <Figure
-                            src="/proj2/hybrid_derek_nutmeg_frequency_analysis.jpg"
+                            src="/proj2/part2_2/hybrid_derek_nutmeg_frequency_analysis.jpg"
                             caption="Plots of the log magnitude of the Fourier transforms for each image"
                             style_width="30vw"
                         />
@@ -546,24 +546,24 @@ export default function Page() {
                         {/* Left column: originals and hybrid stacked vertically */}
                         <div className="grid grid-cols-1 justify-items-center gap-y-8">
                             <Figure
-                                src="/proj2/burger.jpg"
+                                src="/proj2/part2_2/burger.jpg"
                                 caption="A RT Rotisserie burger (kept the high frequencies)"
                                 style_width="20vw"
                             />
                             <Figure
-                                src="/proj2/Saturn.jpg"
+                                src="/proj2/part2_2/saturn.jpg"
                                 caption="Saturn (kept the low frequencies)"
                                 style_width="20vw"
                             />
                             <Figure
-                                src="/proj2/hybrid_burger_saturn.jpg"
+                                src="/proj2/part2_2/hybrid_burger_saturn.jpg"
                                 caption="Hybrid image of a burger and Saturn. Up close, you can see the burger! From far away, it's mostly Saturn"
                                 style_width="20vw"
                             />
                         </div>
                         {/* Right column: frequency analysis */}
                         <Figure
-                            src="/proj2/hybrid_burger_saturn_frequency_analysis.jpg"
+                            src="/proj2/part2_2/hybrid_burger_saturn_frequency_analysis.jpg"
                             caption="Plots of the log magnitude of the Fourier transforms for each image"
                             style_width="30vw"
                         />
@@ -641,24 +641,24 @@ export default function Page() {
                         {/* Left column: originals and final blend stacked vertically */}
                         <div className="grid grid-cols-1 justify-items-center gap-y-8">
                             <Figure
-                                src="/proj2/apple.jpg"
+                                src="/proj2/part2_4/apple.jpg"
                                 caption="An apple"
                                 style_width="15vw"
                             />
                             <Figure
-                                src="/proj2/orange.jpg"
+                                src="/proj2/part2_4/orange.jpg"
                                 caption="An orange"
                                 style_width="15vw"
                             />
                             <Figure
-                                src="/proj2/multires_blend_apple_orange.jpg"
+                                src="/proj2/part2_4/multires_blend_apple_orange.jpg"
                                 caption="Boom: an oraple!"
                                 style_width="15vw"
                             />
                         </div>
                         {/* Right column: Multi-resolution blend stacks */}
                         <Figure
-                            src="/proj2/multires_levels_apple_orange.jpg"
+                            src="/proj2/part2_4/multires_levels_apple_orange.jpg"
                             caption="Visualizing each level of the Laplacian and Gaussian stacks for the oraple"
                             style_width="40vw"
                         />
@@ -668,24 +668,24 @@ export default function Page() {
                         {/* Left column: originals and final blend stacked vertically */}
                         <div className="grid grid-cols-1 justify-items-center gap-y-8">
                             <Figure
-                                src="/proj2/oski.jpg"
+                                src="/proj2/part2_4/oski.jpg"
                                 caption="Oski the bear"
                                 style_width="15vw"
                             />
                             <Figure
-                                src="/proj2/stanford_tree.jpg"
+                                src="/proj2/part2_4/stanford_tree.jpg"
                                 caption="The Stanford Tree"
                                 style_width="15vw"
                             />
                             <Figure
-                                src="/proj2/multires_blend_oski_stanford_tree.jpg"
+                                src="/proj2/part2_4/multires_blend_oski_stanford_tree.jpg"
                                 caption="Os-tree!"
                                 style_width="15vw"
                             />
                         </div>
                         {/* Right column: Multi-resolution blend stacks */}
                         <Figure
-                            src="/proj2/multires_levels_oski_stanford_tree.jpg"
+                            src="/proj2/part2_4/multires_levels_oski_stanford_tree.jpg"
                             caption="Visualizing each level of the Laplacian and Gaussian stacks for Oski and the Stanford Tree"
                             style_width="40vw"
                         />
@@ -699,29 +699,29 @@ export default function Page() {
                         {/* Left column: originals and final blend stacked vertically */}
                         <div className="grid grid-cols-1 justify-items-center gap-y-8">
                             <Figure
-                                src="/proj2/dinosaur_nuggets.jpg"
+                                src="/proj2/part2_4/dinosaur_nuggets.jpg"
                                 caption="Dino Buddy dinosaur nuggets"
                                 style_width="20vw"
                             />
                             <Figure
-                                src="/proj2/jurassic_park.jpg"
+                                src="/proj2/part2_4/jurassic_park.jpg"
                                 caption="The moment in Jurassic Park when Ellie and Alan see live dinosaurs for the first time"
                                 style_width="20vw"
                             />
                             <Figure
-                                src="/proj2/multires_custom_mask.jpg"
+                                src="/proj2/part2_4/multires_custom_mask.jpg"
                                 caption="Selecting points to outline a dinosaur nugget and create a custom mask"
                                 style_width="20vw"
                             />
                             <Figure
-                                src="/proj2/multires_blend_dinosaur_nuggets_jurassic_park.jpg"
+                                src="/proj2/part2_4/multires_blend_dinosaur_nuggets_jurassic_park.jpg"
                                 caption={"\"Life, uh, finds a way\""}
                                 style_width="20vw"
                             />
                         </div>
                         {/* Right column: Multi-resolution blend stacks */}
                         <Figure
-                            src="/proj2/multires_levels_dinosaur_nuggets_jurassic_park.jpg"
+                            src="/proj2/part2_4/multires_levels_dinosaur_nuggets_jurassic_park.jpg"
                             caption="Visualizing each level of the Laplacian and Gaussian stacks for dinosaur nuggets and Jurassic Park"
                             style_width="40vw"
                         />

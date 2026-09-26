@@ -483,10 +483,25 @@ export default function Page() {
 
                         Moreover, in the real world, rounding and numerical representation can make it impossible to reconstruct image data after it's been transformed.
                     </p>
-                    <div className="flex flex-row w-full justify-center space-x-20">
+                    <div className="grid grid-cols-1 justify-items-center items-center gap-4 md:grid-cols-2">
                         <Figure
                             src={"/proj2/part2_1/taj_sharpen_blur_sharpen.jpg"}
                             caption={"Sharpening an image, blurring it, and then re-sharpening it again does not recover the original image or the sharpened image"}
+                            style_width="50vw"
+                        />
+                        <Figure
+                            src={"/proj2/part2_1/clownfish_sharpen_blur_sharpen.jpg"}
+                            caption={"Original, sharpened, blurred, and re-sharpened images of clownfish.jpg"}
+                            style_width="50vw"
+                        />
+                        <Figure
+                            src={"/proj2/part2_1/chinatown_sharpen_blur_sharpen.jpg"}
+                            caption={"Original, sharpened, blurred, and re-sharpened images of chinatown.jpg"}
+                            style_width="50vw"
+                        />
+                        <Figure
+                            src={"/proj2/part2_1/tetons_sharpen_blur_sharpen.jpg"}
+                            caption={"Original, sharpened, blurred, and re-sharpened images of tetons.jpg"}
                             style_width="50vw"
                         />
                     </div>
@@ -692,9 +707,9 @@ export default function Page() {
                     </div>
                     <h3 className="text-center mt-8">Multi-resolution blending example 3: a dinosaur nugget in Jurassic Park</h3>
                     <p>I also implemented an interactive widget using <code>matplotlib.widgets.PolygonSelector</code> and <code>skimage.draw.polygon</code> which let me freely
-                    select points in an image, join them into the vertices of a polygon, and use the filled polygon region as a custom mask for multi-resolution blending.
-                    
-                    Using my custom mask creation function, I also blended together an image of a dinosaur chicken nugget and the iconic scene from Jurassic Park when Alan Grant and Ellie Sattler see live dinosaurs for the first time.</p>
+                        select points in an image, join them into the vertices of a polygon, and use the filled polygon region as a custom mask for multi-resolution blending.
+
+                        Using my custom mask creation function, I also blended together an image of a dinosaur chicken nugget and the iconic scene from Jurassic Park when Alan Grant and Ellie Sattler see live dinosaurs for the first time.</p>
                     <div className="grid grid-cols-1 justify-items-center items-center gap-4 md:grid-cols-2">
                         {/* Left column: originals and final blend stacked vertically */}
                         <div className="grid grid-cols-1 justify-items-center gap-y-8">

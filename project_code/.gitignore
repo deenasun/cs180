@@ -1,2 +1,6 @@
 proj1/code/data/
 *.pyc
+
+# Ignore submission folders or submission zips
+*submission/
+*submission.zip

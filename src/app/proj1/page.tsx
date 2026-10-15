@@ -1,8 +1,6 @@
 "use client";
 
-import katex from "katex";
-import "katex/dist/katex.min.css";
-
+import Equation from "@/components/Equation";
 import Figure from "@/components/Figure";
 import TableOfContents from "@/components/TableOfContents";
 
@@ -83,20 +81,6 @@ export default function Page() {
             text: "Final Results Gallery"
         },
     ]
-
-    const l2NormEquation = String.raw`L2 = \sqrt{\sum_{i, j} (img1[i, j] - img2[i, j])^2}`
-
-    const l2NormEquationRendered = katex.renderToString(l2NormEquation, {
-        displayMode: true,
-        throwOnError: false,
-    });
-
-    const NCCEquation = String.raw`NCC = \langle \frac{img1 - \mu_1}{ \lVert img1 - \mu_1 \rVert_2 },  \frac{img2 - \mu_2}{ \lVert img2 - \mu_2 \rVert_2}  \rangle`
-
-    const NCCEquationRendered = katex.renderToString(NCCEquation, {
-        displayMode: true,
-        throwOnError: false,
-    });
 
     return (
         <main className="mx-4 my-2 sm:mx-8">
@@ -208,10 +192,9 @@ export default function Page() {
                         <br />
                         When using the L2 Norm to as the alignment metric, a <b>smaller</b> L2 norm is better (i.e. the plates are more aligned)!
                     </p>
-                    <div
-                        className="my-6 overflow-x-auto text-center"
-                        aria-label="L2 norm equals the square root of the sum of squared matrix or vector components"
-                        dangerouslySetInnerHTML={{ __html: l2NormEquationRendered }}
+                    <Equation
+                        rawString={String.raw`L2 = \sqrt{\sum_{i, j} (img1[i, j] - img2[i, j])^2}`}
+                        ariaLabel="L2 norm equals the square root of the sum of squared matrix or vector components"
                     />
                     <p><b>Normalized Cross-Correlation (NCC):</b> For each image, compute the mean of its pixel values. Center the image matrix by subtracting the mean element-wise
                         from every pixel in the matrix. Then compute the L2 norm of the mean-centered matrix.
@@ -220,10 +203,9 @@ export default function Page() {
                         <br />
                         When using the NCC as the alignment metric, a <b>bigger</b> NCC is better (i.e. the plates are more aligned)!
                     </p>
-                    <div
-                        className="my-6 overflow-x-auto text-center"
-                        aria-label="Normalized cross-correlation"
-                        dangerouslySetInnerHTML={{ __html: NCCEquationRendered }}
+                    <Equation
+                        rawString={String.raw`NCC = \langle \frac{img1 - \mu_1}{ \lVert img1 - \mu_1 \rVert_2 },  \frac{img2 - \mu_2}{ \lVert img2 - \mu_2 \rVert_2}  \rangle`}
+                        ariaLabel="Normalized cross-correlation"
                     />
                     <p>NB: One way to apply these difference metrics to 2D image matrices instead of vectors is by unraveling the matrix into a long, 1-dimensional vector.</p>
 

@@ -1,85 +1,29 @@
-import katex from "katex";
-import "katex/dist/katex.min.css";
-
+import Equation from "@/components/Equation";
 import Figure from "@/components/Figure";
 import TableOfContents from "@/components/TableOfContents";
+
+const THETA_UNICODE = "\u03B8"
+const SIGMA_UNICODE = "\u03C3"
 
 export default function Page() {
     const contents = [
         {
             sectionLink: "part_a_1",
-            text: "Part A: Visualizing Training and Sampling"
+            text: "Part A.1: Visualizing Training and Sampling"
         },
         {
             sectionLink: "part_a_2",
-            text: "Part A: Conditional Generation and Guidance"
+            text: "Part A.2: Conditional Generation and Guidance"
         },
         {
             sectionLink: "part_a_3",
-            text: "Part A: Creative Applications"
+            text: "Part A.3: Creative Applications"
         },
         {
-            sectionLink: "part_b",
-            text: "Part B"
+            sectionLink: "part_b_1",
+            text: "Part B.1: Training a Single-Step Denoising UNet"
         },
     ]
-
-    const linearInterpolation = String.raw`x_t = (1 - t) \cdot x_0 + t \cdot x_1 \quad t \in [0, 1], \quad x_0 = \epsilon \sim N(0, I)`
-
-    const linearInterpolationRendered = katex.renderToString(linearInterpolation, {
-        displayMode: true,
-        throwOnError: false,
-    });
-
-    const oneStepDenoising = String.raw`\hat{x_1} = x_t + (1 - t) \cdot v_{\theta}(x_t, t, c)`
-
-    const oneStepDenoisingRendered = katex.renderToString(oneStepDenoising, {
-        displayMode: true,
-        throwOnError: false,
-    });
-
-    const multiStepDenoising = String.raw`x_{t + \Delta t} = x_t + \Delta t \cdot v_{\theta}(x_t, t, c)`
-
-    const multiStepDenoisingRendered = katex.renderToString(multiStepDenoising, {
-        displayMode: true,
-        throwOnError: false,
-    });
-
-    const cfgEquation = String.raw`\begin{aligned}
-v_{cfg} = v_c + w \cdot (v_c - v_u) \\
-x_{t + \Delta t} = x_t + \Delta t \cdot v_{cfg}
-\end{aligned}`
-
-    const cfgEquationRendered = katex.renderToString(cfgEquation, {
-        displayMode: true,
-        throwOnError: false,
-    });
-
-    const visualAnagramEquation = String.raw`
-    \begin{gathered}
-    v_1 = \operatorname{CFG\ velocity}(x_t, t, p_1) \\
-    v_2 = \operatorname{flip}(\operatorname{CFG\ velocity}(\operatorname{flip}(x_t), t, p_2)) \\
-    v = \frac{v_1 + v_2}{2}
-    \end{gathered}
-    `;
-
-    const visualAnagramEquationRendered = katex.renderToString(visualAnagramEquation, {
-        displayMode: true,
-        throwOnError: false,
-    });
-
-    const hybridImagesEquation = String.raw`
-    \begin{gathered}
-    v_1 = \operatorname{CFG\ velocity}(x_t, t, p_1) \\
-    v_2 = \operatorname{CFG\ velocity}(x_t, t, p_2) \\
-    v = f_{lowpass}(v1) + f_{highpass}
-    \end{gathered}
-    `;
-
-    const hybridImagesEquationRendered = katex.renderToString(hybridImagesEquation, {
-        displayMode: true,
-        throwOnError: false,
-    });
 
     return (
         <main className="mx-4 my-2 sm:mx-8">
@@ -98,10 +42,9 @@ x_{t + \Delta t} = x_t + \Delta t \cdot v_{cfg}
                     <p>The optimal-transport formulation of flow matching uses linear interpolation to construct an intermediate image xt in between the clean image x1 and an image of pure Gaussian noise x0.
                         t = 0 corresponds to pure noise, and t = 1 corresponds to a clean image.
                     </p>
-                    <div
-                        className="my-6 overflow-x-auto text-center"
-                        aria-label="Linear interpolation for flow matching"
-                        dangerouslySetInnerHTML={{ __html: linearInterpolationRendered }}
+                    <Equation
+                        rawString={String.raw`x_t = (1 - t) \cdot x_0 + t \cdot x_1 \quad t \in [0, 1], \quad x_0 = \epsilon \sim N(0, I)`}
+                        ariaLabel="Linear interpolation for flow matching"
                     />
                     <h3 className="font-medium">1.1 Constructing Noisy Training Inputs</h3>
                     <p>First, I sampled a tensor with shape (H, W, 3) from a Guassian distribution.
@@ -150,10 +93,9 @@ x_{t + \Delta t} = x_t + \Delta t \cdot v_{cfg}
                         {"\n\n"}
                         I implemented one-step denoising by extraploating directly to the clean endpoint with this single, predicted velocity:
                     </p>
-                    <div
-                        className="my-6 overflow-x-auto text-center"
-                        aria-label="Linear interpolation for flow matching"
-                        dangerouslySetInnerHTML={{ __html: oneStepDenoisingRendered }}
+                    <Equation
+                        rawString={String.raw`\hat{x_1} = x_t + (1 - t) \cdot v_{\theta}(x_t, t, c)`}
+                        ariaLabel="One-step denoising equation with a single velocity prediction"
                     />
                     <p>
                         These are the results of one-step denoising! The leftmost image is the original, the middle image is the noisy interpolation, and the rightmost image is the predicted clean image using one-step denoising.
@@ -209,10 +151,9 @@ x_{t + \Delta t} = x_t + \Delta t \cdot v_{cfg}
                         I implemented Euler integration by dividing the time from [0, 1] into small step sizes. At each timestep, I used the flow-matching model to predict the velocity at the current timestep,
                         then took a small step in the direction of the predicted veolocity.
                     </p>
-                    <div
-                        className="my-6 overflow-x-auto text-center"
-                        aria-label="Euler integration for multi-step denoising"
-                        dangerouslySetInnerHTML={{ __html: multiStepDenoisingRendered }}
+                    <Equation
+                        rawString={String.raw`x_{t + \Delta t} = x_t + \Delta t \cdot v_{\theta}(x_t, t, c)`}
+                        ariaLabel="Euler integration for multi-step denoising"
                     />
                     <p>
                         Here are the results of starting with a noisy version of santorini_cat.jpg at t = 0.50, and taking 25 Euler integration steps.
@@ -264,10 +205,12 @@ x_{t + \Delta t} = x_t + \Delta t \cdot v_{cfg}
                         {"\n\n"}
                         This algorithm is called "classifier-free" because it doesn't involve training a separate classifier to score whether or not the model produces the relevant image for the given condition.
                     </p>
-                    <div
-                        className="my-6 overflow-x-auto text-center"
-                        aria-label="Classifier-free guidance"
-                        dangerouslySetInnerHTML={{ __html: cfgEquationRendered }}
+                    <Equation
+                        rawString={String.raw`\begin{aligned}
+v_{cfg} = v_c + w \cdot (v_c - v_u) \\
+x_{t + \Delta t} = x_t + \Delta t \cdot v_{cfg}
+\end{aligned}`}
+                        ariaLabel="Classifier-free guidance"
                     />
                     <p>
                         Here are the results of generating images from pure-noise using the same text prompt "a high quality photo" as in part 1.6, but now implemented with CFG with w=7.
@@ -362,10 +305,15 @@ x_{t + \Delta t} = x_t + \Delta t \cdot v_{cfg}
                         Then, I flipped v_2 back around (since the model produces a velocity estimate for an image, the v_2 has the same dimensions as the image),
                         and averaged the two velocity estimates. Finally, I performed an Euler step with the average of the two velocities.
                     </p>
-                    <div
-                        className="my-6 overflow-x-auto text-center"
-                        aria-label="Linear interpolation for flow matching"
-                        dangerouslySetInnerHTML={{ __html: visualAnagramEquationRendered }}
+                    <Equation
+                        rawString={String.raw`
+    \begin{gathered}
+    v_1 = \operatorname{CFG\ velocity}(x_t, t, p_1) \\
+    v_2 = \operatorname{flip}(\operatorname{CFG\ velocity}(\operatorname{flip}(x_t), t, p_2)) \\
+    v = \frac{v_1 + v_2}{2}
+    \end{gathered}
+    `}
+                        ariaLabel="Velocity equations to create visual anagrams with flow models"
                     />
                     <div className="flex flex-col w-full justify-center items-center space-y-8">
                         TODO
@@ -382,15 +330,48 @@ x_{t + \Delta t} = x_t + \Delta t \cdot v_{cfg}
                         A low-pass filter invovles convolving the velocity estimate with a Gaussian kernel.
                         The high-pass filter is the predition, minus a low-pass version of itself.
                     </p>
-                    <div
-                        className="my-6 overflow-x-auto text-center"
-                        aria-label="Linear interpolation for flow matching"
-                        dangerouslySetInnerHTML={{ __html: hybridImagesEquationRendered }}
+                    <Equation
+                        rawString={String.raw`
+    \begin{gathered}
+    v_1 = \operatorname{CFG\ velocity}(x_t, t, p_1) \\
+    v_2 = \operatorname{CFG\ velocity}(x_t, t, p_2) \\
+    v = f_{lowpass}(v1) + f_{highpass}
+    \end{gathered}
+    `}
+                        ariaLabel="Velocity equations to create hybrid images with flow models"
                     />
                     <div className="flex flex-col w-full justify-center items-center space-y-8">
                         TODO
                     </div>
+                </section>
+                <section id="part_b_1" className="space-y-5">
+                    <h2 className="font-medium">Training a Single-Step Denoising UNet</h2>
+                    <p>
+                        After reaching creative flow-state, I trained my own flow matching model on the MNIST dataset!
 
+                        In this first part, I trained an unconditional UNet (meaning it does not take in any text to guide its diffusion process)
+                        to denoise noisy inputs back into clean inputs in a single step.
+
+                        The denoising task uses an L2 reconstruction loss, where D_{THETA_UNICODE} is the denoiser, z is a noisy input, and x is a clean image.
+                    </p>
+                    <Equation
+                        rawString={String.raw`L = \mathbb{E}_{z, x} \lVert D_{\theta}(z) - x \rVert^2`}
+                        ariaLabel="L2 reconstruction loss for training the denoiser"
+                    />
+                    <p>
+                        To train the denoiser, I needed to generate training pairs of (z, x) where x is a clean MNIST sample and z is generated from x using the forward noising process:
+                    </p>
+                    <Equation
+                        rawString={String.raw`z = x + \sigma \epsilon, \quad \epsilon \sim N(0, I)`}
+                        ariaLabel="Generating training pairs (z, x) by adding noise to the clean x"
+                    />
+                    <p>
+                        Here are examples of the noising process over different noise strengths {SIGMA_UNICODE} = [0.0, 0.2, 0.4, 0.5, 0.6, 0.8, 1.0].
+                        A noise strength of 0 preserves the original clean image, and a higher noise strength results in a noisier input.
+                    </p>
+                    <div className="flex flex-col w-full justify-center items-center space-y-8">
+                        TODO
+                    </div>
                 </section>
             </article>
             <aside className="fixed right-0 top-20 hidden h-fit max-h-[70vh] w-[15vw] min-w-[150px] px-4 overflow-y-auto border-l-2 border-gray-200 md:block">

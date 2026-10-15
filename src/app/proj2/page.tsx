@@ -1,7 +1,6 @@
-import katex from "katex";
-import "katex/dist/katex.min.css";
 import SyntaxHighlighter from "react-syntax-highlighter";
 
+import Equation from "@/components/Equation";
 import Figure from "@/components/Figure";
 import TableOfContents from "@/components/TableOfContents";
 
@@ -85,80 +84,6 @@ export default function Page() {
     
     return out`
 
-    const convolutionShapeFormula = String.raw`D_{out} = \lfloor \frac{D_{in} - K + 2P}{S} \rfloor + 1`
-
-    const convolutionShapeFormulaRendered = katex.renderToString(convolutionShapeFormula, {
-        displayMode: true,
-        throwOnError: false,
-    });
-
-    const Dx = String.raw`D_x = \begin{bmatrix}1 & 0 & -1 \end{bmatrix}`
-
-    const DxRendered = katex.renderToString(Dx, {
-        displayMode: true,
-        throwOnError: false,
-    });
-
-    const Dy = String.raw`D_y = \begin{bmatrix}1 \\ 0 \\ -1 \end{bmatrix}`
-
-    const DyRendered = katex.renderToString(Dy, {
-        displayMode: true,
-        throwOnError: false,
-    });
-
-    const boxFilter = String.raw`B = \frac{1}{81} \begin{bmatrix}
-1 & \cdots &1 \\
-\vdots & \ddots & \vdots \\
-1  & \cdots & 1
-\end{bmatrix}`
-
-    const boxFilterRendered = katex.renderToString(boxFilter, {
-        displayMode: true,
-        throwOnError: false,
-    });
-
-    const gradient = String.raw`\nabla f = \begin{bmatrix} \frac{\partial f}{\partial x}, \frac{\partial f}{\partial y} \end{bmatrix}`
-
-    const gradientRendered = katex.renderToString(gradient, {
-        displayMode: true,
-        throwOnError: false,
-    });
-
-    const gradientMagnitude = String.raw`\lVert \nabla f \rVert = \sqrt{ \left( \frac{\partial f}{\partial x} \right) ^2 + \left( \frac{\partial f}{\partial y} \right) ^2}`
-
-    const gradientMagnitudeRendered = katex.renderToString(gradientMagnitude, {
-        displayMode: true,
-        throwOnError: false,
-    });
-
-    const derivativeTheoremOfConvolution = String.raw`\frac{\partial}{\partial x} \left( h * f \right) = \left( \frac{\partial}{\partial x} h \right) * f`
-
-    const derivativeTheoremOfConvolutionRendered = katex.renderToString(derivativeTheoremOfConvolution, {
-        displayMode: true,
-        throwOnError: false,
-    });
-
-    const sharpeningFilter = String.raw`f + \alpha(f - f * g) = f * \left( (1 + \alpha) e - \alpha g \right)`
-
-    const sharpeningFilterRendered = katex.renderToString(sharpeningFilter, {
-        displayMode: true,
-        throwOnError: false,
-    });
-
-    const laplacianStack = String.raw`L_i = G_i - G_{i + 1}`
-
-    const laplacianStackRendered = katex.renderToString(laplacianStack, {
-        displayMode: true,
-        throwOnError: false,
-    });
-
-    const multiresolutionLevel = String.raw`L^c_i = G_i \cdot L^a_i + (1 - Gi) \cdot L^b_i`
-
-    const multiresolutionLevelRendered = katex.renderToString(multiresolutionLevel, {
-        displayMode: true,
-        throwOnError: false,
-    });
-
     return (
         <main className="mx-4 my-2 sm:mx-8">
             <article className="mr-[17vw] space-y-12">
@@ -193,10 +118,9 @@ export default function Page() {
                         I calculated the right amount of padding to add on each side using the formula to calculate the dimensions of a convolution,
                         assuming stride (S) = 1, and finding the value of P that set D_out = D_in for both the width and height.
                     </p>
-                    <div
-                        className="my-6 overflow-x-auto text-center"
-                        aria-label="A formula to calculate the output dimensions of a convolution"
-                        dangerouslySetInnerHTML={{ __html: convolutionShapeFormulaRendered }}
+                    <Equation
+                        rawString={String.raw`D_{out} = \lfloor \frac{D_{in} - K + 2P}{S} \rfloor + 1`}
+                        ariaLabel="A formula to calculate the output dimensions of a convolution"
                     />
                     <p>
                         The runtime of my double for-loop is much faster than my quadruple for-loop, but both are outpaced by SciPy's convolution implementation!
@@ -211,22 +135,23 @@ export default function Page() {
                     <p>I used my homemade convolution to convolve a grayscale image of myself with 3 different kernels/filters:</p>
                     <ul>
                         <li>- <b>Dx:</b> a finite difference filter that detects changes in the x-direction (vertical edges)</li>
-                        <div
-                            className="my-6 overflow-x-auto text-center"
-                            aria-label="Dx is a finite difference filter that detects vertical edges when convolved with an image"
-                            dangerouslySetInnerHTML={{ __html: DxRendered }}
+                        <Equation
+                            rawString={String.raw`D_x = \begin{bmatrix}1 & 0 & -1 \end{bmatrix}`}
+                            ariaLabel="Dx is a finite difference filter that detects vertical edges when convolved with an image"
                         />
                         <li>- <b>Dx:</b> a finite difference filter that detects changes in the y-direction (horizontal edges)</li>
-                        <div
-                            className="my-6 overflow-x-auto text-center"
-                            aria-label="Dy is a finite difference filter that detects horizontal edges when convolved with an image"
-                            dangerouslySetInnerHTML={{ __html: DyRendered }}
+                        <Equation
+                            rawString={String.raw`D_y = \begin{bmatrix}1 \\ 0 \\ -1 \end{bmatrix}`}
+                            ariaLabel="Dy is a finite difference filter that detects horizontal edges when convolved with an image"
                         />
                         <li>- <b>Box filter:</b> an averaging filter that computes the average of all the pixels in a 9x9 neighrborhood.</li>
-                        <div
-                            className="my-6 overflow-x-auto text-center"
-                            aria-label="Box filters average the pixel values"
-                            dangerouslySetInnerHTML={{ __html: boxFilterRendered }}
+                        <Equation
+                            rawString={String.raw`B = \frac{1}{81} \begin{bmatrix}
+1 & \cdots &1 \\
+\vdots & \ddots & \vdots \\
+1  & \cdots & 1
+\end{bmatrix}`}
+                            ariaLabel="Box filters average the pixel values"
                         />
                     </ul>
                     <div className="flex flex-row w-full justify-center space-x-20">
@@ -268,15 +193,13 @@ export default function Page() {
                         For instance, in cameramn.jpg, choosing a high enough threshold such that the result didn't have noisy grass meant the edges of the background tower
                         were also usually discarded.
                     </p>
-                    <div
-                        className="my-6 overflow-x-auto text-center"
-                        aria-label="The gradient is a vector of partial derivatives"
-                        dangerouslySetInnerHTML={{ __html: gradientRendered }}
+                    <Equation
+                        rawString={String.raw`\nabla f = \begin{bmatrix} \frac{\partial f}{\partial x}, \frac{\partial f}{\partial y} \end{bmatrix}`}
+                        ariaLabel="The gradient is a vector of partial derivatives"
                     />
-                    <div
-                        className="my-6 overflow-x-auto text-center"
-                        aria-label="A formula for the magnitude of the gradient"
-                        dangerouslySetInnerHTML={{ __html: gradientMagnitudeRendered }}
+                    <Equation
+                        rawString={String.raw`\lVert \nabla f \rVert = \sqrt{ \left( \frac{\partial f}{\partial x} \right) ^2 + \left( \frac{\partial f}{\partial y} \right) ^2}`}
+                        ariaLabel="A formula for the magnitude of the gradient"
                     />
                     <div className="grid grid-cols-1 gap-4 items-center md:grid-cols-2 ">
                         <Figure
@@ -322,10 +245,9 @@ export default function Page() {
                         Based on the derivative theorem of convolution, the same process can be implemented by convolving the image with a single filter: a derivative of a Gaussian (DoG).
                         To produce this filter, I first convolved a Gaussian filter with Dx and Dy respectively.
                     </p>
-                    <div
-                        className="my-6 overflow-x-auto text-center"
-                        aria-label="The derivative theorem of convolution"
-                        dangerouslySetInnerHTML={{ __html: derivativeTheoremOfConvolutionRendered }}
+                    <Equation
+                        rawString={String.raw`\frac{\partial}{\partial x} \left( h * f \right) = \left( \frac{\partial}{\partial x} h \right) * f`}
+                        ariaLabel="The derivative theorem of convolution"
                     />
                     <p>This is what taking the derivative of a 9x9 Gaussian looks like! AKA convolving the Gaussian kernel with the Dx kernel and the Dy kernel.
                     </p>
@@ -379,10 +301,9 @@ export default function Page() {
                         and e is the unit impulse (essentially an identity kernel whose response is the same input it is convolved with).
                         Alpha is a scalar value that determines how "sharp" the result looks.
                     </p>
-                    <div
-                        className="my-6 overflow-x-auto text-center"
-                        aria-label="A formula to calculate the output dimensions of a convolution"
-                        dangerouslySetInnerHTML={{ __html: sharpeningFilterRendered }}
+                    <Equation
+                        rawString={String.raw`f + \alpha(f - f * g) = f * \left( (1 + \alpha) e - \alpha g \right)`}
+                        ariaLabel="A formula to calculate the output dimensions of a convolution"
                     />
                     <div className="grid grid-cols-1 gap-x-4 gap-y-8 md:grid-cols-2 justify-items-center">
                         <Figure
@@ -602,10 +523,9 @@ export default function Page() {
                         Generally, we set L_n = G_n (where n is the deepest level in the stack, or the coarsest, most blurred level).
                         For each Laplacian level:
                     </p>
-                    <div
-                        className="my-6 overflow-x-auto text-center"
-                        aria-label="Box filters average the pixel values"
-                        dangerouslySetInnerHTML={{ __html: laplacianStackRendered }}
+                    <Equation
+                        rawString={String.raw`L_i = G_i - G_{i + 1}`}
+                        ariaLabel="Box filters average the pixel values"
                     />
                     <p>
                         Where Laplacian stacks and Gaussian stacks really become handy is in multi-resolution blending!
@@ -635,10 +555,9 @@ export default function Page() {
 
                         To combine them together, I use the mask as weights (multiplying the mask element-wise). So the combined result at each level is:
                     </p>
-                    <div
-                        className="my-6 overflow-x-auto text-center"
-                        aria-label="A formula to calculate the output dimensions of a convolution"
-                        dangerouslySetInnerHTML={{ __html: multiresolutionLevelRendered }}
+                    <Equation
+                        rawString={String.raw`L^c_i = G_i \cdot L^a_i + (1 - Gi) \cdot L^b_i`}
+                        ariaLabel="A formula to calculate the output dimensions of a convolution"
                     />
                     <p>
                         And finally, to put all the puzzle pieces together into a single, multi-resolution-blended masterpiece, I just add all the combined Laplacian layers!

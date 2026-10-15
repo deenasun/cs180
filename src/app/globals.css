@@ -20,6 +20,11 @@ ul {
   margin-left: 1em;
 }
 
+/* Make <p> elements preserve "\n\n" line breaks */
+p {
+  white-space: pre-line;
+}
+
 @theme {
   --color-space-black: var(--color-space-black);
   --color-cream: var(--color-cream);

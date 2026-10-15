@@ -23,6 +23,10 @@ export default function Page() {
             sectionLink: "part_b_1",
             text: "Part B.1: Training a Single-Step Denoising UNet"
         },
+        {
+            sectionLink: "part_b_2",
+            text: "Part B.2: Training a Flow Matching Model"
+        },
     ]
 
     return (
@@ -346,12 +350,21 @@ x_{t + \Delta t} = x_t + \Delta t \cdot v_{cfg}
                 </section>
                 <section id="part_b_1" className="space-y-5">
                     <h2 className="font-medium">Training a Single-Step Denoising UNet</h2>
+                    <h3 className="font-medium">1.1 and 1.2: Implementing a UNet and Visualizing the Noising Process</h3>
                     <p>
                         After reaching creative flow-state, I trained my own flow matching model on the MNIST dataset!
 
                         In this first part, I trained an unconditional UNet (meaning it does not take in any text to guide its diffusion process)
                         to denoise noisy inputs back into clean inputs in a single step.
-
+                    </p>
+                    <div className="flex flex-col w-full justify-center items-center space-y-8">
+                        <Figure
+                            src={"/proj3/part_b/unconditional_unet_architecture.jpg"}
+                            caption={"Architecture for an unconditional UNet"}
+                            style_width="50vw"
+                        />
+                    </div>
+                    <p>
                         The denoising task uses an L2 reconstruction loss, where D_{THETA_UNICODE} is the denoiser, z is a noisy input, and x is a clean image.
                     </p>
                     <Equation
@@ -370,7 +383,281 @@ x_{t + \Delta t} = x_t + \Delta t \cdot v_{cfg}
                         A noise strength of 0 preserves the original clean image, and a higher noise strength results in a noisier input.
                     </p>
                     <div className="flex flex-col w-full justify-center items-center space-y-8">
-                        TODO
+                        <Figure
+                            src={"/proj3/part_b/mnist_noising_process.jpg"}
+                            caption={"Adding noise to an MNIST sample with different noise strengths"}
+                            style_width="50vw"
+                        />
+                    </div>
+                    <h3 className="font-medium">1.2.1: Training a UNet to Perform Single-Step Denoising</h3>
+                    <p>
+                        Next, I trained a UNet to denoise a noisy image z, produced by applying {SIGMA_UNICODE} = 0.5 to a clean image x.
+                        I trained the UNet with hidden dimension D=128 for 5 epochs using an Adam optimizer (learning rate of 1e-4).
+                        {"\n\n"}
+                        Here is a plot of the UNet training loss over time, and the results of the UNet denoising samples from the test set afret the 1st epoch of training and after the final 5th epoch of training.
+                        Even after 1 epoch of training, the UNet's denoised result already resembles the original inputs quite closely! Training for additional epochs does yield some improvements:
+                        the denoised results after 5 epochs of training have clearer, more "confident" edges.
+                    </p>
+                    <div className="flex flex-col w-full justify-center items-center space-y-8">
+                        <Figure
+                            src={"/proj3/part_b/denoiser_training_loss_plot.jpg"}
+                            caption={"One-step UNet denoiser training loss"}
+                            style_width="50vw"
+                        />
+                        <Figure
+                            src={"/proj3/part_b/denoise_epoch1.jpg"}
+                            caption={`Denoising noisy images with ${SIGMA_UNICODE} = 0.5 after 1 epoch of training`}
+                            style_width="50vw"
+                        />
+                        <Figure
+                            src={"/proj3/part_b/denoise_epoch5.jpg"}
+                            caption={`Denoising noisy images with ${SIGMA_UNICODE} = 0.5 after 5 epochs of training`}
+                            style_width="50vw"
+                        />
+                    </div>
+                    <h3 className="font-medium">1.2.2: Out-of-Distribution Testing</h3>
+                    <p>
+                        This denoiser was only trained on inputs z with {SIGMA_UNICODE} = 0.5.
+                        I tested the denoiser on different noise strength levels, which are out of its training distribution.
+                        {"\n\n"}
+                        Here are the results of the denoiser trying to denoise the same clean image, but with inputs created with varying levels of noise: {SIGMA_UNICODE} = [0.0, 0.2, 0.4, 0.5, 0.6, 0.8, 1.0].
+                        The higher the noise level, the worse the denoiser was at recovering the original clean image.
+                        By contrast, even though the denoiser was not trained on low noise levels like 0 (no noise added at all), 0.2, and 0.4, because the input z still retained much of the original
+                        clean image's information, the UNet was still able to recover the original.
+                    </p>
+                    <div className="flex flex-col w-full justify-center items-center space-y-8">
+                        <Figure
+                            src={"/proj3/part_b/ood_denoise_0.jpg"}
+                            caption={`Out-of-distribution denoising at ${SIGMA_UNICODE} = 0`}
+                            style_width="50vw"
+                        />
+                        <Figure
+                            src={"/proj3/part_b/ood_denoise_0.2.jpg"}
+                            caption={`Out-of-distribution denoising at ${SIGMA_UNICODE} = 0.2`}
+                            style_width="50vw"
+                        />
+                        <Figure
+                            src={"/proj3/part_b/ood_denoise_0.4.jpg"}
+                            caption={`Out-of-distribution denoising at ${SIGMA_UNICODE} = 0.4`}
+                            style_width="50vw"
+                        />
+                        <Figure
+                            src={"/proj3/part_b/ood_denoise_0.5.jpg"}
+                            caption={`Denoising noisy images at the noise strength level it was trainged on (${SIGMA_UNICODE} = 0.5)`}
+                            style_width="50vw"
+                        />
+                        <Figure
+                            src={"/proj3/part_b/ood_denoise_0.6.jpg"}
+                            caption={`Out-of-distribution denoising at ${SIGMA_UNICODE} = 0.6`}
+                            style_width="50vw"
+                        />
+                        <Figure
+                            src={"/proj3/part_b/ood_denoise_0.8.jpg"}
+                            caption={`Out-of-distribution denoising at ${SIGMA_UNICODE} = 0.8`}
+                            style_width="50vw"
+                        />
+                        <Figure
+                            src={"/proj3/part_b/ood_denoise_1.0.jpg"}
+                            caption={`Out-of-distribution denoising at ${SIGMA_UNICODE} = 1.0`}
+                            style_width="50vw"
+                        />
+                    </div>
+                    <h3 className="font-medium">1.2.3: Denoising Pure Noise</h3>
+                    <p>
+                        To generate new images from scratch, the model needs to denoise pure Gaussian noise.
+                        I trained a new UNet to denoise starting from pure random noise (e.g. z = epsilon, where epsilon is samples from N(0, I)) in order to
+                        recover a clean image x.
+                        {"\n\n"}
+                        These are the results of its training loss and denoised samples from the UNet after 1 epoch and 5 epochs of training.
+                        The sampled results of the denoiser are a blurry "average" of all the digits from 0-9, regardless of what the initially sampled x was!
+                        This makes sense because the input to the denoiser is pure noise, which contains no information at all about what the clean x was.
+                        Additionally, the denoiser has no guidance to steer it towards generating one digit or another.
+                        Since the denoiser was trained with MSE loss, and MSE loss is minimized by the mean of the population, the denoiser learns to simply output
+                        the average digit: all the digits blurred together. Training the denoiser for more epochs has no effect on the blurry average digit it outputs.
+                    </p>
+                    <div className="flex flex-col w-full justify-center items-center space-y-8">
+                        <Figure
+                            src={"/proj3/part_b/denoiser_pure_noise_training_loss_plot.jpg"}
+                            caption={"One-step pure-noise denoiser training loss"}
+                            style_width="50vw"
+                        />
+                        <Figure
+                            src={"/proj3/part_b/dpn_epoch1.jpg"}
+                            caption={`Denoising pure noise after 1 epoch of training: a blurry average digit!`}
+                            style_width="50vw"
+                        />
+                        <Figure
+                            src={"/proj3/part_b/dpn_epoch5.jpg"}
+                            caption={`Denoising pure noise after 5 epochs of training: a blurry average digit!`}
+                            style_width="50vw"
+                        />
+                    </div>
+                </section>
+                <section id="part_b_2" className="space-y-5">
+                    <h2 className="font-medium">Training a Flow Matching Model</h2>
+                    <h3 className="font-medium">2.1: Adding Time Conditioning to the UNet</h3>
+                    <p>
+                        One-step denoising is not sufficient for generative tasks. To improve on this, we need a model that can iteratively denoise an image in incremental steps.
+                        A flow matching model is a model that predicts the flow from noisy data to clean data, AKA the velocity at a given input x_t and timestep t that points towards a real, clean image x_1.
+                        {"\n\n"}
+                        Then, to generate a new image from scratch, we can sample pure noise x_0 ~ N(0, I) and run the backwards flow process to generate a new, realistic x_1.
+                        {"\n\n"}
+                        To train a flow matching model, we can construct intermediate noisy samples by linearly interpolating between x_0 (pure noise) and a clean image x_1 samples from our dataset.
+                    </p>
+                    <Equation
+                        rawString={String.raw`x_t = (1 - t) \cdot x_0 + t \cdot x_1 \quad \operatorname{where} \quad x_0 \sim N(0, I), t \in [0, 1]`}
+                        ariaLabel="Linearly interpolating between noise and clean images to create intermediate noisy samples"
+                    />
+                    <p>
+                        By sampling x_t for all possible timesteps t and all possible clean images x_1, we have a vector field that describes the position of a point x_t at time t
+                        relative to p_1(x_1), the distribution of clean data, and p_0(x_0), the distribution of noisy data.
+                        Flow is akin to the velocity, AKA change in position with respect to time, of this vector field that describes how to move from x_0 to x_1.
+                    </p>
+                    <Equation
+                        rawString={String.raw`u(x_t, t) = \frac{d}{dt}x_t = x_1 - x_0`}
+                        ariaLabel="The velocity of x_t is equivalent to x_1 - x_0"
+                    />
+                    <p>
+                        The goal of the UNet is thus to learn the flow. The ground truth flow is x_1 - x_0, and the UNet's predicted flow is u_{THETA_UNICODE}
+                    </p>
+                    <Equation
+                        rawString={String.raw`L = \mathbb{E}_{x_0 \sim p_0(x_0), x_1 \sim p_1(x_1), t \sim U[0, 1]} \lVert (x_1 - x_0) - u_{\theta}(x_t, t) \rVert ^2`}
+                        ariaLabel="L2 loss between the ground truth velocity and the predicted velocity"
+                    />
+                    <p>
+                        One way to pass the time-conditioning t into the UNet is to use a fully-connected layer that transforms the scalar t (with shape (1,)) into a multi-dimensional tensor (with shape (D, 1, 1))
+                        that can then be concatenated to other intermediate activations inside the UNet.
+                    </p>
+                    <div className="flex flex-col w-full justify-center items-center space-y-8">
+                        <Figure
+                            src={"/proj3/part_b/time_conditioned_unet_architecture.jpg"}
+                            caption={"Architecture for a time-conditioned UNet"}
+                            style_width="50vw"
+                        />
+                    </div>
+                    <h3 className="font-medium">2.2: Training the Time-Conditioned UNet</h3>
+                    <p>
+                        When training the time-conditioned flow model, I sampled a random image x_1 from the training set, a random timestep from the uniform distribution [0, 1], linearly interpolated x_1 and pure noise to get an x_t,
+                        and compared the denoiser's predicted velocity with the ground truth velocity. After repeating this for many training samples and many timesteps, we now have a time-conditioned denoiser!
+                        {"\n\n"}
+                        I trained my time-conditioned flow model with hidden dimension D=64 for 10 epochs with an Adam optimizer and exponential learning rate decay scheduler.
+                        I scheduled the learning rate to start at 1e-2, then exponential decay with a gamma of 0.1^(1/10).
+                    </p>
+                    <div className="flex flex-col w-full justify-center items-center space-y-8">
+                        <Figure
+                            src={"/proj3/part_b/time_conditioned_unet_training_loss_plot.jpg"}
+                            caption={"Training loss over 10 epochs for the time-conditioned UNet"}
+                            style_width="50vw"
+                        />
+                    </div>
+                    <h3 className="font-medium">2.3: Sampling from the Time-Conditioned UNet</h3>
+                    <p>
+                        To sample from a time-conditioned flow model, we initialize x_t as pure noise, then take steps from 0 to 1. At each timestep t, the time-conditioned denoiser
+                        takes in the current x_t and the current timestep t, then predicts a velocity. Then, we updated the current x_t by taking a tiny step in the direction of the
+                        predicted velocity.
+                        {"\n\n"}
+                        I sampled starting with pure noise from the time-conditioned UNet after 1, 5, and 10 epochs of training.
+                        The sampled results look more and more digit-like with more epochs of training, but still have some rough edges :)
+                        I can pick out the digits 5, 6, 7, and 9 from the model's generated samples, but many others still look like nebulous blobs.
+                    </p>
+                    <div className="flex flex-col w-full justify-center items-center space-y-8">
+                        <Figure
+                            src={"/proj3/part_b/tcfm_samples_epoch1.jpg"}
+                            caption={"Sampling 40 images from the time-conditioned UNet after 1 epoch of training"}
+                            style_width="50vw"
+                        />
+                        <Figure
+                            src={"/proj3/part_b/tcfm_samples_epoch5.jpg"}
+                            caption={"Sampling 40 images from the time-conditioned UNet after 5 epochs of training"}
+                            style_width="50vw"
+                        />
+                        <Figure
+                            src={"/proj3/part_b/tcfm_samples_epoch10.jpg"}
+                            caption={"Sampling 40 images from the time-conditioned UNet after 10 epochs of training"}
+                            style_width="50vw"
+                        />
+                    </div>
+                    <h3 className="font-medium">2.4: Adding Class-Conditioning to the UNet</h3>
+                    <p>
+                        To further improve the flow model's results and give us more control over what images it generates, we can also add class conditioning: a label 0-9
+                        that steers the model.
+                        {"\n\n"}
+                        I implemeted class-conditioning to my flow model by turning the class into a one-hot vector of dimension 10, where the component corresponding to the
+                        requested class is set to 1 and all other components are set to 0. To incorporate class-conditioning to the UNet, I added additional fully-connected layers
+                        and concatenated them to the decoder/up-sampling layers.
+                        {"\n\n"}
+                        To support classifier-free guidance, the model also has to be trained to generate images without any class-conditioning. This corresponds to a class vector of all zero's.
+                        So during training, I zero-ed out the class-conditioning vector with dropout probability p_uncond.
+                    </p>
+                    <h3 className="font-medium">2.5: Training the Class-Conditioned UNet</h3>
+                    <p>
+                        During training, I sample x_1 and its class c from the training set, a random timestep t from the uniform distribution [0, 1], pure Gaussian noise, and interpolate x_1 and pure noise to get x_t.
+                        With drop-out probability p_uncond, I set the class conditioning vector c to be the zero vector.
+                        Then, I pass x_t, t, and c to the flow model. Lastly, I compute the loss between the model's predicted velocity and the ground truth velocity, take a gradient update step, and repeat!
+                        {"\n\n"}
+                        I trained the class-conditioned flow model with the same parameters as the time-conditioned flow model (D=64, 10 epochs, Adam optimizer with intiial learning rate 1e-2).
+                        I experimenting training the flow model <em>with</em> the exponential learning rate scheduler, and <em>without</em> the exponential learning rate schduler.
+                    </p>
+                    <div className="grid grid-cols-1 gap-x-4 gap-y-8 md:grid-cols-2 justify-items-center">
+                        <Figure
+                            src={"/proj3/part_b/ccfm_scheduled_training_loss_plot.jpg"}
+                            caption={"Training loss of the class-conditioning flow model, with an exponential learning rate scheduler"}
+                            style_width="30vw"
+                        />
+                        <Figure
+                            src={"/proj3/part_b/ccfm_nosched_training_loss_plot.jpg"}
+                            caption={"Training loss of the class-conditioning flow model, without learning rate scheduling"}
+                            style_width="30vw"
+                        />
+                    </div>
+                    <h3 className="font-medium">2.6: Sampling from the Class-Conditioned UNet</h3>
+                    <p>
+                        Here are the results of sampling from the class-conditioned flow model after 1, 5, and 10 epochs of training.
+                        The results on the left are from training with a scheduler, and the results on the right are from training without an exponential learning rate scheduler.
+                        {"\n\n"}
+                        After each epoch, I generated 40 images and evenly iterated through the classes 0-9 (4 instances per class).
+                        During sampling, I ran 2 forward passes through the model: one pass with the class vector to predict a conditional velocity, and another pass with a zero vector to predict an unconditional velocity.
+                        Then, I combined then using classifier-free guidance with a guidance scale of 5.0.
+                        {"\n\n"}
+                        For both training runs (with and without a scheduler), the results improve from epoch to epoch.
+                        In the early epochs, training with or without a scheduler yield similar sample results.
+                        In the later epochs, I noticed small differences between the two training runs: the model trained with a scheduler generates digits with cleaner edges and more consistent thickness,
+                        whereas the model trained without a scheduler generates digits that look slightly shake-y or blob-y — but overall, the models
+                        trained in both runs can produce images from scratch that visually pass for MNIST digits!
+                        In order to compensate for the lack of a learning rate scheduler while maintaining similar performance, I used a smaller learning rate.
+                    </p>
+                    <div className="grid grid-cols-1 gap-x-4 gap-y-8 md:grid-cols-2 justify-items-center">
+                        <Figure
+                            src={"/proj3/part_b/ccfm_samples_epoch1.jpg"}
+                            caption={"Sampling images from pure noise with a class-conditioned flow model after 1 epoch of training (with scheduler)"}
+                            style_width="35vw"
+                        />
+                        <Figure
+                            src={"/proj3/part_b/ccfm_nosched_samples_epoch1.jpg"}
+                            caption={"Sampling images from pure noise with a class-conditioned flow model after 1 epoch of training (no scheduler)"}
+                            style_width="35vw"
+                        />
+                        <Figure
+                            src={"/proj3/part_b/ccfm_samples_epoch5.jpg"}
+                            caption={"Sampling images from pure noise with a class-conditioned flow model after 5 epochs of training (with scheduler)"}
+                            style_width="35vw"
+                        />
+                        <Figure
+                            src={"/proj3/part_b/ccfm_nosched_samples_epoch5.jpg"}
+                            caption={"Sampling images from pure noise with a class-conditioned flow model after 5 epochs of training (no scheduler)"}
+                            style_width="35vw"
+                        />
+
+                        <Figure
+                            src={"/proj3/part_b/ccfm_samples_epoch10.jpg"}
+                            caption={"Sampling images from pure noise with a class-conditioned flow model after 10 epochs of training (with scheduler)"}
+                            style_width="35vw"
+                        />
+                        <Figure
+                            src={"/proj3/part_b/ccfm_nosched_samples_epoch10.jpg"}
+                            caption={"Sampling images from pure noise with a class-conditioned flow model after 10 epochs of training (no scheduler)"}
+                            style_width="35vw"
+                        />
                     </div>
                 </section>
             </article>

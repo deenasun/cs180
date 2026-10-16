@@ -244,8 +244,11 @@ x_{t + \Delta t} = x_t + \Delta t \cdot v_{cfg}
                         {"\n\n"}
                         Below, I ran the forward, noise-adding process to an image of the Campanile to get a noisy image at various times: t = [0.02, 0.04, 0.06, 0.10, 0.14, 0.25, 0.5].
                         Then, I ran the denoising process starting from these timestamps (again, with the generic text prompt "a high quality photo" passed to the PixNerd flow model)
-                        to "edit" the pictures. The later the starting time, the more of the original image's information is retained in
-                        the partially noisy image the denoising process starts from, and the closer the final result is to the original clean image.
+                        to "edit" the pictures. At early starting times, the edited final result is mostly unrelated to the original image;
+                        they often depict a human subject, reflecting this pretrained PixNerd model's tendency to produce human subjects when given the prompt
+                        "a high quality photo."
+                        At later starting times, more of the original image's info is retained in the input to the model.
+                        So the final result looks more related to the original clean image.
                         {"\n\n"}
                         I also tried editing 2 of my own images: a picture of a cat I took on Santorini island, Greece and a picture of a windmill I took in the Netherlands.
                     </p>
@@ -281,17 +284,17 @@ x_{t + \Delta t} = x_t + \Delta t \cdot v_{cfg}
                         <Figure
                             src={"/proj3/part_a/image_to_image_edit_ggb.jpg"}
                             caption={"Editing a drawing of the Golden Gate Bridge via denoising"}
-                            style_width="25vw"
+                            style_width="50vw"
                         />
                         <Figure
                             src={"/proj3/part_a/image_to_image_edit_trex_surfing.jpg"}
                             caption={"Editing a drawing I made of a T-rex hanging ten via denoising"}
-                            style_width="25vw"
+                            style_width="50vw"
                         />
                         <Figure
                             src={"/proj3/part_a/image_to_image_edit_hotdog.jpg"}
                             caption={"Editing a drawing I made of a hotdog via denoising"}
-                            style_width="25vw"
+                            style_width="50vw"
                         />
                     </div>
                     <h3 className="font-medium">3.2 Text-Guided Image Editing</h3>
@@ -662,12 +665,12 @@ x_{t + \Delta t} = x_t + \Delta t \cdot v_{cfg}
                     <div className="grid grid-cols-1 gap-x-4 gap-y-8 md:grid-cols-2 justify-items-center">
                         <Figure
                             src={"/proj3/part_b/ccfm_scheduled_training_loss_plot.jpg"}
-                            caption={"Training loss of the class-conditioning flow model, with an exponential learning rate scheduler"}
+                            caption={"Training loss of the class-conditioned flow model with an exponential learning rate scheduler"}
                             style_width="30vw"
                         />
                         <Figure
                             src={"/proj3/part_b/ccfm_nosched_training_loss_plot.jpg"}
-                            caption={"Training loss of the class-conditioning flow model, without learning rate scheduling"}
+                            caption={"Training loss of the class-conditioned flow model without a learning rate scheduler"}
                             style_width="30vw"
                         />
                     </div>

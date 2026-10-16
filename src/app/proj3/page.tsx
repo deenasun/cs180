@@ -35,14 +35,14 @@ export default function Page() {
                 <h1 className="font-bold">Project 3: Fun with Flow Models</h1>
                 <div className="flex flex-row w-full justify-center space-x-20">
                     <Figure
-                        src={"/proj3/part_a/proj3_1-1.jpg"}
-                        caption={"A noisy cat in Santorini, Greece"}
+                        src={"/proj3/part_a/noisy_interpolation_santorini_cat.jpg"}
+                        caption={"A noisy cat in Santorini, Greece."}
                         style_width="50vw"
                         loading="eager"
                     />
                 </div>
                 <section id="part_a_1" className="space-y-5">
-                    <h2 className="font-medium">Visualizing Training and Sampling</h2>
+                    <h2 className="font-medium">Part A.1: Visualizing Training and Sampling</h2>
                     <p>The optimal-transport formulation of flow matching uses linear interpolation to construct an intermediate image xt in between the clean image x1 and an image of pure Gaussian noise x0.
                         t = 0 corresponds to pure noise, and t = 1 corresponds to a clean image.
                     </p>
@@ -56,7 +56,7 @@ export default function Page() {
                         The bigger the t, the more of the original image information is retained!</p>
                     <div className="flex flex-row w-full justify-center space-x-20">
                         <Figure
-                            src={"/proj3/part_a/proj3_1-1.jpg"}
+                            src={"/proj3/part_a/noisy_interpolation_santorini_cat.jpg"}
                             caption={"The original santorini_cat.jpg image and interpolations at t = [0.25, 0.50, 0.75]"}
                             style_width="50vw"
                         />
@@ -73,17 +73,17 @@ export default function Page() {
                     </p>
                     <div className="flex flex-col w-full justify-center items-center space-y-8">
                         <Figure
-                            src={"/proj3/part_a/proj3_1-2_025.jpg"}
+                            src={"/proj3/part_a/gaussian_blur_denoise_025.jpg"}
                             caption={"Noisy image at t = 0.25 and Gaussian denoising with sigma = 8.0"}
                             style_width="50vw"
                         />
                         <Figure
-                            src={"/proj3/part_a/proj3_1-2_050.jpg"}
+                            src={"/proj3/part_a/gaussian_blur_denoise_050.jpg"}
                             caption={"Noisy image at t = 0.50 and Gaussian denoising with sigma = 4.0"}
                             style_width="50vw"
                         />
                         <Figure
-                            src={"/proj3/part_a/proj3_1-2_075.jpg"}
+                            src={"/proj3/part_a/gaussian_blur_denoise_075.jpg"}
                             caption={"Noisy image at t = 0.75 and Gaussian denoising with sigma = 2.0"}
                             style_width="50vw"
                         />
@@ -106,17 +106,17 @@ export default function Page() {
                     </p>
                     <div className="flex flex-col w-full justify-center items-center space-y-8">
                         <Figure
-                            src={"/proj3/part_a/proj3_1-3_025.jpg"}
+                            src={"/proj3/part_a/one_step_denoise_025.jpg"}
                             caption={"Noisy image at t = 0.25 and an estimate of the original image with one-step denoising"}
                             style_width="50vw"
                         />
                         <Figure
-                            src={"/proj3/part_a/proj3_1-3_050.jpg"}
+                            src={"/proj3/part_a/one_step_denoise_050.jpg"}
                             caption={"Noisy image at t = 0.50 and an estimate of the original image with one-step denoising"}
                             style_width="50vw"
                         />
                         <Figure
-                            src={"/proj3/part_a/proj3_1-3_075.jpg"}
+                            src={"/proj3/part_a/one_step_denoise_075.jpg"}
                             caption={"Noisy image at t = 0.75 and an estimate of the original image with one-step denoising"}
                             style_width="50vw"
                         />
@@ -130,22 +130,22 @@ export default function Page() {
                     <div className="flex flex-col w-full justify-center items-center space-y-8">
                         <Figure
                             src={"/proj3/part_a/santorini_cat.jpg"}
-                            caption={"The original santorini_cat.jpg image."}
+                            caption={"The original santorini_cat.jpg image"}
                             style_width="20vw"
                         />
                         <Figure
-                            src={"/proj3/part_a/proj3_1-4_025.jpg"}
-                            caption={"Visualizing velocities and RGB RMS error at t = 0.25."}
+                            src={"/proj3/part_a/velocity_comparison_025.jpg"}
+                            caption={"Visualizing velocities and RGB RMS error at t = 0.25"}
                             style_width="50vw"
                         />
                         <Figure
-                            src={"/proj3/part_a/proj3_1-4_050.jpg"}
-                            caption={"Visualizing velocities and RGB RMS error at t = 0.50."}
+                            src={"/proj3/part_a/velocity_comparison_050.jpg"}
+                            caption={"Visualizing velocities and RGB RMS error at t = 0.50"}
                             style_width="50vw"
                         />
                         <Figure
-                            src={"/proj3/part_a/proj3_1-4_075.jpg"}
-                            caption={"Visualizing velocities and RGB RMS error at t = 0.75."}
+                            src={"/proj3/part_a/velocity_comparison_075.jpg"}
+                            caption={"Visualizing velocities and RGB RMS error at t = 0.75"}
                             style_width="50vw"
                         />
                     </div>
@@ -164,37 +164,41 @@ export default function Page() {
                     </p>
                     <div className="flex flex-col w-full justify-center items-center space-y-8">
                         <Figure
-                            src={"/proj3/part_a/proj3_1-5.jpg"}
-                            caption={"25 denoising steps, starting from t = 0.50"}
+                            src={"/proj3/part_a/euler_denoising_every_five.jpg"}
+                            caption={"Multi-step iterative Euler denoising, starting from t = 0.50 and taking 25 steps to reach t = 1.0. These are the intermediate results at every 5 steps. The initial state is t = 0.50 and the final image is t = 1.0."}
                             style_width="50vw"
                         />
                     </div>
                     <p>
-                        Comparing the results of multi-step denoising with one-step denoising, Gaussian blur, and the original image (the ground truth!).
+                        Comparing the results of multi-step denoising with the original image (the ground truth!), Gaussian-blur denoising, and one-step denoising.
                         Out of the 3 denoising methods so far, multi-step denoising recovers the original image the best.
                         In multi-step denoising, at every step the model can base its prediction of the velocity on a less noisy input x_t; therefore
                         every step the algorithm takes can "self-adjust" to more closely follow the true flow path.
                     </p>
                     <div className="flex flex-col w-full justify-center items-center space-y-8">
-                        TODO
+                        <Figure
+                            src={"/proj3/part_a/denoising_comparison.jpg"}
+                            caption={"Comparing the original image and 3 different denoising strategies: Gaussian blur, one-step denoising, and multi-step denoising."}
+                            style_width="50vw"
+                        />
                     </div>
                     <h3 className="font-medium">1.6 Generating Images from Noise</h3>
                     <p>
                         By passing in pure noise (x_0) and t = 0 to the multi-step denoising algorithm, we can generate images from scratch!
                         {"\n\n"}
-                        Here are 5 results of denoising pure noise, with the prompt "a high quality photo".
-                        All 5 results were of human-like subjects (quite uncanny valley). It seems that PixNerd favors human subjects when given this generic prompt!
+                        Here are 8 results of denoising pure noise, with the prompt "a high quality photo".
+                        All 8 results were of human-like subjects (quite uncanny valley). It seems that PixNerd favors human subjects when given this generic prompt!
                     </p>
                     <div className="flex flex-col w-full justify-center items-center space-y-8">
                         <Figure
-                            src={"/proj3/part_a/proj3_1-6.jpg"}
-                            caption={"Generating 5 images by starting with pure noise initialized with different seeds."}
+                            src={"/proj3/part_a/image_from_noise_prompt_high_quality.jpg"}
+                            caption={"Generating 8 images by starting with pure noise initialized with different seeds."}
                             style_width="50vw"
                         />
                     </div>
                 </section>
                 <section id="part_a_2" className="space-y-5">
-                    <h2 className="font-medium">Conditional Generation and Guidance</h2>
+                    <h2 className="font-medium">Part A.2: Conditional Generation and Guidance</h2>
                     <h3 className="font-medium">2.1 Classifier-Free Guidance (CFG)</h3>
                     <p>
                         Conditional guidance is when a model generates an image based on a certain condition, such as a provided text prompt.
@@ -222,14 +226,14 @@ x_{t + \Delta t} = x_t + \Delta t \cdot v_{cfg}
                     </p>
                     <div className="flex flex-col w-full justify-center items-center space-y-8">
                         <Figure
-                            src={"/proj3/part_a/proj3_2-1.jpg"}
-                            caption={"Generating 5 images with the text prompt \"a high quality photo\" via classifier-free guidance (w=7)."}
+                            src={"/proj3/part_a/cfg_generation_prompt_high_quality.jpg"}
+                            caption={"Generating 8 images with the text prompt \"a high quality photo\" via classifier-free guidance (w=7)."}
                             style_width="50vw"
                         />
                     </div>
                 </section>
                 <section id="part_a_3" className="space-y-5">
-                    <h2 className="font-medium">Creative Applications</h2>
+                    <h2 className="font-medium">Part A.3: Creative Applications</h2>
                     <h3 className="font-medium">3.1 Image-to-Image Editing</h3>
                     <p>
                         Denoising also allows us to "edit" pictures! In order to denoise an image, the flow model has to be "creative" in order to
@@ -247,17 +251,17 @@ x_{t + \Delta t} = x_t + \Delta t \cdot v_{cfg}
                     </p>
                     <div className="flex flex-col w-full justify-center items-center space-y-8">
                         <Figure
-                            src={"/proj3/part_a/proj3_3-1_campanile.jpg"}
+                            src={"/proj3/part_a/image_to_image_edit_campanile.jpg"}
                             caption={"The results of editing campanile.jpg starting at various intial times. Earlier starting times starting denoising from almost pure noise and resulted in very different final images than the original campanile.jpg."}
                             style_width="50vw"
                         />
                         <Figure
-                            src={"/proj3/part_a/proj3_3-1_santorini_cat.jpg"}
+                            src={"/proj3/part_a/image_to_image_edit_santorini_cat.jpg"}
                             caption={"The results of editing a cat on the Greek island of Santorini starting at various intial times."}
                             style_width="50vw"
                         />
                         <Figure
-                            src={"/proj3/part_a/proj3_3-1_windmill.jpg"}
+                            src={"/proj3/part_a/image_to_image_edit_windmill.jpg"}
                             caption={"The results of editing an image of a windmill from the Netherlands starting at various intial times."}
                             style_width="50vw"
                         />
@@ -266,11 +270,29 @@ x_{t + \Delta t} = x_t + \Delta t \cdot v_{cfg}
                     <p>
                         Editing via denoising can produce some fun results if we start out with a non-realistic image, like drawings or pixel art, then try to denoise it back onto the natural image manifold.
                         {"\n\n"}
-                        Here are the results of editing-via-denoising on a web image of the Golden Gate Bridge, and on two hand-drawn images.
+                        Here are the results of editing-via-denoising on a web image of the Golden Gate Bridge, a custom-drawn image of a T-rex surfing a wave, and a custom-drawn image of a hotdog.
                         I tried editing starting from 7 different times t = [0.02, 0.04, 0.06, 0.10, 0.14, 0.25, 0.5].
+                        At early start times such as 0.02 and 0.04, the final denoised result often looks very different from the original input.
+                        For the Golden Gate Bridge drawing, the model's strong preference for generating humanoid subject overrides any information about the original drawing, besides a patch of blue from the water.
+                        Interestingly, for the surfing T-rex, the model adds a small logo or watermark design in the bottom right corner up until t = 0.25 (and also hallucinates text).
+                        For the hotdog drawing, the model denoises the red sausage into a roughly rectangular or cylindrical shape, but isn't able to recover an identifiable hotdog until the start time reaches about 0.14 or 0.25.
                     </p>
                     <div className="flex flex-col w-full justify-center items-center space-y-8">
-                        TODO
+                        <Figure
+                            src={"/proj3/part_a/image_to_image_edit_ggb.jpg"}
+                            caption={"Editing a drawing of the Golden Gate Bridge via denoising"}
+                            style_width="25vw"
+                        />
+                        <Figure
+                            src={"/proj3/part_a/image_to_image_edit_trex_surfing.jpg"}
+                            caption={"Editing a drawing I made of a T-rex hanging ten via denoising"}
+                            style_width="25vw"
+                        />
+                        <Figure
+                            src={"/proj3/part_a/image_to_image_edit_hotdog.jpg"}
+                            caption={"Editing a drawing I made of a hotdog via denoising"}
+                            style_width="25vw"
+                        />
                     </div>
                     <h3 className="font-medium">3.2 Text-Guided Image Editing</h3>
                     <p>
@@ -285,17 +307,17 @@ x_{t + \Delta t} = x_t + \Delta t \cdot v_{cfg}
                     </p>
                     <div className="flex flex-col w-full justify-center items-center space-y-8">
                         <Figure
-                            src={"/proj3/part_a/proj3_3-2_campanile_redwood.jpg"}
+                            src={"/proj3/part_a/text_guided_image_edit_campanile_redwood.jpg"}
                             caption={"Editing campanile.jpg with the text prompt \"a redwod tree\""}
                             style_width="50vw"
                         />
                         <Figure
-                            src={"/proj3/part_a/proj3_3-2_santorini_cat_dragon.jpg"}
+                            src={"/proj3/part_a/text_guided_image_edit_santorini_cat_dragon.jpg"}
                             caption={"Editing santorini_cat.jpg with the text prompt \"a dragon sitting on top of a pile of treasure\""}
                             style_width="50vw"
                         />
                         <Figure
-                            src={"/proj3/part_a/proj3_3-2_windmill_icecream.jpg"}
+                            src={"/proj3/part_a/text_guided_image_edit_windmill_icecream.jpg"}
                             caption={"Editing windmill.jpg with the text prompt \"an ice cream sundae\""}
                             style_width="50vw"
                         />
@@ -320,7 +342,16 @@ x_{t + \Delta t} = x_t + \Delta t \cdot v_{cfg}
                         ariaLabel="Velocity equations to create visual anagrams with flow models"
                     />
                     <div className="flex flex-col w-full justify-center items-center space-y-8">
-                        TODO
+                        <Figure
+                            src={"/proj3/part_a/visual_anagram_horse_owl.jpg"}
+                            caption={"A visual anagram I made inspired by The Odyssey: a wooden horse and an owl representing Athena!"}
+                            style_width="50vw"
+                        />
+                        <Figure
+                            src={"/proj3/part_a/visual_anagram_bridge_cafe.jpg"}
+                            caption={"A visual anagram of a bridge over a canyon and a Parisian cafe."}
+                            style_width="50vw"
+                        />
                     </div>
                     <h3 className="font-medium">3.4 Hybrid Images</h3>
                     <p>
@@ -344,12 +375,42 @@ x_{t + \Delta t} = x_t + \Delta t \cdot v_{cfg}
     `}
                         ariaLabel="Velocity equations to create hybrid images with flow models"
                     />
-                    <div className="flex flex-col w-full justify-center items-center space-y-8">
-                        TODO
+                    <p>These are 2 hybrid images I made. The first one is a hybrid of a volcano and a wizard! The second one is a spiderman :)</p>
+                    <div className="grid grid-cols-1 gap-x-4 gap-y-8 md:grid-cols-2 justify-items-center items-center">
+                        <Figure
+                            src={"/proj3/part_a/hybrid_image_wizard_volcano.jpg"}
+                            caption={"A hybrid image that looks like \"a volcano\" from up close (zoomed in)..."}
+                            style_width="25vw"
+                        />
+                        {/* Separate div for the small image so the caption doesn't wrap excessively */}
+                        <div className="flex flex-col items-center">
+                            <Figure
+                                src={"/proj3/part_a/hybrid_image_wizard_volcano.jpg"}
+                                caption={""}
+                                style_width="3vw"
+                            />
+                            <figcaption className="mt-2 text-center text-sm text-gray-600">...and "a wizard" from afar (zoomed far away).
+                            </figcaption>
+                        </div>
+                        <Figure
+                            src={"/proj3/part_a/hybrid_image_spider_new_york.jpg"}
+                            caption={"A hybrid image that looks like \"a man walking through New York City\" from up close (zoomed in)..."}
+                            style_width="25vw"
+                        />
+                        {/* Separate div for the small image so the caption doesn't wrap excessively */}
+                        <div className="flex flex-col items-center">
+                            <Figure
+                                src={"/proj3/part_a/hybrid_image_spider_new_york.jpg"}
+                                caption={""}
+                                style_width="3vw"
+                            />
+                            <figcaption className="mt-2 text-center text-sm text-gray-600">...and "a spider" from afar (zoomed far away).
+                            </figcaption>
+                        </div>
                     </div>
                 </section>
                 <section id="part_b_1" className="space-y-5">
-                    <h2 className="font-medium">Training a Single-Step Denoising UNet</h2>
+                    <h2 className="font-medium">Part B.1: Training a Single-Step Denoising UNet</h2>
                     <h3 className="font-medium">1.1 and 1.2: Implementing a UNet and Visualizing the Noising Process</h3>
                     <p>
                         After reaching creative flow-state, I trained my own flow matching model on the MNIST dataset!
@@ -494,7 +555,7 @@ x_{t + \Delta t} = x_t + \Delta t \cdot v_{cfg}
                     </div>
                 </section>
                 <section id="part_b_2" className="space-y-5">
-                    <h2 className="font-medium">Training a Flow Matching Model</h2>
+                    <h2 className="font-medium">Part B.2: Training a Flow Matching Model</h2>
                     <h3 className="font-medium">2.1: Adding Time Conditioning to the UNet</h3>
                     <p>
                         One-step denoising is not sufficient for generative tasks. To improve on this, we need a model that can iteratively denoise an image in incremental steps.

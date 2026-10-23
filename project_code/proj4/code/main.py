@@ -1,5 +1,7 @@
 import math
 import numpy as np
+import cv2 as cv
+import scipy
 import skimage as sk
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
@@ -32,6 +34,22 @@ def save_np_as_img(output_path, arr):
     sk.io.imsave(output_path, arr)
 
     print(f"Saved image to {output_path}")
+
+
+def make_2d_gaussian_kernel(size=None, sigma=None):
+    """Make a 2D Gaussian kernel"""
+    # Size needs to be odd and positive
+    if size is not None:
+        # OpenCV will automatically calculate a sigma based on the size if sigma is non-positive
+        gaussian_filter = cv.getGaussianKernel(size, sigma=0)
+    elif sigma is not None:
+        # Rule of thumb for Gaussians: set filter half-width to about 3 sigma
+        kernel_size = 2 * int(np.ceil(3 * sigma)) + 1
+        gaussian_filter = cv.getGaussianKernel(kernel_size, sigma)
+    else:
+        gaussian_filter = cv.getGaussianKernel(ksize=3, sigma=0)
+
+    return gaussian_filter @ gaussian_filter.T
 
 
 def get_correspondences(
@@ -139,9 +157,6 @@ def computeH(im1_pts, im2_pts):
 
         b[2 * i : 2 * i + 2] = [x2, y2]
 
-    print(f"A {A}")
-    print(f"b {b}")
-
     h, _, _, _ = np.linalg.lstsq(A, b)
 
     # Convert h from a column vector into a matrix
@@ -171,37 +186,7 @@ def warpImageNearestNeighbor(im, H):
     else:
         h_in, w_in = im.shape
 
-    out_top_left = H @ np.array(
-        [0, 0, 1]
-    )  # The pixel center of an (h, w) image's top left corner
-    out_top_right = H @ np.array(
-        [w_in - 1, 0, 1]
-    )  # The pixel center of an (h, w) image's top right corner
-    out_bottom_left = H @ np.array(
-        [0, h_in - 1, 1]
-    )  # The pixel center of an (h, w) image's bottom left corner
-    out_bottom_right = H @ np.array(
-        [w_in - 1, h_in - 1, 1]
-    )  # The pixel center of an (h, w) image's bottom right corner
-
-    out_top_left = normalize(out_top_left)
-    out_top_right = normalize(out_top_right)
-    out_bottom_left = normalize(out_bottom_left)
-    out_bottom_right = normalize(out_bottom_right)
-
-    # (x_min, y_min) represent the top-left corner of the warped image in the original image's space
-    x_min = math.floor(
-        min(out_top_left[0], out_top_right[0], out_bottom_left[0], out_bottom_right[0])
-    )
-    x_max = math.ceil(
-        max(out_top_left[0], out_top_right[0], out_bottom_left[0], out_bottom_right[0])
-    )
-    y_min = math.floor(
-        min(out_top_left[1], out_top_right[1], out_bottom_left[1], out_bottom_right[1])
-    )
-    y_max = math.ceil(
-        max(out_top_left[1], out_top_right[1], out_bottom_left[1], out_bottom_right[1])
-    )
+    x_min, x_max, y_min, y_max = get_warped_corners(im, H)
 
     h_out = y_max - y_min + 1
     w_out = x_max - x_min + 1
@@ -211,13 +196,13 @@ def warpImageNearestNeighbor(im, H):
     if im.ndim == 3:
         out = np.zeros((h_out, w_out, c_in))
     else:
-        out = np.zeros((h_out, w_out))
+        out = np.zeros((h_out, w_out, 1))
 
     # 2D mask to mark which pixels in the output had valid source mappings.
     # Used as alpha channel later to distinguish output pixel = 0 because
     # it came from a 0 pixel in the source vs. output pixel = 0 because it
     # had no valid source mapping.
-    mask = np.zeros((h_out, w_out)).astype(bool)
+    mask = np.zeros((h_out, w_out, 1)).astype(bool)
 
     H_inv = np.linalg.inv(H)
 
@@ -239,7 +224,7 @@ def warpImageNearestNeighbor(im, H):
                 out[y, x] = im[source_y, source_x]
                 mask[y, x] = True
 
-    return out, mask, (x_min, y_min)
+    return out, mask, (x_min, x_max, y_min, y_max)
 
 
 def warpImageBilinear(im, H):
@@ -253,37 +238,7 @@ def warpImageBilinear(im, H):
     else:
         h_in, w_in = im.shape
 
-    out_top_left = H @ np.array(
-        [0, 0, 1]
-    )  # The pixel center of an (h, w) image's top left corner
-    out_top_right = H @ np.array(
-        [w_in - 1, 0, 1]
-    )  # The pixel center of an (h, w) image's top right corner
-    out_bottom_left = H @ np.array(
-        [0, h_in - 1, 1]
-    )  # The pixel center of an (h, w) image's bottom left corner
-    out_bottom_right = H @ np.array(
-        [w_in - 1, h_in - 1, 1]
-    )  # The pixel center of an (h, w) image's bottom right corner
-
-    out_top_left = normalize(out_top_left)
-    out_top_right = normalize(out_top_right)
-    out_bottom_left = normalize(out_bottom_left)
-    out_bottom_right = normalize(out_bottom_right)
-
-    # (x_min, y_min) represent the top-left corner of the warped image in the original image's space.
-    x_min = math.floor(
-        min(out_top_left[0], out_top_right[0], out_bottom_left[0], out_bottom_right[0])
-    )
-    x_max = math.ceil(
-        max(out_top_left[0], out_top_right[0], out_bottom_left[0], out_bottom_right[0])
-    )
-    y_min = math.floor(
-        min(out_top_left[1], out_top_right[1], out_bottom_left[1], out_bottom_right[1])
-    )
-    y_max = math.ceil(
-        max(out_top_left[1], out_top_right[1], out_bottom_left[1], out_bottom_right[1])
-    )
+    x_min, x_max, y_min, y_max = get_warped_corners(im, H)
 
     h_out = y_max - y_min + 1
     w_out = x_max - x_min + 1
@@ -295,13 +250,13 @@ def warpImageBilinear(im, H):
     if im.ndim == 3:
         out = np.zeros((h_out, w_out, c_in))
     else:
-        out = np.zeros((h_out, w_out))
+        out = np.zeros((h_out, w_out, 1))
 
     # 2D mask to mark which pixels in the output had valid source mappings.
     # Used as alpha channel later to distinguish output pixel = 0 because
     # it came from a 0 pixel in the source vs. output pixel = 0 because it
     # had no valid source mapping.
-    mask = np.zeros((h_out, w_out)).astype(bool)
+    mask = np.zeros((h_out, w_out, 1)).astype(bool)
 
     H_inv = np.linalg.inv(H)
 
@@ -374,7 +329,262 @@ def warpImageBilinear(im, H):
                 out[y, x] = out_value
                 mask[y, x] = True
 
-    return out, mask, (x_min, y_min)
+    return out, mask, (x_min, x_max, y_min, y_max)
+
+
+def get_warped_corners(im: np.ndarray, H: np.ndarray):
+    """
+    Compute where the corners of im would get mapped to after im gets transformed by H.
+
+    Args:
+        im: an image
+        H: a homography matrix that transforms im into a warped space.
+
+    Returns:
+        x_min, x_max, y_min, y_max: the coordinates corresponding to im's corners after warping,
+            written in terms of the image's original space.
+    """
+    h_in, w_in, _ = im.shape
+    out_top_left = H @ np.array(
+        [0, 0, 1]
+    )  # The pixel center of an (h, w) image's top left corner
+    out_top_right = H @ np.array(
+        [w_in - 1, 0, 1]
+    )  # The pixel center of an (h, w) image's top right corner
+    out_bottom_left = H @ np.array(
+        [0, h_in - 1, 1]
+    )  # The pixel center of an (h, w) image's bottom left corner
+    out_bottom_right = H @ np.array(
+        [w_in - 1, h_in - 1, 1]
+    )  # The pixel center of an (h, w) image's bottom right corner
+
+    out_top_left = normalize(out_top_left)
+    out_top_right = normalize(out_top_right)
+    out_bottom_left = normalize(out_bottom_left)
+    out_bottom_right = normalize(out_bottom_right)
+
+    # (x_min, y_min) represent the top-left corner of the warped image in the original image's space.
+    x_min = math.floor(
+        min(out_top_left[0], out_top_right[0], out_bottom_left[0], out_bottom_right[0])
+    )
+    x_max = math.ceil(
+        max(out_top_left[0], out_top_right[0], out_bottom_left[0], out_bottom_right[0])
+    )
+    y_min = math.floor(
+        min(out_top_left[1], out_top_right[1], out_bottom_left[1], out_bottom_right[1])
+    )
+    y_max = math.ceil(
+        max(out_top_left[1], out_top_right[1], out_bottom_left[1], out_bottom_right[1])
+    )
+
+    return x_min, x_max, y_min, y_max
+
+
+def gaussian_stack(
+    im=None,
+    max_levels=2,
+):
+    """
+    Build a Gaussian stack of im.
+    """
+
+    h, w = im.shape[:2]
+    if im.ndim == 3:
+        r, g, b = im[:, :, 0], im[:, :, 1], im[:, :, 2]
+
+    # Rule of thumb for Gaussians: set filter half-width to about 3 sigma
+    # Set max kernel size to ~ 1/2 width
+    max_kernel_size = min(h, w) // 2
+    max_sigma = (max_kernel_size) // 6
+
+    sigma = 1
+    stack = [im]
+
+    # Implement Gaussian stack by applying bigger blurs (bigger sigma + kernel size)
+    while sigma <= max_sigma and len(stack) < max_levels:
+        gaussian_kernel = make_2d_gaussian_kernel(sigma=sigma)
+        if im.ndim == 3:
+            conv_r = scipy.signal.convolve2d(
+                r, gaussian_kernel, mode="same", fillvalue=0
+            )
+            conv_g = scipy.signal.convolve2d(
+                g, gaussian_kernel, mode="same", fillvalue=0
+            )
+            conv_b = scipy.signal.convolve2d(
+                b, gaussian_kernel, mode="same", fillvalue=0
+            )
+
+            conv_stacked = np.dstack([conv_r, conv_g, conv_b])
+            stack.append(conv_stacked)
+        else:
+            conv = scipy.signal.convolve2d(
+                im, gaussian_kernel, mode="same", fillvalue=0
+            )
+            stack.append(conv)
+        sigma *= 2
+
+    return np.array(stack)
+
+
+def laplacian_stack(im, max_levels=2):
+    """
+    Build a Laplacian stack of im.
+    """
+    # level 0 = highest freq, level[-1] = lowest freq (most blurred)
+    gaussian_levels = gaussian_stack(im, max_levels=max_levels)
+    stack = []
+
+    # Compute Laplacian levels by subtracting adjacent Gaussian levels
+    # L_i = G_i - G_{i + 1}
+    # L_i represents the info lost when going from G_i to G_{i + 1}
+    for i in range(len(gaussian_levels) - 1):
+        G_i = gaussian_levels[i]
+        G_iplus1 = gaussian_levels[i + 1]
+        L_i = G_i - G_iplus1
+        stack.append(L_i)
+
+    # Final level of Laplacian stack should be the coarsest (blurriest) Gaussian level
+    stack.append(gaussian_levels[-1])
+
+    return np.array(stack)
+
+
+def make_mosaic(left_im, center_im, right_im):
+    h_center, w_center = center_im.shape[:2]
+    left_im_pts, center_im_pts = get_correspondences(
+        left_im, center_im, num_correspondences=8
+    )
+    left_to_center_H = computeH(left_im_pts, center_im_pts)
+    out_left, mask_left, corners_left = warpImageBilinear(left_im, left_to_center_H)
+    x_min_left, x_max_left, y_min_left, y_max_left = corners_left
+    h_left, w_left = (
+        y_max_left - y_min_left + 1,
+        x_max_left - x_min_left + 1,
+    )  # Height and width of the left image after warping
+
+    right_im_pts, center_im_pts = get_correspondences(
+        right_im, center_im, num_correspondences=8
+    )
+    right_to_center_H = computeH(right_im_pts, center_im_pts)
+    out_right, mask_right, corners_right = warpImageBilinear(
+        right_im, right_to_center_H
+    )
+    x_min_right, x_max_right, y_min_right, y_max_right = corners_right
+
+    # Compute dimensions of shared canvas
+    x_min = math.floor(min(x_min_left, 0, x_min_right))
+    x_max = math.ceil(max(x_max_left, w_center - 1, x_max_right))
+    y_min = math.floor(min(y_min_left, 0, y_min_right))
+    y_max = math.ceil(max(y_max_left, h_center - 1, y_max_right))
+
+    canvas_w = x_max - x_min + 1
+    canvas_h = y_max - y_min + 1
+
+    # B's top-left pixel (0, 0) should be placed at row -y_min, col -x_min in the canvas
+    canvas = np.zeros((canvas_h, canvas_w, 3))
+
+    # Create 6 canvases, each contains one of the 3 images or one of the masks
+    canvas_left, canvas_center, canvas_right = (
+        canvas.copy(),
+        canvas.copy(),
+        canvas.copy(),
+    )
+    # canvas_mask_left, canvas_mask_center, canvas_mask_right = (
+    #     np.zeros((canvas_h, canvas_w)),
+    #     np.zeros((canvas_h, canvas_w)),
+    #     np.zeros((canvas_h, canvas_w)),
+    # )
+    canvas_mask_left, canvas_mask_center, canvas_mask_right = (
+        canvas.copy(),
+        canvas.copy(),
+        canvas.copy(),
+    )
+
+    canvas_left[
+        y_min_left - y_min : y_max_left - y_min + 1,
+        x_min_left - x_min : x_max_left - x_min + 1,
+    ] = out_left
+    canvas_mask_left[
+        y_min_left - y_min : y_max_left - y_min + 1,
+        x_min_left - x_min : x_max_left - x_min + 1,
+        :,
+    ] = mask_left.astype(float)
+
+    canvas_center[-y_min : -y_min + h_center, -x_min : -x_min + w_center] = center_im
+    mask_center = np.ones((h_center, w_center, 1), dtype=float)
+    canvas_mask_center[-y_min : -y_min + h_center, -x_min : -x_min + w_center, :] = (
+        mask_center.astype(float)
+    )
+
+    canvas_right[
+        y_min_right - y_min : y_max_right - y_min + 1,
+        x_min_right - x_min : x_max_right - x_min + 1,
+    ] = out_right
+    canvas_mask_right[
+        y_min_right - y_min : y_max_right - y_min + 1,
+        x_min_right - x_min : x_max_right - x_min + 1,
+        :,
+    ] = mask_right.astype(float)
+
+    stack_depth = 2
+    laplacian_left = laplacian_stack(canvas_left, stack_depth)  # (N, H, W, 3)
+    laplacian_center = laplacian_stack(canvas_center, stack_depth)
+    laplacian_right = laplacian_stack(canvas_right, stack_depth)
+    laplacian_stacks = np.stack(
+        [laplacian_left, laplacian_center, laplacian_right], axis=1
+    )
+
+    gaussian_mask_left = gaussian_stack(canvas_mask_left, stack_depth)
+    gaussian_mask_center = gaussian_stack(canvas_mask_center, stack_depth)
+    gaussian_mask_right = gaussian_stack(canvas_mask_right, stack_depth)
+    gaussian_mask_stacks = np.stack(
+        [gaussian_mask_left, gaussian_mask_center, gaussian_mask_right], axis=1
+    )
+
+    mosaic = np.zeros_like(canvas)
+    for laplacians, gaussians in zip(laplacian_stacks, gaussian_mask_stacks):
+        blend = (
+            gaussians[0] * laplacians[0]
+            + gaussians[1] * laplacians[1]
+            + gaussians[2] * laplacians[2]
+        )
+        gaussian_weights = gaussians[0] + gaussians[1] + gaussians[2]
+        blend = np.divide(
+            blend,
+            gaussian_weights,
+            out=np.zeros_like(blend),
+            where=gaussian_weights > 0,
+        )
+
+        mosaic += blend
+
+    mosaic = np.clip(mosaic, 0, 1.0)
+
+    fig, axs = plt.subplots(2, 3, figsize=(4 * len(laplacian_stacks), 6))
+
+    axs[0, 0].imshow(left_im)
+    axs[0, 1].imshow(center_im)
+    axs[0, 2].imshow(right_im)
+    axs[1, 1].imshow(mosaic)
+
+    axs[1, 0].set_visible(False)
+    axs[1, 2].set_visible(False)
+
+    plt.tight_layout()
+    plt.savefig(
+        f"{OUTPUT_DIR}/mosaic_plots.jpg",
+        bbox_inches="tight",
+    )
+    plt.show()
+
+    plt.imshow(mosaic)
+    plt.savefig(
+        f"{OUTPUT_DIR}/mosaic.jpg",
+        bbox_inches="tight",
+    )
+    plt.show()
+
+    return mosaic
 
 
 def main():
@@ -391,35 +601,41 @@ def main():
     # H = computeH(im1_pts, im2_pts)
     # print(f"Recovered homography matrix: {H}")
 
-    warp_im1 = img_to_np(DATA_DIR / "parthenon.jpg")
-    h, w, _ = warp_im1.shape
-    warp_im2 = np.zeros_like(warp_im1)
-    size_of_corner = max(h // 15, w // 15)
-    warp_im2[
-        h // 2 - size_of_corner : h // 2 + size_of_corner,
-        w // 2 - size_of_corner : w // 2 + size_of_corner,
-        :,
-    ] = 1
+    # warp_im1 = img_to_np(DATA_DIR / "parthenon.jpg")
+    # h, w, _ = warp_im1.shape
+    # warp_im2 = np.zeros_like(warp_im1)
+    # size_of_corner = max(h // 15, w // 15)
+    # warp_im2[
+    #     h // 2 - size_of_corner : h // 2 + size_of_corner,
+    #     w // 2 - size_of_corner : w // 2 + size_of_corner,
+    #     :,
+    # ] = 1
 
-    warp_im1_pts, warp_im2_pts = get_correspondences(warp_im1, warp_im2)
+    # warp_im1_pts, warp_im2_pts = get_correspondences(warp_im1, warp_im2)
 
-    warp_H = computeH(warp_im1_pts, warp_im2_pts)
+    # warp_H = computeH(warp_im1_pts, warp_im2_pts)
 
-    print(f"Recovered homography matrix: {warp_H}")
+    # print(f"Recovered homography matrix: {warp_H}")
 
-    nn_warp, mask, (x_min, y_min) = warpImageNearestNeighbor(warp_im1, warp_H)
+    # nn_warp, _, _ = warpImageNearestNeighbor(warp_im1, warp_H)
 
-    bilinear_warp, mask, (x_min, y_min) = warpImageBilinear(warp_im1, warp_H)
+    # bilinear_warp, _, _ = warpImageBilinear(warp_im1, warp_H)
 
-    fig, axs = plt.subplots(1, 2, figsize=(12, 6))
-    axs[0].imshow(nn_warp)
-    axs[0].set_title("Warp (nearest neighbors inverse warp)")
+    # fig, axs = plt.subplots(1, 2, figsize=(12, 6))
+    # axs[0].imshow(nn_warp)
+    # axs[0].set_title("Warp (nearest neighbors inverse warp)")
 
-    axs[1].imshow(bilinear_warp)
-    axs[1].set_title("Warp (bilinear interpolation inverse warp)")
+    # axs[1].imshow(bilinear_warp)
+    # axs[1].set_title("Warp (bilinear interpolation inverse warp)")
 
-    plt.tight_layout()
-    plt.show()
+    # plt.tight_layout()
+    # plt.show()
+
+    mosaic_left_im = img_to_np(DATA_DIR / "gec_1.jpg")
+    mosaic_center_im = img_to_np(DATA_DIR / "gec_2.jpg")
+    mosaic_right_im = img_to_np(DATA_DIR / "gec_3.jpg")
+
+    mosaic = make_mosaic(mosaic_left_im, mosaic_center_im, mosaic_right_im)
 
 
 if __name__ == "__main__":

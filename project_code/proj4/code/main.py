@@ -11,7 +11,7 @@ DATA_DIR = Path("data")
 OUTPUT_DIR = Path("out")
 
 
-def img_to_np(input_file_path, grayscale=False):
+def img_to_np(input_file_path, resize=True, grayscale=False):
     """Reads an image given an input_file_path, and returns a NumPy ndarray"""
     img = sk.io.imread(input_file_path)
     img = sk.img_as_float(img)
@@ -23,6 +23,13 @@ def img_to_np(input_file_path, grayscale=False):
     if grayscale:
         img = sk.color.rgb2gray(img)
 
+    if resize:
+        h, w = img.shape[:2]
+        if w > 1000 or h > 1000:
+            new_w = 960
+            new_h = round(new_w * h / w)
+            img = sk.transform.resize(img, (new_h, new_w), anti_aliasing=True)
+    
     return img
 
 
@@ -755,12 +762,10 @@ def make_mosaic(images: list[np.ndarray], center_image_idx: int):
 
     num_rows = math.ceil(num_images / 3.0) + 1
     num_cols = 3
-    height_ratios = list(np.ones(num_rows - 1)) + [2]
     fig, axs = plt.subplots(
         num_rows,
         num_cols,
         figsize=(4 * num_cols, 3 * num_rows),
-        gridspec_kw={"height_ratios": height_ratios},
     )
 
     for idx, ax in enumerate(axs.flatten()):
@@ -792,8 +797,206 @@ def make_mosaic(images: list[np.ndarray], center_image_idx: int):
     return mosaic
 
 
+def make_mosaic_v2(images, num_correspondences=8):
+    """
+    Create a mosaic by stitching together multiple images.
+
+    1. Find correspondences between neighboring pairs of input images,
+        and compute homographies that map an image to the next image in the list: H_(1->2), H_(2->3), ...
+    2. Compose a transfrom from each image into the center image, and store a final image-to-center homography for each image:
+        - To map image 1 into image 3: p' = H_(2->3) H_(1->2) p
+        - H_(3->3) is just the identity matrix.
+        - To map image 5 into image 3: H_(5->3) = (H_(4->5) H_(3->4))^-1 = H^-1_(3->4) H^-1_(4->5) = H_(4->3) H_(5->4)
+            - The transformation from image 3's coordinates to image 5's coordinates: p' = H_(4->5) H_(3->4) p
+    3. Compute the bounding box of the shared canvas from all the transforms:
+        a. For each image, transform its 4 corners using the image-to-center homography and normalize
+            the homogeneous coordinates after warping.
+        b. Find the minimum and maximum x and y across all images, then take the floor/ceil of the minimas/maximas
+            to compute the dimensions of the shared projective plane.
+    4. Warp each image and mask onto their own copies of the projective plane canvas.
+    5. Blend all the image canvases together using Laplacian stacks and Gaussian stacks of their masks as weights.
+
+    Args:
+        images: list of np.ndarrays. The images should be ordered such that consecutive images overlap
+            because this algorithm computes homographies between adjacent pairs of images.
+        num_correspondences: the number of corresponding point pairs to
+            pick between 2 images; needs to be >= 4 to compute homography matrix H.
+    Returns:
+        mosaic: np.ndarray of the final mosaic
+
+    Also creates a plot of the input images alongside the final mosaic, and saves both
+    the plot and the final mosaic to OUTPUT_DIR.
+    """
+    num_images = len(images)
+
+    # Use the middle image in the input list as the image at the center
+    # of the shared projective plane.
+    center_im_idx = num_images // 2
+    center_im = images[center_im_idx]
+    h_center, w_center = center_im.shape[:2]
+
+    homographies = []  # homographies[i] is the transform that maps im_{i} to im_{i+1}
+    for i in range(num_images - 1):
+        im1, im2 = images[i], images[i + 1]
+        im1_pts, im2_pts = get_correspondences(
+            im1, im2, num_correspondences=num_correspondences
+        )
+        H_im1_to_im2 = computeH(im1_pts, im2_pts)
+        homographies.append(H_im1_to_im2)
+
+    homography_to_center = {}
+    curr_H = np.eye(3)
+    homography_to_center[center_im_idx] = curr_H
+    # Compute homographies that map images on the left of center_im to the center_im
+    # by composing homographies: H_(1->3) = H_(2->3) H_(1->2)
+    for i in range(center_im_idx - 1, -1, -1):
+        H_prev_to_i = homographies[i]
+        curr_H = curr_H @ H_prev_to_i
+        homography_to_center[i] = curr_H
+
+    curr_H = np.eye(3)
+    # Compute homographies that map images on the right of center_im to the center_im
+    # by composing inverse homographies: H_(5->3) = H^-1_(3->4) H^-1_(4->5)
+    for i in range(center_im_idx + 1, num_images):
+        H_prev_to_i = homographies[i - 1]  #
+        H_inv = np.linalg.inv(H_prev_to_i)
+        curr_H = curr_H @ H_inv
+        homography_to_center[i] = curr_H
+
+    idx_to_warped = {}
+    x_mins = []
+    x_maxes = []
+    y_mins = []
+    y_maxes = []
+    for idx, im in enumerate(images):
+        H_to_center = homography_to_center[idx]
+        out, mask, corners = warpImageBilinear(im, H_to_center)
+        x_min, x_max, y_min, y_max = corners
+
+        idx_to_warped[idx] = {"out": out, "mask": mask, "corners": corners}
+        x_mins.append(x_min)
+        x_maxes.append(x_max)
+        y_mins.append(y_min)
+        y_maxes.append(y_max)
+
+    # Compute dimensions of shared canvas
+    x_min_canvas = math.floor(min(x_mins + [0]))
+    x_max_canvas = math.ceil(
+        max(x_maxes + [w_center - 1])
+    )  # Largest x-coordinate of any pixel in center is w_center - 1
+    y_min_canvas = math.floor(min(y_mins + [0]))
+    y_max_canvas = math.ceil(max(y_maxes + [h_center - 1]))
+
+    canvas_w = x_max_canvas - x_min_canvas + 1
+    canvas_h = y_max_canvas - y_min_canvas + 1
+
+    # Center image's top-left pixel (0, 0) should be placed at row -y_min, col -x_min in the canvas
+    canvas = np.zeros((canvas_h, canvas_w, 3))
+    # Binary mask that is an additive sum of all the warped image's masks.
+    # Used as a final mask to crop out any blurry halos in the final canvas around the final mosaic
+    # that result from the gaussian weights blurring outer pixels into neighboring pixels on the canvas.
+    final_binary_mask = np.zeros((canvas_h, canvas_w, 3))
+
+    # Place each image or mask in its position on a separate canvas (all canvases have the same dimension
+    # as the final, shared canvas).
+    stack_depth = 2
+    laplacian_stacks = []
+    gaussian_mask_stacks = []
+    for idx, im in enumerate(images):
+        curr_canvas = canvas.copy()
+        curr_canvas_mask = canvas.copy()
+
+        out = idx_to_warped[idx]["out"]
+        mask = idx_to_warped[idx]["mask"]
+        x_min, x_max, y_min, y_max = idx_to_warped[idx]["corners"]
+        # Each image's top-left pixels should get translated to y_min - y_min_canvas, x_min - x_min_canvas
+        # in the final shared canvas after being warped.
+        # Center image's top-left pixel (0, 0) should be placed at row -y_min_canvas, col -x_min_canvas in the canvas.
+        curr_canvas[
+            y_min - y_min_canvas : y_max - y_min_canvas + 1,
+            x_min - x_min_canvas : x_max - x_min_canvas + 1,
+        ] = out
+
+        curr_canvas_mask[
+            y_min - y_min_canvas : y_max - y_min_canvas + 1,
+            x_min - x_min_canvas : x_max - x_min_canvas + 1,
+        ] = mask.astype(float)
+
+        final_binary_mask += curr_canvas_mask
+        lap = laplacian_stack(curr_canvas, stack_depth)  # (depth, H, W, 3)
+        gauss = gaussian_stack(curr_canvas_mask, stack_depth)
+
+        laplacian_stacks.append(lap)
+        gaussian_mask_stacks.append(gauss)
+
+    laplacian_stacks = np.stack(
+        laplacian_stacks, axis=1
+    )  # list with num_images items, each of shape (depth, H, W, 3) --> (depth, num_images, H, W, 3)
+    gaussian_mask_stacks = np.stack(
+        gaussian_mask_stacks, axis=1
+    )  # list with num_images items, each of shape (depth, H, W, 3) --> (depth, num_images, H, W, 3)
+
+    mosaic = np.zeros_like(canvas)
+    for laplacians, gaussians in zip(laplacian_stacks, gaussian_mask_stacks):
+        blend = np.zeros_like(canvas)
+        gaussian_weights = np.zeros_like(canvas)
+        for i in range(num_images):
+            blend += gaussians[i] * laplacians[i]
+            gaussian_weights += gaussians[i]
+
+        blend = np.divide(
+            blend,
+            gaussian_weights,
+            out=np.zeros_like(blend),
+            where=gaussian_weights > 0,
+        )
+
+        mosaic += blend
+
+    # final_binary_mask should be 1 if at least one validity mask covered this pixel,
+    # AKA at least 1 warped image mapped to this pixel in the shared projective view.
+    mosaic = mosaic * (final_binary_mask > 0)
+    mosaic = np.clip(mosaic, 0, 1.0)
+
+    num_rows = math.ceil(num_images / 3.0) + 1
+    num_cols = 3
+    fig, axs = plt.subplots(
+        num_rows,
+        num_cols,
+        figsize=(4 * num_cols, 3 * num_rows),
+    )
+
+    for idx, ax in enumerate(axs.flatten()):
+        if idx >= len(images):
+            ax.set_visible(False)
+        else:
+            ax.imshow(images[idx])
+            ax.set_title(
+                f"Image {idx + 1}{' (center)' if idx == center_im_idx else ''}"
+            )
+
+    axs[-1, num_cols // 2].set_visible(True)
+    axs[-1, num_cols // 2].imshow(mosaic)
+
+    plt.tight_layout()
+    plt.savefig(
+        f"{OUTPUT_DIR}/mosaic_plots.jpg",
+        bbox_inches="tight",
+    )
+    plt.show()
+
+    plt.imshow(mosaic)
+    plt.show()
+
+    mosaic_saved = (mosaic * 255.0).astype(np.uint8)
+    sk.io.imsave(f"{OUTPUT_DIR}/mosaic.jpg", mosaic_saved)
+    print(f"Saved image to {f'{OUTPUT_DIR}/mosaic.jpg'}")
+
+    return mosaic
+
+
 def main():
-    print("Hello world!")
+    print("===== (Auto)stitching and Photo Mosaics =====")
     # im1_pts = np.array([[1, 2], [3, 4], [5, 6], [7, 8]])
     # im2_pts = np.array([[-1, -2], [-3, -4], [-5, -6], [-7, -8]])
     # computeH(im1_pts, im2_pts)
@@ -836,11 +1039,28 @@ def main():
     # plt.tight_layout()
     # plt.show()
 
-    mosaic_left_im = img_to_np(DATA_DIR / "gec_1.jpg")
-    mosaic_center_im = img_to_np(DATA_DIR / "gec_2.jpg")
-    mosaic_right_im = img_to_np(DATA_DIR / "gec_3.jpg")
+    # mosaic_left_im = img_to_np(DATA_DIR / "gec_1.jpg")
+    # mosaic_center_im = img_to_np(DATA_DIR / "gec_2.jpg")
+    # mosaic_right_im = img_to_np(DATA_DIR / "gec_3.jpg")
 
-    mosaic = make_mosaic([mosaic_left_im, mosaic_center_im, mosaic_right_im], 1)
+    # mosaic = make_mosaic_v2([mosaic_left_im, mosaic_center_im, mosaic_right_im])
+
+    mosaic_im1 = img_to_np(DATA_DIR / "balcony_1.jpg")
+    mosaic_im2 = img_to_np(DATA_DIR / "balcony_2.jpg")
+    mosaic_im3 = img_to_np(DATA_DIR / "balcony_3.jpg")
+    mosaic_im4 = img_to_np(DATA_DIR / "balcony_4.jpg")
+    mosaic_im5 = img_to_np(DATA_DIR / "balcony_5.jpg")
+
+    mosaic = make_mosaic_v2(
+        [
+            mosaic_im1,
+            mosaic_im2,
+            mosaic_im3,
+            mosaic_im4,
+            mosaic_im5,
+        ],
+        6,
+    )
 
 
 if __name__ == "__main__":

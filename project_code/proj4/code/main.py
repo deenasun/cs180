@@ -29,7 +29,7 @@ def img_to_np(input_file_path, resize=True, grayscale=False):
             new_w = 960
             new_h = round(new_w * h / w)
             img = sk.transform.resize(img, (new_h, new_w), anti_aliasing=True)
-    
+
     return img
 
 
@@ -176,10 +176,27 @@ def computeH(im1_pts, im2_pts):
 
 
 def normalize(homogeneous_coord: np.ndarray):
-    """Normalizes a 3D homogeneous coordinate s.t. its last component = 1"""
-    if homogeneous_coord[-1] == 0 or not math.isfinite(homogeneous_coord[-1]):
-        return None  # Cannot normalize homogeneous coordinate if final component is a zero or non-finite
-    return homogeneous_coord / homogeneous_coord[-1]
+    """Normalizes 3D homogeneous coordinates s.t. its last component = 1"""
+    if homogeneous_coord.ndim == 1:
+        denominator = homogeneous_coord[-1]
+    elif (
+        homogeneous_coord.ndim == 2
+    ):  # Batched homogenous coordinates have shape (3, N)
+        denominator = homogeneous_coord[-1:,]
+    else:
+        print(
+            f"Invalid shape when normalizing homogenous coordinates: {homogeneous_coord.shape}"
+        )
+        return None  # Invalid shape
+
+    valid = (denominator != 0) & np.isfinite(denominator)
+    normalized = np.divide(
+        homogeneous_coord,
+        denominator,
+        out=np.zeros_like(homogeneous_coord),
+        where=valid,
+    )
+    return normalized, valid
 
 
 def warpImageNearestNeighbor(im, H):
@@ -188,22 +205,19 @@ def warpImageNearestNeighbor(im, H):
     Compute the pixel values in the warped image using inverse warping (nearest neighbors interpolation).
     """
     print("===== Warping image using nearest neighbor inverse warping =====")
-    if im.ndim == 3:
-        h_in, w_in, c_in = im.shape
-    else:
-        h_in, w_in = im.shape
+    if im.ndim == 2:
+        im = np.expand_dims(im, axis=2)  # Add singleton dimension to grayscale images
+
+    h_in, w_in, c_in = im.shape
 
     x_min, x_max, y_min, y_max = get_warped_corners(im, H)
 
+    # Top-left pixel in out (matrix index (0, 0)) corresponds
+    # to the pixel location (x_min, y_min) in the warped image.
     h_out = y_max - y_min + 1
     w_out = x_max - x_min + 1
 
-    # Top-left pixel in out (matrix index (0, 0)) corresponds
-    # to the pixel location (x_min, y_min) in the warped image.
-    if im.ndim == 3:
-        out = np.zeros((h_out, w_out, c_in))
-    else:
-        out = np.zeros((h_out, w_out, 1))
+    out = np.zeros((h_out, w_out, c_in))
 
     # 2D mask to mark which pixels in the output had valid source mappings.
     # Used as alpha channel later to distinguish output pixel = 0 because
@@ -215,21 +229,45 @@ def warpImageNearestNeighbor(im, H):
 
     # Iterate through pixel coordinate in the output image.
     for y in range(h_out):
-        for x in range(w_out):
-            # For each pixel in the output, compute which source pixels it came from
-            # and "gather" colors from the source pixels.
+        # First transform 0-indexed (x, y) into pixel coordinates in the warped image space.
+        # Also add a 3rd component of all 1's to transform into homogeneous
+        # coordinates for homography matmul.
+        dest_row = np.stack(
+            [
+                np.arange(
+                    x_min, x_max + 1, 1
+                ),  # x-coordinates for this row go from x_min to x_max
+                np.full((w_out), y + y_min),  # y-coordinates for this row: y + y_min
+                np.ones(
+                    w_out
+                ),  # homogeneous coordinates have a 1 in the last component
+            ],
+            axis=0,
+        )
+        source_coords, valid = normalize(H_inv @ dest_row)
+        source_coords = source_coords.T  # (3, N) --> (N, 3)
+        valid = np.squeeze(
+            valid.T
+        )  # (1, N) --> (N,) for combining with boolean operators later
+        source_x = np.round(source_coords[:, 0]).astype(int)
+        source_y = np.round(source_coords[:, 1]).astype(int)
 
-            # First transform 0-indexed (x, y) into pixel coordinates in the warped image space.
-            dest_coords = np.array([x + x_min, y + y_min, 1])
-            source_coords = normalize(H_inv @ dest_coords)
-            if source_coords is None:
-                continue  # Skip if source_coord's final component is zero or infinity
-            source_x = round(source_coords[0])
-            source_y = round(source_coords[1])
+        valid = (
+            (0 <= source_x)
+            & (source_x < w_in)
+            & (0 <= source_y)
+            & (source_y < h_in)
+            & valid
+        )
 
-            if 0 <= source_x < w_in and 0 <= source_y < h_in:
-                out[y, x] = im[source_y, source_x]
-                mask[y, x] = True
+        # Clip to prevent out-of-bounds errors in case the transformation
+        # maps to pixel positions in the source image that are out-of-bounds.
+        safe_source_x = np.clip(source_x, 0, w_in - 1)
+        safe_source_y = np.clip(source_y, 0, h_in - 1)
+
+        # Matrix coordinates (x, y) correspond to pixel positions row=y, col=x
+        out[y, valid, :] = im[safe_source_y[valid], safe_source_x[valid]]
+        mask[y, valid, 0] = True
 
     return out, mask, (x_min, x_max, y_min, y_max)
 
@@ -240,24 +278,20 @@ def warpImageBilinear(im, H):
     Compute the pixel values in the warped image using inverse warping (bilinear interpolation).
     """
     print("===== Warping image using bilinear interpolation inverse warping =====")
-    if im.ndim == 3:
-        h_in, w_in, c_in = im.shape
-    else:
-        h_in, w_in = im.shape
+
+    if im.ndim == 2:
+        im = np.expand_dims(im, axis=2)  # Add singleton dimension to grayscale images
+
+    h_in, w_in, c_in = im.shape
 
     x_min, x_max, y_min, y_max = get_warped_corners(im, H)
 
+    # Top-left pixel in out (matrix index (0, 0)) corresponds
+    # to the pixel location (x_min, y_min) in the warped image.
     h_out = y_max - y_min + 1
     w_out = x_max - x_min + 1
 
-    # Top-left pixel in out (matrix index (0, 0)) corresponds
-    # to the pixel location (x_min, y_min) in the warped image.
-    # Top-left pixel in out (matrix index (0, 0)) corresponds
-    # to the pixel location (x_min, y_min) in the warped image.
-    if im.ndim == 3:
-        out = np.zeros((h_out, w_out, c_in))
-    else:
-        out = np.zeros((h_out, w_out, 1))
+    out = np.zeros((h_out, w_out, c_in))
 
     # 2D mask to mark which pixels in the output had valid source mappings.
     # Used as alpha channel later to distinguish output pixel = 0 because
@@ -269,72 +303,105 @@ def warpImageBilinear(im, H):
 
     # Iterate through pixel coordinates in the output image.
     for y in range(h_out):
-        for x in range(w_out):
-            # For each pixel in the output, compute which source pixels it came from
-            # and "gather" colors from the source pixels.
+        # For each pixel in the output, compute which source pixels it came from
+        # and "gather" colors from the source pixels.
+        dest_row = np.stack(
+            [
+                np.arange(
+                    x_min, x_max + 1, 1
+                ),  # x-coordinates for this row go from x_min to x_max
+                np.full((w_out), y + y_min),  # y-coordinates for this row: y + y_min
+                np.ones(
+                    w_out
+                ),  # homogeneous coordinates have a 1 in the last component
+            ],
+            axis=0,
+        )
 
-            # First transform 0-indexed (x, y) into pixel coordinates in the warped image space.
-            dest_coords = np.array([x + x_min, y + y_min, 1])
-            source_coords = normalize(H_inv @ dest_coords)
-            if source_coords is None:
-                continue  # Skip if source_coord's final component is zero or infinity
-            source_x = source_coords[0]
-            source_y = source_coords[1]
+        source_coords, valid = normalize(H_inv @ dest_row)
+        source_coords = source_coords.T  # (3, N) --> (N, 3)
+        valid = np.squeeze(
+            valid.T
+        )  # (1, N) --> (N,) for combining with boolean operators later
+        source_x = source_coords[:, 0]
+        source_y = source_coords[:, 1]
 
-            neighbor_1 = [
-                math.floor(source_x),
-                math.floor(source_y),
-            ]  # Neighbor above and to the left
-            neighbor_2 = [
-                math.floor(source_x),
-                math.floor(source_y) + 1,
-            ]  # Neighbor below and to the left
-            neighbor_3 = [
-                math.floor(source_x) + 1,
-                math.floor(source_y) + 1,
-            ]  # Neighbor below and to the right
-            neighbor_4 = [
-                math.floor(source_x) + 1,
-                math.floor(source_y),
-            ]  # Neighbor above and to the right
+        left_x = np.floor(source_x).astype(int)
+        right_x = left_x + 1
+        top_y = np.floor(source_y).astype(int)
+        bottom_y = top_y + 1
 
-            # Each neighbor gets weighted by the area of the rectangle diagonal to it.
-            # If a neighbor is out of bounds, set its weight to 0.
-            out_value = 0
-            if 0 <= neighbor_1[0] < w_in and 0 <= neighbor_1[1] < h_in:
-                weight_1 = abs(source_x - neighbor_3[0]) * abs(source_y - neighbor_3[1])
-                n1_x, n1_y = neighbor_1
-                out_value += weight_1 * im[n1_y, n1_x]
-            else:
-                weight_1 = 0
+        # Neighbor above and to the left has x,y coordinates (left_x, top_y) which correspond to pixel positions at row top_y and col left_x
+        n1_valid = (
+            (0 <= left_x) & (left_x < w_in) & (0 <= top_y) & (top_y < h_in) & valid
+        )
 
-            if 0 <= neighbor_2[0] < w_in and 0 <= neighbor_2[1] < h_in:
-                weight_2 = abs(source_x - neighbor_4[0]) * abs(source_y - neighbor_4[1])
-                n2_x, n2_y = neighbor_2
-                out_value += weight_2 * im[n2_y, n2_x]
-            else:
-                weight_2 = 0
+        # Neighbor below and to the left, with x,y coordinates (left_x, bottom_y) and pixel positions row=bottom_y, col=left_x
+        n2_valid = (
+            (0 <= left_x)
+            & (left_x < w_in)
+            & (0 <= bottom_y)
+            & (bottom_y < h_in)
+            & valid
+        )
 
-            if 0 <= neighbor_3[0] < w_in and 0 <= neighbor_3[1] < h_in:
-                weight_3 = abs(source_x - neighbor_1[0]) * abs(source_y - neighbor_1[1])
-                n3_x, n3_y = neighbor_3
-                out_value += weight_3 * im[n3_y, n3_x]
-            else:
-                weight_3 = 0
+        # Neighbor below and to the right, with x,y coordinates (right_x, bottom_y) and pixel positions row=bottom_y, col=right_x
+        n3_valid = (
+            (0 <= right_x)
+            & (right_x < w_in)
+            & (0 <= bottom_y)
+            & (bottom_y < h_in)
+            & valid
+        )
 
-            if 0 <= neighbor_4[0] < w_in and 0 <= neighbor_4[1] < h_in:
-                weight_4 = abs(source_x - neighbor_2[0]) * abs(source_y - neighbor_2[1])
-                n4_x, n4_y = neighbor_4
-                out_value += weight_4 * im[n4_y, n4_x]
-            else:
-                weight_4 = 0
+        # Neighbor above and to the right, with x,y coordinates (right_x, top_y) and pixel positions row=top_y, col=right_x
+        n4_valid = (
+            (0 <= right_x) & (right_x < w_in) & (0 <= top_y) & (top_y < h_in) & valid
+        )
 
-            # The pixel at (x, y) in the output is valid if we interpolate
-            # from the source with at least one non-zero weight
-            if weight_1 + weight_2 + weight_3 + weight_4 > 0:
-                out_value /= weight_1 + weight_2 + weight_3 + weight_4
-                out[y, x] = out_value
-                mask[y, x] = True
+        # Each neighbor gets weighted by the area of the rectangle diagonal to it.
+        # If a neighbor is out of bounds, set its weight to 0.
+        weight_1 = abs(source_x - right_x) * abs(
+            source_y - bottom_y
+        )  # weight of neighbor 1 uses neighbor 3's coords to calculate area
+        weight_1 = np.expand_dims(weight_1, axis=1)  # (H, W) --> (H, W, 1)
+        weight_1[~n1_valid] = (
+            0  # if neighbor 1's coordinates are out-of-bounds, zero out its weight
+        )
+
+        weight_2 = abs(source_x - right_x) * abs(source_y - top_y)
+        weight_2 = np.expand_dims(weight_2, axis=1)  # (H, W) --> (H, W, 1)
+        weight_2[~n2_valid] = 0
+
+        weight_3 = abs(source_x - left_x) * abs(source_y - top_y)
+        weight_3 = np.expand_dims(weight_3, axis=1)  # (H, W) --> (H, W, 1)
+        weight_3[~n3_valid] = 0
+
+        weight_4 = abs(source_x - left_x) * abs(source_y - bottom_y)
+        weight_4 = np.expand_dims(weight_4, axis=1)  # (H, W) --> (H, W, 1)
+        weight_4[~n4_valid] = 0
+
+        # Clip to prevent out-of-bounds errors in case the transformation
+        # maps to pixel positions in the source image that are out-of-bounds.
+        safe_left_x = np.clip(left_x, 0, w_in - 1)
+        safe_right_x = np.clip(right_x, 0, w_in - 1)
+        safe_bottom_y = np.clip(bottom_y, 0, h_in - 1)
+        safe_top_y = np.clip(top_y, 0, h_in - 1)
+
+        # The pixel at (x, y) in the output is valid if we interpolate
+        # from the source with at least one non-zero weight
+        weights = weight_1 + weight_2 + weight_3 + weight_4
+        out_value = np.divide(
+            weight_1 * im[safe_top_y, safe_left_x]
+            + weight_2 * im[safe_bottom_y, safe_left_x]
+            + weight_3 * im[safe_bottom_y, safe_right_x]
+            + weight_4 * im[safe_top_y, safe_right_x],
+            weights,
+            out=np.zeros_like(out[y, :]),
+            where=(weights > 0),
+        )
+        out[y, :] = out_value
+        mask[y, :] = (weights > 0).astype(bool)
 
     return out, mask, (x_min, x_max, y_min, y_max)
 
@@ -365,10 +432,10 @@ def get_warped_corners(im: np.ndarray, H: np.ndarray):
         [w_in - 1, h_in - 1, 1]
     )  # The pixel center of an (h, w) image's bottom right corner
 
-    out_top_left = normalize(out_top_left)
-    out_top_right = normalize(out_top_right)
-    out_bottom_left = normalize(out_bottom_left)
-    out_bottom_right = normalize(out_bottom_right)
+    out_top_left, _ = normalize(out_top_left)
+    out_top_right, _ = normalize(out_top_right)
+    out_bottom_left, _ = normalize(out_bottom_left)
+    out_bottom_right, _ = normalize(out_bottom_right)
 
     # (x_min, y_min) represent the top-left corner of the warped image in the original image's space.
     x_min = math.floor(
@@ -394,7 +461,7 @@ def gaussian_stack(
     """
     Build a Gaussian stack of im.
     """
-
+    print("===== Building Gaussian stack =====")
     h, w = im.shape[:2]
     if im.ndim == 3:
         r, g, b = im[:, :, 0], im[:, :, 1], im[:, :, 2]
@@ -437,6 +504,7 @@ def laplacian_stack(im, max_levels=2):
     """
     Build a Laplacian stack of im.
     """
+    print("===== Building Laplacian stack =====")
     # level 0 = highest freq, level[-1] = lowest freq (most blurred)
     gaussian_levels = gaussian_stack(im, max_levels=max_levels)
     stack = []
@@ -621,183 +689,7 @@ def make_3image_mosaic(
     return mosaic
 
 
-def make_mosaic(images: list[np.ndarray], center_image_idx: int):
-    """
-    Create a mosaic by stitching together multiple images.
-
-    Treats the image located at `center_image_idx` as the reference: all homographies therefore compute an H
-    that will warp the other images to match center_im's projective plane.
-
-    To smoothly blend the images in the mosaic together, each image and its mask are first projected onto their own copies
-    of the projective view. Then, each canvas containing the warped image is turned into a Laplacian stack
-    and each canvas containing the warped image's mask is turned into a Gaussian stack. Finally, each level of the Laplacian stack
-    are collapsed together, with each Laplacian weighted by its mask's Gaussian.
-
-    Args:
-        images: list of np.ndarrays
-        center_image_idx: integer index of the image that should be placed at the center of the shared projective plane.
-
-    Returns:
-        mosaic: np.ndarray of the final mosaic
-
-    Also creates a plot of the input images alongside the final mosaic, and saves both
-    the plot and the final mosaic to OUTPUT_DIR.
-    """
-    num_images = len(images)
-    center_im = images[center_image_idx]
-    h_center, w_center = center_im.shape[:2]
-
-    idx_to_warped = {}  # Maps image idx to (out, mask, corners)
-    x_mins = []
-    x_maxes = []
-    y_mins = []
-    y_maxes = []
-    for idx, im in enumerate(images):
-        if idx == center_image_idx:
-            continue
-        im2_pts, center_im_pts = get_correspondences(
-            im, center_im, num_correspondences=8
-        )
-
-        im2_to_center_H = computeH(im2_pts, center_im_pts)
-        out, mask, corners = warpImageBilinear(im, im2_to_center_H)
-        x_min, x_max, y_min, y_max = corners
-
-        idx_to_warped[idx] = {"out": out, "mask": mask, "corners": corners}
-        x_mins.append(x_min)
-        x_maxes.append(x_max)
-        y_mins.append(y_min)
-        y_maxes.append(y_max)
-
-    # Compute dimensions of shared canvas
-    x_min_canvas = math.floor(min(x_mins + [0]))
-    x_max_canvas = math.ceil(
-        max(x_maxes + [w_center - 1])
-    )  # Largest x-coordinate of any pixel in center is w_center - 1
-    y_min_canvas = math.floor(min(y_mins + [0]))
-    y_max_canvas = math.ceil(max(y_maxes + [h_center - 1]))
-
-    canvas_w = x_max_canvas - x_min_canvas + 1
-    canvas_h = y_max_canvas - y_min_canvas + 1
-
-    # Center image's top-left pixel (0, 0) should be placed at row -y_min, col -x_min in the canvas
-    canvas = np.zeros((canvas_h, canvas_w, 3))
-    # Binary mask that is an additive sum of all the warped image's masks.
-    # Used as a final mask to crop out any blurry halos in the final canvas around the final mosaic
-    # that result from the gaussian weights blurring outer pixels into neighboring pixels on the canvas.
-    final_binary_mask = np.zeros((canvas_h, canvas_w, 3))
-
-    # Place each image or mask in its position on a separate canvas (all canvases have the same dimension
-    # as the final, shared canvas).
-    stack_depth = 2
-    laplacian_stacks = []
-    gaussian_mask_stacks = []
-    for idx, im in enumerate(images):
-        curr_canvas = canvas.copy()
-        curr_canvas_mask = canvas.copy()
-
-        if idx != center_image_idx:
-            out = idx_to_warped[idx]["out"]
-            mask = idx_to_warped[idx]["mask"]
-            x_min, x_max, y_min, y_max = idx_to_warped[idx]["corners"]
-            # Each image's top-left pixels should get translated to y_min - y_min_canvas, x_min - x_min_canvas
-            # in the final shared canvas after being warped
-            curr_canvas[
-                y_min - y_min_canvas : y_max - y_min_canvas + 1,
-                x_min - x_min_canvas : x_max - x_min_canvas + 1,
-            ] = out
-
-            curr_canvas_mask[
-                y_min - y_min_canvas : y_max - y_min_canvas + 1,
-                x_min - x_min_canvas : x_max - x_min_canvas + 1,
-            ] = mask.astype(float)
-        else:
-            # Center image's top-left pixel (0, 0) should be placed at row -y_min_canvas, col -x_min_canvas in the canvas
-            curr_canvas[
-                -y_min_canvas : -y_min_canvas + h_center,
-                -x_min_canvas : -x_min_canvas + w_center,
-            ] = center_im
-            mask_center = np.ones((h_center, w_center, 1), dtype=float)
-            curr_canvas_mask[
-                -y_min_canvas : -y_min_canvas + h_center,
-                -x_min_canvas : -x_min_canvas + w_center,
-                :,
-            ] = mask_center.astype(float)
-
-        final_binary_mask += curr_canvas_mask
-        lap = laplacian_stack(curr_canvas, stack_depth)  # (depth, H, W, 3)
-        gauss = gaussian_stack(curr_canvas_mask, stack_depth)
-
-        laplacian_stacks.append(lap)
-        gaussian_mask_stacks.append(gauss)
-
-    laplacian_stacks = np.stack(
-        laplacian_stacks, axis=1
-    )  # list with num_images items, each of shape (depth, H, W, 3) --> (depth, num_images, H, W, 3)
-    gaussian_mask_stacks = np.stack(
-        gaussian_mask_stacks, axis=1
-    )  # list with num_images items, each of shape (depth, H, W, 3) --> (depth, num_images, H, W, 3)
-
-    mosaic = np.zeros_like(canvas)
-    for laplacians, gaussians in zip(laplacian_stacks, gaussian_mask_stacks):
-        blend = np.zeros_like(canvas)
-        gaussian_weights = np.zeros_like(canvas)
-        for i in range(num_images):
-            blend += gaussians[i] * laplacians[i]
-            gaussian_weights += gaussians[i]
-
-        blend = np.divide(
-            blend,
-            gaussian_weights,
-            out=np.zeros_like(blend),
-            where=gaussian_weights > 0,
-        )
-
-        mosaic += blend
-
-    # final_binary_mask should be 1 if at least one validity mask covered this pixel,
-    # AKA at least 1 warped image mapped to this pixel in the shared projective view.
-    mosaic = mosaic * (final_binary_mask > 0)
-    mosaic = np.clip(mosaic, 0, 1.0)
-
-    num_rows = math.ceil(num_images / 3.0) + 1
-    num_cols = 3
-    fig, axs = plt.subplots(
-        num_rows,
-        num_cols,
-        figsize=(4 * num_cols, 3 * num_rows),
-    )
-
-    for idx, ax in enumerate(axs.flatten()):
-        if idx >= len(images):
-            ax.set_visible(False)
-        else:
-            ax.imshow(images[idx])
-            ax.set_title(
-                f"Image {idx + 1}{' (reference)' if idx == center_image_idx else ''}"
-            )
-
-    axs[-1, num_cols // 2].set_visible(True)
-    axs[-1, num_cols // 2].imshow(mosaic)
-
-    plt.tight_layout()
-    plt.savefig(
-        f"{OUTPUT_DIR}/mosaic_plots.jpg",
-        bbox_inches="tight",
-    )
-    plt.show()
-
-    plt.imshow(mosaic)
-    plt.show()
-
-    mosaic_saved = (mosaic * 255.0).astype(np.uint8)
-    sk.io.imsave(f"{OUTPUT_DIR}/mosaic.jpg", mosaic_saved)
-    print(f"Saved image to {f'{OUTPUT_DIR}/mosaic.jpg'}")
-
-    return mosaic
-
-
-def make_mosaic_v2(images, num_correspondences=8):
+def make_mosaic_v2(images, output_base_name, num_correspondences=8):
     """
     Create a mosaic by stitching together multiple images.
 
@@ -980,7 +872,7 @@ def make_mosaic_v2(images, num_correspondences=8):
 
     plt.tight_layout()
     plt.savefig(
-        f"{OUTPUT_DIR}/mosaic_plots.jpg",
+        f"{OUTPUT_DIR}/{output_base_name}_mosaic_plots.jpg",
         bbox_inches="tight",
     )
     plt.show()
@@ -989,8 +881,8 @@ def make_mosaic_v2(images, num_correspondences=8):
     plt.show()
 
     mosaic_saved = (mosaic * 255.0).astype(np.uint8)
-    sk.io.imsave(f"{OUTPUT_DIR}/mosaic.jpg", mosaic_saved)
-    print(f"Saved image to {f'{OUTPUT_DIR}/mosaic.jpg'}")
+    sk.io.imsave(f"{OUTPUT_DIR}/{output_base_name}_mosaic.jpg", mosaic_saved)
+    print(f"Saved image to {OUTPUT_DIR}/{output_base_name}_mosaic.jpg")
 
     return mosaic
 
@@ -1043,22 +935,13 @@ def main():
     # mosaic_center_im = img_to_np(DATA_DIR / "gec_2.jpg")
     # mosaic_right_im = img_to_np(DATA_DIR / "gec_3.jpg")
 
-    # mosaic = make_mosaic_v2([mosaic_left_im, mosaic_center_im, mosaic_right_im])
-
-    mosaic_im1 = img_to_np(DATA_DIR / "balcony_1.jpg")
-    mosaic_im2 = img_to_np(DATA_DIR / "balcony_2.jpg")
-    mosaic_im3 = img_to_np(DATA_DIR / "balcony_3.jpg")
-    mosaic_im4 = img_to_np(DATA_DIR / "balcony_4.jpg")
-    mosaic_im5 = img_to_np(DATA_DIR / "balcony_5.jpg")
+    mosaic_im1 = img_to_np(DATA_DIR / "gec_1.jpg")
+    mosaic_im2 = img_to_np(DATA_DIR / "gec_2.jpg")
+    mosaic_im3 = img_to_np(DATA_DIR / "gec_3.jpg")
 
     mosaic = make_mosaic_v2(
-        [
-            mosaic_im1,
-            mosaic_im2,
-            mosaic_im3,
-            mosaic_im4,
-            mosaic_im5,
-        ],
+        [mosaic_im1, mosaic_im2, mosaic_im3],
+        "gec",
         6,
     )
 

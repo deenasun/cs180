@@ -137,7 +137,7 @@ export default function Page() {
                     <p className="mb-3">
                         From a high-level birds-eye-view, my automatic image alignment function follows these steps:
                     </p>
-                    <ul className="space-y-3">
+                    <ul>
                         <li>
                             - Takes a digitized image of the blue, green, and red glass plates joined together (sort of like a photostrip),
                             and splits it into 3 equal parts.</li>

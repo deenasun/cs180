@@ -220,6 +220,50 @@ export default function Page() {
                         TODO: screenshot of the interactive window for finding correspondences.
                     </div>
                 </section>
+                <section id="part_a_3" className="space-y-5">
+                    <h2 className="font-medium">Part A.3: Warp the Images</h2>
+                    <p>
+                        After recovering the homography, I warped one image onto another "reference" image's projective plane.
+                        I implemented this via inverse warping! First, I computed what the pixel positions of image 1's corners would be
+                        after warping. I used this as the bounding box to create an empty "canvas" of all zeros.
+                        Then, I iterated through all the pixel positions in the canvas.
+                        For each pixel position, I applied the inverse of the homography matrix to find which pixels in the
+                        source image it came from. Then, I "gathered" the values from the source pixels and set the output pixel
+                        to the gathered colors.
+                        {"\n\n"}
+                        I implemented 2 interpolation methods from scratch:
+                        <ul>
+                            <li><b>Nearest neighbor interpolation:</b> after inverting the output pixel coordinates, I rounded the resulting
+                                coordinates to find the nearest, valid source pixel position to gather a value from.</li>
+                            <li>
+                                <b>Bilinear interpolation:</b> after inverting the output pixel coordinates, I computed the coordinates of the
+                                4 neighboring pixels from the source image around the inverted coordinate, then used a weighted average of the
+                                neighbors' values in the output based on how close the inverted pixel coordinate is to each neighbor.
+                                To determine how much to weigh each neighbor's values, we can visualizethe neighbors as forming a 1 pixel by 1 pixel square.
+                                The inverted pixel coordinates fall somewhere inside this square (possibly on an edge of the square or on
+                                one of the neighbors themselves). The inverted pixel splits the 1x1 square into 4 sub-rectangles (or fewer than 4
+                                sub-rectangles if the inverted pixel lies on an outer edge/corner). Then, each neighbor should be assigned
+                                a weight proportional to the area of the sub-rectangle diagonal from it. For example, the
+                                neighbor above and to the left of the inverted pixel should be weighted by an amount proportional to the area of
+                                the bottom-right sub-rectangle.</li>
+                        </ul>
+                        For both interpolation methods, if the pixel in the warped output canvas was inverted to a coordinate that would be out-of-bounds
+                        in the source image, I treated that source pixel as having a value or weight of 0.
+                    </p>
+                    <p>
+                        To test my homography and interpolation code, I applied them to pictures depicting known rectangular objects from non-front-on angles.
+                        This is known as "rectification": projecting images onto a common image plane (in this case, projecting images onto an plane such that
+                        the skewed rectangular objects look like rectangle again).
+
+                        Here are the results of rectifying XYZ. I knew that in real-life, these facades and paintings are rectangles with right angles and parallel edges.
+                        But because the images were taken from an angle, the facades/paintings look like skewed quadrilaterals. Thus, rectifying these images involves
+                        pairing these images with a placeholder image of a normal rectangle to represent a projective plane that views the facades/paintings from front-on,
+                        computing a homography, and interpolating
+                    </p>
+                    <div className="flex flex-row w-full justify-center space-x-20">
+                        TODO
+                    </div>
+                </section>
             </article>
             <aside className="fixed right-0 top-20 hidden h-fit max-h-[70vh] w-[15vw] min-w-[150px] px-4 overflow-y-auto border-l-2 border-gray-200 md:block">
                 <TableOfContents contents={contents} />

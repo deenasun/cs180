@@ -218,6 +218,8 @@ export default function Page() {
                     </p>
                     <div className="flex flex-row w-full justify-center space-x-20">
                         TODO: screenshot of the interactive window for finding correspondences.
+                        TODO: show correspondences visualized on the images.
+                        TODO: show the system of equations and recovered homography matrix.
                     </div>
                 </section>
                 <section id="part_a_3" className="space-y-5">
@@ -261,7 +263,48 @@ export default function Page() {
                         computing a homography, and interpolating
                     </p>
                     <div className="flex flex-row w-full justify-center space-x-20">
-                        TODO
+                        TODO: show rectifications on 2+ images.
+                    </div>
+                </section>
+                <section id="part_a_4" className="space-y-5">
+                    <h2 className="font-medium">Part A.4: Blend the Images into a Mosaic</h2>
+                    <p>
+                        With all these puzzle pieces in place, we can now stitch multiple overlapping images into an image mosaic!
+                        In my implementation, I treated the middle image as the center of the mosaic, then transformed all the other images
+                        onto this center image's projective plane. To avoid edge effects, I used multi-resolution blending with Laplacian and Gaussian stacks.
+                        <ol>
+                            <li>
+                                Find  correspondences between adjacent images and compute Homographies
+                                that map adjacent images to each other.
+                            </li>
+                            <li>
+                                Compose the transforms together to find a homography for each image that maps
+                                it onto the shared, common projective plane (AKA the projective plane that the
+                                center image uses).
+                            </li>
+                            <li>
+                                Compute the size that the shared canvas should have so that it fits all the images
+                                after they are tranformed. For each image, transform its 4 corners using the image-to-center homography.
+                                Then, find the minimum x, minimum y, maximum x, and maximum y coordinates across all the warped corners.
+                                The shared canvas needs to be able to fit the full range of x, y coordinates; thus the dimensions
+                                of the final mosaic canvas should equal (maximum x - minimum x + 1, maximum y - minimum y + 1) pixels.
+                            </li>
+                            <li>
+                                Warp each image onto its own copy of the canvas.
+                                Using the same sized canvas helps simplify the multi-resolution blend step.
+                                Also, create a mask for each iamge. The mask should have the same shape as the canvas
+                                and have 1's where the warped image is located, and 0's elsewhere.
+                            </li>
+                            <li>
+                                Blend all the image canvases together using multi-resolution blending!
+                                This involves creating Laplacian stacks of all the canvases containing a single warped image
+                                and Guassian stacks of all the masks. Then, merge each level by weighting each canvas's Laplacian
+                                at that level by its mask's Gaussian at that level. Finally, collapse (add) the blends from all the levels together.
+                            </li>
+                        </ol>
+                    </p>
+                    <div className="flex flex-row w-full justify-center space-x-20">
+                        TODO: show 3 mosaics with source images.
                     </div>
                 </section>
             </article>

@@ -7,6 +7,8 @@ import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 from pathlib import Path
 
+from harris import get_harris_corners
+
 DATA_DIR = Path("data")
 OUTPUT_DIR = Path("out")
 
@@ -942,6 +944,49 @@ def make_mosaic_v2(images, output_base_name, num_correspondences=8):
     return mosaic
 
 
+def harris_corner_detection(
+    image: np.ndarray, num_interest_points: int = 500, output_base_name: str = ""
+):
+    """
+    Uses the multi-scale Harris corner algorithm to detect interest points
+    and adaptive non-maximal suppression to select a fixed number of interest points
+    that are well-distributed throughout the image.
+
+    Args:
+        image: np.ndarray of an image.
+        num_interest_points: the number of interest points to detect from image.
+        output_base_name: the base name of the output path to save plots to.
+    Returns:
+        corner_strengths, interest_points
+    """
+    bw = sk.color.rgb2gray(image)
+
+    h, coords = get_harris_corners(bw)
+    ys, xs = coords
+
+    fig, ax = plt.subplots()
+    ax.imshow(image)
+    ax.set_title(f"Multi-scale Harris corners of {output_base_name}")
+    ax.scatter(xs, ys, s=0.25)
+    plt.tight_layout()
+    plt.savefig(
+        f"{OUTPUT_DIR}/{output_base_name + '_harris_corners' if output_base_name else 'harris_corners'}.jpg",
+        bbox_inches="tight",
+    )
+    plt.show()
+    
+    # TODO: implement ANMS
+    N = len(ys)
+    rng = np.random.default_rng(seed=180)
+    sample_idx = rng.integers(0, N, num_interest_points)
+    interest_point_xs = ys[sample_idx]
+    interest_point_ys = (xs[sample_idx],)
+    interest_points = np.stack([interest_point_ys, interest_point_xs], axis=0)
+    corner_strengths = h[interest_point_ys, interest_point_xs]
+    
+    return corner_strengths, interest_points
+
+
 def main():
     print("===== (Auto)stitching and Photo Mosaics =====")
     # im1_pts = np.array([[1, 2], [3, 4], [5, 6], [7, 8]])
@@ -986,23 +1031,9 @@ def main():
     # plt.tight_layout()
     # plt.show()
 
-    # mosaic_left_im = img_to_np(DATA_DIR / "gec_1.jpg")
-    # mosaic_center_im = img_to_np(DATA_DIR / "gec_2.jpg")
-    # mosaic_right_im = img_to_np(DATA_DIR / "gec_3.jpg")
-
-    # mosaic_im1 = img_to_np(DATA_DIR / "gec_1.jpg")
-    # mosaic_im2 = img_to_np(DATA_DIR / "gec_2.jpg")
-    # mosaic_im3 = img_to_np(DATA_DIR / "gec_3.jpg")
-
-    # mosaic = make_mosaic_v2(
-    #     [mosaic_im1, mosaic_im2, mosaic_im3],
-    #     "gec",
-    #     6,
-    # )
-
-    # gec_1 = img_to_np(DATA_DIR / "gec_1.jpg")
-    # gec_2 = img_to_np(DATA_DIR / "gec_2.jpg")
-    # gec_3 = img_to_np(DATA_DIR / "gec_3.jpg")
+    gec_1 = img_to_np(DATA_DIR / "gec_1.jpg")
+    gec_2 = img_to_np(DATA_DIR / "gec_2.jpg")
+    gec_3 = img_to_np(DATA_DIR / "gec_3.jpg")
 
     # mosaic = make_mosaic_v2(
     #     [gec_1, gec_2, gec_3],
@@ -1010,11 +1041,11 @@ def main():
     #     6,
     # )
 
-    # campus_1 = img_to_np(DATA_DIR / "campus_1.jpg")
-    # campus_2 = img_to_np(DATA_DIR / "campus_2.jpg")
-    # campus_3 = img_to_np(DATA_DIR / "campus_3.jpg")
-    # campus_4 = img_to_np(DATA_DIR / "campus_4.jpg")
-    # campus_5 = img_to_np(DATA_DIR / "campus_5.jpg")
+    campus_1 = img_to_np(DATA_DIR / "campus_1.jpg")
+    campus_2 = img_to_np(DATA_DIR / "campus_2.jpg")
+    campus_3 = img_to_np(DATA_DIR / "campus_3.jpg")
+    campus_4 = img_to_np(DATA_DIR / "campus_4.jpg")
+    campus_5 = img_to_np(DATA_DIR / "campus_5.jpg")
 
     # mosaic = make_mosaic_v2(
     #     [campus_1, campus_2, campus_3, campus_4, campus_5],
@@ -1022,23 +1053,25 @@ def main():
     #     6,
     # )
 
-    wheeler_1 = img_to_np(DATA_DIR / "wheeler_1.jpg")
-    wheeler_2 = img_to_np(DATA_DIR / "wheeler_2.jpg")
-    wheeler_3 = img_to_np(DATA_DIR / "wheeler_3.jpg")
-    wheeler_4 = img_to_np(DATA_DIR / "wheeler_4.jpg")
-    wheeler_5 = img_to_np(DATA_DIR / "wheeler_5.jpg")
+    # wheeler_1 = img_to_np(DATA_DIR / "wheeler_1.jpg")
+    # wheeler_2 = img_to_np(DATA_DIR / "wheeler_2.jpg")
+    # wheeler_3 = img_to_np(DATA_DIR / "wheeler_3.jpg")
+    # wheeler_4 = img_to_np(DATA_DIR / "wheeler_4.jpg")
+    # wheeler_5 = img_to_np(DATA_DIR / "wheeler_5.jpg")
 
-    mosaic = make_mosaic_v2(
-        [
-            wheeler_1,
-            wheeler_2,
-            wheeler_3,
-            wheeler_4,
-            wheeler_5,
-        ],
-        "wheeler",
-        6,
-    )
+    # mosaic = make_mosaic_v2(
+    #     [
+    #         wheeler_1,
+    #         wheeler_2,
+    #         wheeler_3,
+    #         wheeler_4,
+    #         wheeler_5,
+    #     ],
+    #     "wheeler",
+    #     6,
+    # )
+
+    harris_corner_detection(gec_1, "gec_1")
 
 
 if __name__ == "__main__":

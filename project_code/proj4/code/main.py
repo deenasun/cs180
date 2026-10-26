@@ -11,7 +11,7 @@ DATA_DIR = Path("data")
 OUTPUT_DIR = Path("out")
 
 
-def img_to_np(input_file_path, resize=True, grayscale=False):
+def img_to_np(input_file_path, resize=False, grayscale=False):
     """Reads an image given an input_file_path, and returns a NumPy ndarray"""
     img = sk.io.imread(input_file_path)
     img = sk.img_as_float(img)
@@ -60,7 +60,12 @@ def make_2d_gaussian_kernel(size=None, sigma=None):
 
 
 def get_correspondences(
-    img1: np.ndarray, img2: np.ndarray, num_correspondences=4
+    im1: np.ndarray,
+    im2: np.ndarray,
+    num_correspondences=4,
+    im1_title=None,
+    im2_title=None,
+    output_base_name=None,
 ) -> tuple:
     """
     Interactive window that shows the 2 images side-by-side.
@@ -68,21 +73,23 @@ def get_correspondences(
     """
     colors = list(mcolors.BASE_COLORS.keys())
 
-    fig, axs = plt.subplots(1, 2, figsize=(12, 6))
-    axs[0].imshow(img1)
-    axs[0].set_title("Image 1")
+    fig, axs = plt.subplots(1, 2, figsize=(16, 8))
+    axs[0].imshow(im1)
+    axs[0].set_title(im1_title if im1_title else "Image 1")
     axs[0].gid = "image_1"  # Tag each subplot with a label
 
-    axs[1].imshow(img2)
-    axs[1].set_title("Image 2")
+    axs[1].imshow(im2)
+    axs[1].set_title(im2_title if im2_title else "Image 2")
     axs[1].gid = "image_2"  # Tag each subplot with a label
 
     fig.suptitle(
-        f"Please select {num_correspondences} corresponding points in each image."
+        f"Please select {num_correspondences} corresponding points in each image.\nPress esc to undo."
     )
 
     im1_pts = []
+    im1_markers = []  # List of marker objects returned by .plot
     im2_pts = []
+    im2_markers = []
     next_axs = 0  # Require user to alternate between points in image 1 and image 2
 
     def on_click(event):
@@ -96,28 +103,32 @@ def get_correspondences(
             print(
                 f"Captured click at ({event.xdata:.2f}, {event.ydata:.2f}) in image 1"
             )
-            axs[0].plot(
-                event.xdata,
-                event.ydata,
-                color=colors[len(im1_pts) % len(colors)],
-                marker="o",
-                markersize=6,
+            im1_markers.append(
+                axs[0].plot(
+                    event.xdata,
+                    event.ydata,
+                    color=colors[len(im1_pts) % len(colors)],
+                    marker="o",
+                    markersize=6,
+                )[0]
             )
-            fig.canvas.draw()
+            fig.canvas.draw_idle()
             im1_pts.append([event.xdata, event.ydata])
             next_axs = (next_axs + 1) % 2
         elif event.inaxes.gid == "image_2" and next_axs == 1:
             print(
                 f"Captured click at ({event.xdata:.2f}, {event.ydata:.2f}) in image 2"
             )
-            axs[1].plot(
-                event.xdata,
-                event.ydata,
-                color=colors[len(im2_pts) % len(colors)],
-                marker="o",
-                markersize=6,
+            im2_markers.append(
+                axs[1].plot(
+                    event.xdata,
+                    event.ydata,
+                    color=colors[len(im2_pts) % len(colors)],
+                    marker="o",
+                    markersize=6,
+                )[0]
             )
-            fig.canvas.draw()
+            fig.canvas.draw_idle()
             im2_pts.append([event.xdata, event.ydata])
             next_axs = (next_axs + 1) % 2
         else:
@@ -125,12 +136,41 @@ def get_correspondences(
 
         if len(im1_pts) == num_correspondences and len(im2_pts) == num_correspondences:
             # Close the figure once user has selected num_correspondences points in both images
+            plt.savefig(
+                f"{OUTPUT_DIR}/{output_base_name + '_correspondences' if output_base_name else 'correspondences'}.jpg",
+                bbox_inches="tight",
+            )
             plt.close(fig)
 
+    def on_keypress(event):
+        """
+        Undo the last selected point if the user enters "escape"
+        """
+        print("press", event.key)
+        if event.key != "escape":
+            return
+        if len(im1_pts) == 0 and len(im2_pts) == 0:
+            return
+
+        nonlocal next_axs
+        last_axs = (next_axs - 1) % 2
+        if last_axs == 0:
+            im1_pts.pop()
+            last_marker = im1_markers.pop()
+        else:
+            im2_pts.pop()
+            last_marker = im2_markers.pop()
+
+        last_marker.remove()  # Remove marker from the plot
+        next_axs = last_axs
+        fig.canvas.draw_idle()
+
     fig.canvas.mpl_connect("button_press_event", on_click)
+    fig.canvas.mpl_connect("key_press_event", on_keypress)
     plt.tight_layout()
+
     plt.show()
-    print(f"Collected {num_correspondences}")
+    print(f"Collected {len(im1_pts)}")
     return np.array(im1_pts), np.array(im2_pts)
 
 
@@ -551,14 +591,24 @@ def make_3image_mosaic(
     """
     h_center, w_center = center_im.shape[:2]
     left_im_pts, center_im_pts = get_correspondences(
-        left_im, center_im, num_correspondences=8
+        left_im,
+        center_im,
+        num_correspondences=8,
+        im1_title="Left image",
+        im2_title="Center image",
+        output_base_name="left_center",
     )
     left_to_center_H = computeH(left_im_pts, center_im_pts)
     out_left, mask_left, corners_left = warpImageBilinear(left_im, left_to_center_H)
     x_min_left, x_max_left, y_min_left, y_max_left = corners_left
 
     right_im_pts, center_im_pts = get_correspondences(
-        right_im, center_im, num_correspondences=8
+        right_im,
+        center_im,
+        num_correspondences=8,
+        im1_title="Right image",
+        im2_title="Center image",
+        output_base_name="right_center",
     )
     right_to_center_H = computeH(right_im_pts, center_im_pts)
     out_right, mask_right, corners_right = warpImageBilinear(
@@ -731,7 +781,12 @@ def make_mosaic_v2(images, output_base_name, num_correspondences=8):
     for i in range(num_images - 1):
         im1, im2 = images[i], images[i + 1]
         im1_pts, im2_pts = get_correspondences(
-            im1, im2, num_correspondences=num_correspondences
+            im1,
+            im2,
+            num_correspondences=num_correspondences,
+            im1_title=f"Image {i}",
+            im2_title=f"Image {i + 1}",
+            output_base_name=f"{output_base_name}_{i}_{i + 1}",
         )
         H_im1_to_im2 = computeH(im1_pts, im2_pts)
         homographies.append(H_im1_to_im2)
@@ -893,10 +948,10 @@ def main():
     # im2_pts = np.array([[-1, -2], [-3, -4], [-5, -6], [-7, -8]])
     # computeH(im1_pts, im2_pts)
 
-    # img1 = img_to_np(DATA_DIR / "engineering_1.jpg")
-    # img2 = img_to_np(DATA_DIR / "engineering_2.jpg")
+    # im2 = img_to_np(DATA_DIR / "engineering_1.jpg")
+    # im2 = img_to_np(DATA_DIR / "engineering_2.jpg")
 
-    # im1_pts, im2_pts = get_correspondences(img1, img2)
+    # im1_pts, im2_pts = get_correspondences(im1, im2)
 
     # H = computeH(im1_pts, im2_pts)
     # print(f"Recovered homography matrix: {H}")
@@ -935,13 +990,53 @@ def main():
     # mosaic_center_im = img_to_np(DATA_DIR / "gec_2.jpg")
     # mosaic_right_im = img_to_np(DATA_DIR / "gec_3.jpg")
 
-    mosaic_im1 = img_to_np(DATA_DIR / "gec_1.jpg")
-    mosaic_im2 = img_to_np(DATA_DIR / "gec_2.jpg")
-    mosaic_im3 = img_to_np(DATA_DIR / "gec_3.jpg")
+    # mosaic_im1 = img_to_np(DATA_DIR / "gec_1.jpg")
+    # mosaic_im2 = img_to_np(DATA_DIR / "gec_2.jpg")
+    # mosaic_im3 = img_to_np(DATA_DIR / "gec_3.jpg")
+
+    # mosaic = make_mosaic_v2(
+    #     [mosaic_im1, mosaic_im2, mosaic_im3],
+    #     "gec",
+    #     6,
+    # )
+
+    # gec_1 = img_to_np(DATA_DIR / "gec_1.jpg")
+    # gec_2 = img_to_np(DATA_DIR / "gec_2.jpg")
+    # gec_3 = img_to_np(DATA_DIR / "gec_3.jpg")
+
+    # mosaic = make_mosaic_v2(
+    #     [gec_1, gec_2, gec_3],
+    #     "gec",
+    #     6,
+    # )
+
+    # campus_1 = img_to_np(DATA_DIR / "campus_1.jpg")
+    # campus_2 = img_to_np(DATA_DIR / "campus_2.jpg")
+    # campus_3 = img_to_np(DATA_DIR / "campus_3.jpg")
+    # campus_4 = img_to_np(DATA_DIR / "campus_4.jpg")
+    # campus_5 = img_to_np(DATA_DIR / "campus_5.jpg")
+
+    # mosaic = make_mosaic_v2(
+    #     [campus_1, campus_2, campus_3, campus_4, campus_5],
+    #     "campus",
+    #     6,
+    # )
+
+    wheeler_1 = img_to_np(DATA_DIR / "wheeler_1.jpg")
+    wheeler_2 = img_to_np(DATA_DIR / "wheeler_2.jpg")
+    wheeler_3 = img_to_np(DATA_DIR / "wheeler_3.jpg")
+    wheeler_4 = img_to_np(DATA_DIR / "wheeler_4.jpg")
+    wheeler_5 = img_to_np(DATA_DIR / "wheeler_5.jpg")
 
     mosaic = make_mosaic_v2(
-        [mosaic_im1, mosaic_im2, mosaic_im3],
-        "gec",
+        [
+            wheeler_1,
+            wheeler_2,
+            wheeler_3,
+            wheeler_4,
+            wheeler_5,
+        ],
+        "wheeler",
         6,
     )
 

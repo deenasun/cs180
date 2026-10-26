@@ -7,7 +7,7 @@ import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 from pathlib import Path
 
-from harris import get_harris_corners
+from harris import dist2, get_harris_corners
 
 DATA_DIR = Path("data")
 OUTPUT_DIR = Path("out")
@@ -945,9 +945,12 @@ def make_mosaic_v2(images, output_base_name, num_correspondences=8):
 
 
 def harris_corner_detection(
-    image: np.ndarray, num_interest_points: int = 500, output_base_name: str = ""
+    image: np.ndarray,
+    num_interest_points: int = 500,
+    output_base_name: str | None = None,
 ):
     """
+    Implements section 2 and 3 of the paper: Interest Point Detection and Adaptive Non-Maximal Suppression.
     Uses the multi-scale Harris corner algorithm to detect interest points
     and adaptive non-maximal suppression to select a fixed number of interest points
     that are well-distributed throughout the image.
@@ -957,7 +960,9 @@ def harris_corner_detection(
         num_interest_points: the number of interest points to detect from image.
         output_base_name: the base name of the output path to save plots to.
     Returns:
-        corner_strengths, interest_points
+        corner_strengths: (H, W) array whose (i, j)th value corresopnds to the corner
+            strength 2 * det(A) / (trace(A) + eps) at position (i, j) in the image.
+        interest_points: (2, N) array of ys, xs
     """
     print("===== Harris corner detection with adaptive non-maximal suppression =====")
 
@@ -968,10 +973,19 @@ def harris_corner_detection(
     h, coords = get_harris_corners(bw, edge_discard=20)
     ys, xs = coords
 
+    # TODO: implement ANMS
+    N = len(ys)
+    rng = np.random.default_rng(seed=180)
+    sample_idx = rng.choice(N - 1, size=num_interest_points, replace=False)
+    interest_point_xs = xs[sample_idx]
+    interest_point_ys = ys[sample_idx]
+    interest_points = np.stack([interest_point_ys, interest_point_xs], axis=0)
+    corner_strengths = h[interest_point_ys, interest_point_xs]
+
     fig, ax = plt.subplots()
     ax.imshow(image)
     ax.set_title(f"Multi-scale Harris corners of {output_base_name}")
-    ax.scatter(xs, ys, s=0.25)
+    ax.scatter(interest_point_xs, interest_point_ys, s=0.25)
     plt.tight_layout()
     plt.savefig(
         f"{OUTPUT_DIR}/{output_base_name + '_harris_corners' if output_base_name else 'harris_corners'}.jpg",
@@ -979,15 +993,6 @@ def harris_corner_detection(
     )
     plt.show()
 
-    # TODO: implement ANMS
-    N = len(ys)
-    rng = np.random.default_rng(seed=180)
-    sample_idx = rng.integers(0, N, num_interest_points)
-    interest_point_xs = ys[sample_idx]
-    interest_point_ys = (xs[sample_idx],)
-    interest_points = np.stack([interest_point_ys, interest_point_xs], axis=0)
-    corner_strengths = h[interest_point_ys, interest_point_xs]
-    
     return corner_strengths, interest_points
 
 
@@ -1023,6 +1028,7 @@ def extract_feature_descriptors(
     num_display: int = 8,
 ):
     """
+    Implements section 4 of the paper: Feature Descriptor.
     Extracts feature descriptors for interest points in an image.
 
     Args:
@@ -1032,6 +1038,9 @@ def extract_feature_descriptors(
         output_base_name: the base name of the output path to save plots to.
         eps: small value to avoid dividing by 0 when bias/gain-normalizing feature descriptors.
         num_display: the number of feature descriptors to sample and display.
+
+    Returns:
+        feature_descriptors: (N, 64) array where each row is an interest point's flattened feature descriptor.
     """
     print("===== Extracting feature descriptors =====")
 
@@ -1061,11 +1070,13 @@ def extract_feature_descriptors(
     patch_std = np.std(patches, axis=(1, 2), keepdims=True) + eps
     norm_patches = (patches - patch_mean) / patch_std
 
+    # Randomly sample feature descriptor patches to visualize.
     rng = np.random.default_rng(seed=180)
-    sample_idx = rng.integers(0, num_interest_points, num_display)
+    sample_idx = rng.choice(num_interest_points, size=num_display, replace=False)
 
     sampled_patches = norm_patches[sample_idx]
-    nrows, ncols = num_display // 4, 4
+    nrows = math.ceil(num_display / 4) + 1
+    ncols = 4
 
     fig, axs = plt.subplots(nrows, ncols)
 
@@ -1084,7 +1095,147 @@ def extract_feature_descriptors(
     )
     plt.show()
 
-    return norm_patches
+    # Flatten 8x8 patches into feature descriptor vectors.
+    feature_descriptors = norm_patches.reshape((-1, 64))
+    return feature_descriptors
+
+
+def match_features(
+    im1_fds: np.ndarray, im2_fds: np.ndarray, lowe_ratio_threshold: float = 0.4
+):
+    """
+    Implements section 5 of the paper: Feature Matching.
+
+    Args:
+        im1_fds: (M, 64) array of feature descriptor vectors corresponding
+            to image 1's interest points.
+        im2_fds: (L, 64) array of feature descriptor vectors corresponding
+            to image 2's interest points.
+        lowes_ratio_threshold: threshold for accepting a neighbor as a match.
+            Given the 2 nearest neighbors of a feature descriptor, only accept
+            the closest neighbor as a match if the ratio of the
+            distances 1-NN/2-NN <= threshold.
+
+    Returns:
+        symmetric_matches: np.ndarray of shape (K, 2) where K is the number of
+            feature matches found. Each element in the array is a tuple of feature
+            descriptor indices (index_of_im1_feature_descriptor, index_of_im2_feature_descriptor).
+            If no feature matches are found, symmetric_matches is an empy array of shape (0,)
+    """
+
+    # distances[i, j] is the squared distance from
+    # image 1's ith feature descriptor to image 2's jth feature descriptor.
+    distances = dist2(im1_fds, im2_fds)  # (M, L)
+
+    # Top 2 closest neighbors in image 2 for each interest point from image 1
+    # Find the bottom k using np.argpartition --> kth=1 puts 2nd largest element in index 1,
+    # and partitions all smaller elements before index 1. Then, indexing [:, :2] gets the
+    # top 2 smallest distances.
+    im1_nearest_neighbors = np.argpartition(distances, kth=1, axis=1)[:, :2]  # (M, 2)
+    print(im1_nearest_neighbors.shape)
+
+    # Top 2 closest neighbors in image 1 for each interest point from image 2
+    im2_nearest_neighbors = np.argpartition(distances, kth=1, axis=0)[:2, :].T  # (L, 2
+    print(im2_nearest_neighbors.shape)
+
+    matches_for_im1 = {}  # Maps index in im1 to index of matching feature descriptor from im2
+    for i, closest_idxs in enumerate(im1_nearest_neighbors):
+        j1, j2 = closest_idxs
+        # Argpartition finds the indices of the 2 smallest distances but
+        # does not gaurantee they are sorted.
+        if distances[i, j1] < distances[i, j2]:
+            nn1_idx = j1
+            nn2_idx = j2
+        else:
+            nn1_idx = j2
+            nn2_idx = j1
+
+        d1, d2 = distances[i, nn1_idx], distances[i, nn2_idx]
+        if d1 / d2 < lowe_ratio_threshold:
+            matches_for_im1[i] = nn1_idx
+
+    matches_for_im2 = {}  # Maps index in im2 to index of matching feature descriptor from im1
+    for j, closest_idxs in enumerate(im2_nearest_neighbors):
+        i1, i2 = closest_idxs
+        # Argpartition finds the indices of the 2 smallest distances but
+        # does not gaurantee they are sorted.
+        if distances[i1, j] < distances[i2, j]:
+            nn1_idx = i1
+            nn2_idx = i2
+        else:
+            nn1_idx = i2
+            nn2_idx = i1
+        d1, d2 = distances[nn1_idx, j], distances[nn2_idx, j]
+        if d1 / d2 < lowe_ratio_threshold:
+            matches_for_im2[j] = nn1_idx
+
+    # Save a pair of feature descriptors as a match if they are
+    # both each other's closest match.
+    symmetric_matches = []
+    for i, j in matches_for_im1.items():
+        if matches_for_im2.get(j) == i:
+            symmetric_matches.append([i, j])
+
+    return np.array(symmetric_matches)
+
+
+def plot_feature_matches(
+    im1: np.ndarray,
+    im2: np.ndarray,
+    im1_output_base_name: str | None = None,
+    im2_output_base_name: str | None = None,
+):
+    """
+    Detects interest points and extracts feature descriptors for both images,
+    then finds feature matches. Plots the found matches.
+    """
+    # corner_strengths is (H, W).
+    # interest_points should be unpacked as ys, xs
+    im1_corner_strengths, im1_interest_points = harris_corner_detection(
+        im1, output_base_name=im1_output_base_name
+    )
+    im1_fds = extract_feature_descriptors(
+        im1, im1_interest_points, output_base_name="im1", num_display=8
+    )
+
+    im2_corner_strengths, im2_interest_points = harris_corner_detection(
+        im2, output_base_name=im2_output_base_name
+    )
+    im2_fds = extract_feature_descriptors(
+        im2, im2_interest_points, output_base_name="im2", num_display=8
+    )
+
+    feature_matches = match_features(im1_fds, im2_fds)
+    print(f"feature_matches {feature_matches.shape}")
+    im1_matched_points = im1_interest_points[:, feature_matches[:, 0]]
+    im1_matched_ys, im1_matched_xs = im1_matched_points
+
+    im2_matched_points = im2_interest_points[:, feature_matches[:, 1]]
+    im2_matched_ys, im2_matched_xs = im2_matched_points
+
+    print(f"shape of ys {im2_matched_ys.shape}, xs {im2_matched_xs.shape}")
+    num_matches = feature_matches.shape[0]
+    colors = list(mcolors.XKCD_COLORS.keys())[:num_matches]
+
+    fig, axs = plt.subplots(1, 2)
+
+    axs[0].imshow(im1)
+    axs[0].set_title(im1_output_base_name)
+    axs[0].scatter(im1_matched_xs, im1_matched_ys, c=colors)
+
+    axs[1].imshow(im2)
+    axs[1].set_title(im2_output_base_name)
+    axs[1].scatter(im2_matched_xs, im2_matched_ys, c=colors)
+
+    fig.suptitle(
+        f"Feature matches between {im1_output_base_name} and {im2_output_base_name}"
+    )
+    plt.tight_layout()
+    plt.savefig(
+        f"{OUTPUT_DIR}/{im1_output_base_name}_{im2_output_base_name}_feature_matches.jpg",
+        bbox_inches="tight",
+    )
+    plt.show()
 
 
 def main():
@@ -1171,8 +1322,21 @@ def main():
     #     6,
     # )
 
-    h, coords = harris_corner_detection(gec_1, "gec_1")
-    extract_feature_descriptors(gec_1, coords, "gec_1", num_display=8)
+    # Section B.2: Feature Descriptor Extraction
+    # gec_1_h, gec_1_coords = harris_corner_detection(gec_1, output_base_name="gec_1")
+    # gec_1_fds = extract_feature_descriptors(
+    #     gec_1, gec_1_coords, output_base_name="gec_1", num_display=8
+    # )
+
+    # gec_2_h, gec_2_coords = harris_corner_detection(gec_2, output_base_name="gec_2")
+    # gec_2_fds = extract_feature_descriptors(
+    #     gec_2, gec_2_coords, output_base_name="gec_2", num_display=8
+    # )
+
+    # match_features(gec_1_fds, gec_2_fds)
+
+    # Section B.3: Feature Matching
+    plot_feature_matches(gec_1, gec_2, "gec_1", "gec_2")
 
 
 if __name__ == "__main__":

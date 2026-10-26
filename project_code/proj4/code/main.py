@@ -959,9 +959,13 @@ def harris_corner_detection(
     Returns:
         corner_strengths, interest_points
     """
-    bw = sk.color.rgb2gray(image)
+    print("===== Harris corner detection with adaptive non-maximal suppression =====")
 
-    h, coords = get_harris_corners(bw)
+    if len(image.shape) == 3 and image.shape[2] == 3:
+        bw = sk.color.rgb2gray(image)
+
+    # h is a (N,) array of the corner strength function of the interest points (2 * det(A) / (trace(A) + eps))
+    h, coords = get_harris_corners(bw, edge_discard=20)
     ys, xs = coords
 
     fig, ax = plt.subplots()
@@ -974,7 +978,7 @@ def harris_corner_detection(
         bbox_inches="tight",
     )
     plt.show()
-    
+
     # TODO: implement ANMS
     N = len(ys)
     rng = np.random.default_rng(seed=180)
@@ -985,6 +989,102 @@ def harris_corner_detection(
     corner_strengths = h[interest_point_ys, interest_point_xs]
     
     return corner_strengths, interest_points
+
+
+def calculate_gradient(bw_image):
+    H, W = bw_image.shape[:2]
+    Dy = np.array([[1], [0], [-1]])
+    Dx = np.array([[1, 0, -1]])
+    gaussian_kernel = make_2d_gaussian_kernel(sigma=4.5)
+    smoothed = scipy.signal.convolve2d(bw_image, gaussian_kernel, mode="same")
+
+    # partial_x[row=y, col=x] = horizonal derivative at pixel at position (x, y)
+    partial_x = scipy.signal.convolve2d(smoothed, Dx, mode="same")
+    partial_y = scipy.signal.convolve2d(smoothed, Dy, mode="same")
+    # gradient[row=y, col=x] = gradient (dx, dy) for pixel at position (x, y)
+    gradient = np.stack([partial_x, partial_y], axis=2)  # (H, W, 2)
+    norm = np.linalg.norm(gradient, axis=2, keepdims=True)  # (H, W, 1)
+    print(f"gradient {gradient.shape}, norm {norm.shape}")
+    # Normalize each position's 2D gradient vector independently.
+    # u represents the unit gradient at each position (x, y).
+    u = np.divide(
+        gradient, norm, out=np.zeros_like(gradient), where=norm > 0
+    )  # (H, W, 2)
+    print(f"u {u.shape}")
+    theta = np.arctan(u[:, :, 1] / u[:, :, 0])
+    print(f"theta {theta.shape}")
+
+
+def extract_feature_descriptors(
+    image: np.ndarray,
+    interest_points: np.ndarray,
+    output_base_name: str,
+    eps=1e-8,
+    num_display: int = 8,
+):
+    """
+    Extracts feature descriptors for interest points in an image.
+
+    Args:
+        image: np.ndarray of the image.
+        interest_points: (2, N) array of interest points.
+            The first row is the y-coordinates and the second row is the x-coordinates.
+        output_base_name: the base name of the output path to save plots to.
+        eps: small value to avoid dividing by 0 when bias/gain-normalizing feature descriptors.
+        num_display: the number of feature descriptors to sample and display.
+    """
+    print("===== Extracting feature descriptors =====")
+
+    if len(image.shape) == 3 and image.shape[2] == 3:
+        bw_image = sk.color.rgb2gray(image)
+    else:
+        bw_image = image
+
+    gaussian_kernel = make_2d_gaussian_kernel(sigma=4.5)
+    smoothed = scipy.signal.convolve2d(bw_image, gaussian_kernel, mode="same")
+
+    num_interest_points = interest_points.shape[1]
+    patch_size = 40  # Extract 40x40 patches
+
+    # Upstream harris_corner_detection function only finds interest_points
+    # that are at least 20 pixels away from the edges, so a patch of [-20, +19]
+    # around each interest point will always be in-bound.
+    sample_offsets = np.arange(
+        -patch_size // 2, patch_size // 2, 5
+    )  # [-20, -15, ..., 15, 20] with shape (8,)
+    ys, xs = interest_points  # (N,)
+    patch_ys = ys[:, None, None] + sample_offsets[None, :, None]  # (N, 8, 1)
+    patch_xs = xs[:, None, None] + sample_offsets[None, None, :]  # (N, 1, 8)
+    # Broadcast the 2 indices patch_xs, patch_ys into (N, 8, 8) --> fetch N (8, 8) patches from smoothed
+    patches = smoothed[patch_ys, patch_xs]  # (N, 8, 8)
+    patch_mean = np.mean(patches, axis=(1, 2), keepdims=True)
+    patch_std = np.std(patches, axis=(1, 2), keepdims=True) + eps
+    norm_patches = (patches - patch_mean) / patch_std
+
+    rng = np.random.default_rng(seed=180)
+    sample_idx = rng.integers(0, num_interest_points, num_display)
+
+    sampled_patches = norm_patches[sample_idx]
+    nrows, ncols = num_display // 4, 4
+
+    fig, axs = plt.subplots(nrows, ncols)
+
+    for i, ax in enumerate(axs.flatten()):
+        if i >= num_display:
+            ax.set_visible(False)
+        else:
+            ax.imshow(sampled_patches[i], cmap="gray")
+            ax.set_title(f"Sample {i}")
+
+    fig.suptitle(f"Sampled feature descriptors for {output_base_name}")
+    plt.tight_layout()
+    plt.savefig(
+        f"{OUTPUT_DIR}/{output_base_name}_feature_descriptors.jpg",
+        bbox_inches="tight",
+    )
+    plt.show()
+
+    return norm_patches
 
 
 def main():
@@ -1071,7 +1171,8 @@ def main():
     #     6,
     # )
 
-    harris_corner_detection(gec_1, "gec_1")
+    h, coords = harris_corner_detection(gec_1, "gec_1")
+    extract_feature_descriptors(gec_1, coords, "gec_1", num_display=8)
 
 
 if __name__ == "__main__":

@@ -6,7 +6,7 @@ from skimage.feature import corner_harris, peak_local_max
 def get_harris_corners(im, edge_discard=20):
     """
     This function takes a b&w image and an optional amount to discard
-    on the edge (default is 5 pixels), and finds all harris corners
+    on the edge (default is 20 pixels), and finds all harris corners
     in the image. Harris corners near the edge are discarded and the
     coordinates of the remaining corners are returned. A 2d array (h)
     containing the h value of every pixel is also returned.

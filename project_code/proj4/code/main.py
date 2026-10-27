@@ -655,180 +655,7 @@ def laplacian_stack(im, max_levels=2):
     return np.array(stack)
 
 
-def make_3image_mosaic(
-    left_im: np.ndarray, center_im: np.ndarray, right_im: np.ndarray
-):
-    """
-    Create a mosaic by stitching together 3 images corresponding to a rotation from left -> center -> right.
-
-    Treats the center images as the reference, computes homographies from left_im and right_im to center_im,
-    places center_im in the center of a shared view, and transforms the left_im and right_im onto the shared projective view.
-
-    To smoothly blend the images in the mosaic together, each image and its mask are first projected onto their own copies
-    of the projective view. Then, each canvas containing the warped image is turned into a Laplacian stack
-    and each canvas containing the warped image's mask is turned into a Gaussian stack. Finally, each level of the Laplacian stack
-    are collapsed together, with each Laplacian weighted by its mask's Gaussian.
-
-    Args:
-        left_im: np.ndarray of the left image
-        center_im: np.ndarray of the left image
-        right_im: np.ndarray of the left image
-
-    Returns:
-        mosaic: np.ndarray of the final mosaic
-
-    Also creates a plot of the input images alongside the final mosaic, and saves both
-    the plot and the final mosaic to OUTPUT_DIR.
-    """
-    h_center, w_center = center_im.shape[:2]
-    left_im_pts, center_im_pts = get_correspondences(
-        left_im,
-        center_im,
-        num_correspondences=8,
-        im1_title="Left image",
-        im2_title="Center image",
-        output_base_name="left_center",
-    )
-    left_to_center_H = computeH(left_im_pts, center_im_pts)
-    out_left, mask_left, corners_left = warpImageBilinear(left_im, left_to_center_H)
-    x_min_left, x_max_left, y_min_left, y_max_left = corners_left
-
-    right_im_pts, center_im_pts = get_correspondences(
-        right_im,
-        center_im,
-        num_correspondences=8,
-        im1_title="Right image",
-        im2_title="Center image",
-        output_base_name="right_center",
-    )
-    right_to_center_H = computeH(right_im_pts, center_im_pts)
-    out_right, mask_right, corners_right = warpImageBilinear(
-        right_im, right_to_center_H
-    )
-    x_min_right, x_max_right, y_min_right, y_max_right = corners_right
-
-    # Compute dimensions of shared canvas
-    x_min = math.floor(min(x_min_left, 0, x_min_right))
-    x_max = math.ceil(max(x_max_left, w_center - 1, x_max_right))
-    y_min = math.floor(min(y_min_left, 0, y_min_right))
-    y_max = math.ceil(max(y_max_left, h_center - 1, y_max_right))
-
-    canvas_w = x_max - x_min + 1
-    canvas_h = y_max - y_min + 1
-
-    # B's top-left pixel (0, 0) should be placed at row -y_min, col -x_min in the canvas
-    # Center image's top-left pixel (0, 0) should be placed at row -y_min, col -x_min in the canvas
-    canvas = np.zeros((canvas_h, canvas_w, 3))
-    # Binary mask that is an additive sum of all the warped image's masks.
-    # Used as a final mask to crop out any blurry halos in the final canvas around the final mosaic
-    # that result from the gaussian weights blurring outer pixels into neighboring pixels on the canvas.
-    final_binary_mask = np.zeros((canvas_h, canvas_w, 3))
-
-    # Create 6 canvases, each contains one of the 3 images or one of the masks
-    canvas_left, canvas_center, canvas_right = (
-        canvas.copy(),
-        canvas.copy(),
-        canvas.copy(),
-    )
-
-    canvas_mask_left, canvas_mask_center, canvas_mask_right = (
-        canvas.copy(),
-        canvas.copy(),
-        canvas.copy(),
-    )
-
-    canvas_left[
-        y_min_left - y_min : y_max_left - y_min + 1,
-        x_min_left - x_min : x_max_left - x_min + 1,
-    ] = out_left
-    canvas_mask_left[
-        y_min_left - y_min : y_max_left - y_min + 1,
-        x_min_left - x_min : x_max_left - x_min + 1,
-        :,
-    ] = mask_left.astype(float)
-    final_binary_mask += canvas_mask_left
-
-    canvas_center[-y_min : -y_min + h_center, -x_min : -x_min + w_center] = center_im
-    mask_center = np.ones((h_center, w_center, 1), dtype=float)
-    canvas_mask_center[-y_min : -y_min + h_center, -x_min : -x_min + w_center, :] = (
-        mask_center.astype(float)
-    )
-    final_binary_mask += canvas_mask_center
-
-    canvas_right[
-        y_min_right - y_min : y_max_right - y_min + 1,
-        x_min_right - x_min : x_max_right - x_min + 1,
-    ] = out_right
-    canvas_mask_right[
-        y_min_right - y_min : y_max_right - y_min + 1,
-        x_min_right - x_min : x_max_right - x_min + 1,
-        :,
-    ] = mask_right.astype(float)
-    final_binary_mask += canvas_mask_right
-
-    stack_depth = 2
-    laplacian_left = laplacian_stack(canvas_left, stack_depth)  # (N, H, W, 3)
-    laplacian_center = laplacian_stack(canvas_center, stack_depth)
-    laplacian_right = laplacian_stack(canvas_right, stack_depth)
-    laplacian_stacks = np.stack(
-        [laplacian_left, laplacian_center, laplacian_right], axis=1
-    )
-
-    gaussian_mask_left = gaussian_stack(canvas_mask_left, stack_depth)
-    gaussian_mask_center = gaussian_stack(canvas_mask_center, stack_depth)
-    gaussian_mask_right = gaussian_stack(canvas_mask_right, stack_depth)
-    gaussian_mask_stacks = np.stack(
-        [gaussian_mask_left, gaussian_mask_center, gaussian_mask_right], axis=1
-    )
-
-    mosaic = np.zeros_like(canvas)
-    for laplacians, gaussians in zip(laplacian_stacks, gaussian_mask_stacks):
-        blend = (
-            gaussians[0] * laplacians[0]
-            + gaussians[1] * laplacians[1]
-            + gaussians[2] * laplacians[2]
-        )
-        gaussian_weights = gaussians[0] + gaussians[1] + gaussians[2]
-        blend = np.divide(
-            blend,
-            gaussian_weights,
-            out=np.zeros_like(blend),
-            where=gaussian_weights > 0,
-        )
-
-        mosaic += blend
-
-    # final_binary_mask should be 1 if at least one validity mask covered this pixel,
-    # AKA at least 1 warped image mapped to this pixel in the shared projective view.
-    mosaic = mosaic * (final_binary_mask > 0)
-    mosaic = np.clip(mosaic, 0, 1.0)
-
-    fig, axs = plt.subplots(2, 3, figsize=(4 * len(laplacian_stacks), 6))
-
-    axs[0, 0].imshow(left_im)
-    axs[0, 1].imshow(center_im)
-    axs[0, 2].imshow(right_im)
-    axs[1, 1].imshow(mosaic)
-
-    axs[1, 0].set_visible(False)
-    axs[1, 2].set_visible(False)
-
-    plt.tight_layout()
-    plt.savefig(
-        f"{OUTPUT_DIR}/mosaic_plots.jpg",
-        bbox_inches="tight",
-    )
-    plt.show()
-
-    plt.imshow(mosaic)
-    plt.show()
-
-    save_np_as_img(f"{OUTPUT_DIR}/mosaic.jpg", mosaic)
-
-    return mosaic
-
-
-def make_mosaic_v2(images, output_base_name, num_correspondences=8):
+def make_mosaic(images, output_base_name, num_correspondences=8):
     """
     Create a mosaic by stitching together multiple images.
 
@@ -1342,7 +1169,7 @@ def main():
 
     # pompeii_im = img_to_np(DATA_DIR / "pompeii.jpg")
     # rectify(pompeii_im, output_base_name="pompeii")
-    
+
     wall_fresco_im = img_to_np(DATA_DIR / "wall_fresco.jpg")
     rectify(wall_fresco_im, output_base_name="wall_fresco")
 
@@ -1351,7 +1178,7 @@ def main():
     gec_2 = img_to_np(DATA_DIR / "gec_2.jpg")
     gec_3 = img_to_np(DATA_DIR / "gec_3.jpg")
 
-    make_mosaic_v2(
+    make_mosaic(
         [gec_1, gec_2, gec_3],
         "gec",
         6,
@@ -1363,7 +1190,7 @@ def main():
     campus_4 = img_to_np(DATA_DIR / "campus_4.jpg")
     campus_5 = img_to_np(DATA_DIR / "campus_5.jpg")
 
-    make_mosaic_v2(
+    make_mosaic(
         [campus_1, campus_2, campus_3, campus_4, campus_5],
         "campus",
         6,
@@ -1375,7 +1202,7 @@ def main():
     kresge_4 = img_to_np(DATA_DIR / "kresge_4.jpg")
     kresge_5 = img_to_np(DATA_DIR / "kresge_5.jpg")
 
-    make_mosaic_v2(
+    make_mosaic(
         [kresge_1, kresge_2, kresge_3, kresge_4, kresge_5],
         "kresge",
         6,

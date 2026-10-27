@@ -64,7 +64,7 @@ def make_2d_gaussian_kernel(size=None, sigma=None):
 def get_correspondences(
     im1: np.ndarray,
     im2: np.ndarray,
-    num_correspondences=4,
+    num_correspondences=8,
     im1_title=None,
     im2_title=None,
     output_base_name=None,
@@ -75,7 +75,7 @@ def get_correspondences(
     """
     colors = list(mcolors.BASE_COLORS.keys())
 
-    fig, axs = plt.subplots(1, 2, figsize=(16, 8))
+    fig, axs = plt.subplots(1, 2, figsize=(16, 6))
     axs[0].imshow(im1)
     axs[0].set_title(im1_title if im1_title else "Image 1")
     axs[0].gid = "image_1"  # Tag each subplot with a label
@@ -85,7 +85,7 @@ def get_correspondences(
     axs[1].gid = "image_2"  # Tag each subplot with a label
 
     fig.suptitle(
-        f"Please select {num_correspondences} corresponding points in each image.\nPress esc to undo."
+        f"Correspondences between {im1_title if im1_title else 'Image 1'} and {im2_title if im2_title else 'Image 1'}\nClick {num_correspondences} points in each image (press esc to undo)"
     )
 
     im1_pts = []
@@ -148,7 +148,7 @@ def get_correspondences(
         """
         Undo the last selected point if the user enters "escape"
         """
-        print("press", event.key)
+        print("Keypress:", event.key)
         if event.key != "escape":
             return
         if len(im1_pts) == 0 and len(im2_pts) == 0:
@@ -172,21 +172,24 @@ def get_correspondences(
     plt.tight_layout()
 
     plt.show()
-    print(f"Collected {len(im1_pts)}")
+    print(f"Collected {len(im1_pts)} correspondences")
     return np.array(im1_pts), np.array(im2_pts)
 
 
-def computeH(im1_pts, im2_pts):
+def computeH(im1_pts: np.ndarray, im2_pts: np.ndarray, verbose: bool = False):
     """
+    Compute the homography matrix that transforms image 1 onto image 2, given correspondence point pairs.
+
     Args:
         im1_pts, im2_pts: (N, 2) matrices of N point correspondences between the two images
             - Each row is an (x, y) coordinate pair
             - To recover the matrix H, the inputs must contain at least 4 correspondences
+        verbose: whether or not to print out the system of equations and recovered H.
 
     Returns:
         H: the recovered (3x3) homography matrix
     """
-    #  Ah = b where h is a vector holding the 8 unknown entries of H
+    # Ah = b where h is a vector holding the 8 unknown entries of H
     # x' = (ax + by + c) / (gx + hy + 1), y' = (dx + ey + f) / (gx + hy + 1)
     # x' * (gx + hy + 1) = ax + by + c, y' * (gx + hy + 1) = dx + ey + f
     # x' = ax + by + c - x' gx - x' hy, y' = dx + ey + f - y' gx - y' hy
@@ -206,14 +209,21 @@ def computeH(im1_pts, im2_pts):
 
         b[2 * i : 2 * i + 2] = [x2, y2]
 
+    if verbose:
+        print(
+            f"Ah = b\n\nA:\n{np.array2string(A, precision=2)}\n\nb:\n{np.array2string(b, precision=2)}"
+        )
     h, _, _, _ = np.linalg.lstsq(A, b)
+    if verbose:
+        print(f"h found via least-squares:\n{np.array2string(h, precision=2)}")
 
     # Convert h from a column vector into a matrix
     H = np.ones((3, 3))
     for i in range(8):
         row, col = i // 3, i % 3
         H[row, col] = h[i]
-
+    if verbose:
+        print(f"Recovered homography matrix H:\n{np.array2string(H, precision=2)}")
     return H
 
 
@@ -446,6 +456,85 @@ def warpImageBilinear(im, H):
         mask[y, :] = (weights > 0).astype(bool)
 
     return out, mask, (x_min, x_max, y_min, y_max)
+
+
+def rectify(
+    im: np.ndarray,
+    reference_rectangle: np.ndarray | None = None,
+    output_base_name: str | None = None,
+):
+    """
+    Rectifies an image by transforming it such that a skewed rectangle in the image
+    matches up with a reference rectangle with right angles and parallel sides.
+
+    Uses the get_correspondences, computeH, and interpolation functions as helpers.
+    Plots, saves, and displays a plot of the original image and the reference rectangle
+    with annotated correspondences. Also displays the rectification results.
+
+    Args:
+        im: an image as an np.ndarray
+        reference_rectangle: optional np.ndarray of a rectangle to use as the image
+            to transform im to align with. If None, this function creates a reference
+            rectangle with the same shape as im and a square at the center.
+        output_base_name: the base name of the output path to save plots to.
+    """
+    h, w, _ = im.shape
+    if reference_rectangle is None:
+        reference_rectangle = np.zeros_like(im)
+        size_of_rectangle = max(h // 15, w // 15)
+        reference_rectangle[
+            h // 2 - size_of_rectangle : h // 2 + size_of_rectangle,
+            w // 2 - size_of_rectangle : w // 2 + size_of_rectangle,
+            :,
+        ] = 1
+
+    warp_im1_pts, warp_im2_pts = get_correspondences(
+        im,
+        reference_rectangle,
+        num_correspondences=4,
+        output_base_name=output_base_name,
+    )
+    warp_H = computeH(warp_im1_pts, warp_im2_pts)
+
+    nn_warp, _, _ = warpImageNearestNeighbor(im, warp_H)
+
+    bilinear_warp, _, _ = warpImageBilinear(im, warp_H)
+
+    scatter_colors = list(mcolors.BASE_COLORS.keys())[: len(warp_im1_pts)]
+    fig, axs = plt.subplots(2, 2, figsize=(8, 8))
+    axs[0, 0].imshow(im)
+    axs[0, 0].set_title("Original image")
+    axs[0, 0].scatter(warp_im1_pts[:, 0], warp_im1_pts[:, 1], s=6, c=scatter_colors)
+
+    axs[0, 1].imshow(reference_rectangle)
+    axs[0, 1].set_title("Reference rectangle")
+    axs[0, 1].scatter(warp_im2_pts[:, 0], warp_im2_pts[:, 1], s=6, c=scatter_colors)
+
+    axs[1, 0].imshow(nn_warp)
+    axs[1, 0].set_title("Warp (nearest neighbors inverse warp)")
+
+    axs[1, 1].imshow(bilinear_warp)
+    axs[1, 1].set_title("Warp (bilinear interpolation inverse warp)")
+
+    fig.suptitle(
+        f"Rectification{': ' + output_base_name if output_base_name else None}"
+    )
+    plt.tight_layout()
+    plt.savefig(
+        f"{OUTPUT_DIR}/{output_base_name + '_rectify' if output_base_name else 'rectify'}.jpg",
+        bbox_inches="tight",
+    )
+    plt.show()
+
+    save_np_as_img(
+        f"{OUTPUT_DIR}/{output_base_name + '_nearest_neighbors_rectify' if output_base_name else 'nearest_neighbors_rectify'}.jpg",
+        nn_warp,
+    )
+
+    save_np_as_img(
+        f"{OUTPUT_DIR}/{output_base_name + '_bilinear_rectify' if output_base_name else 'bilinear_rectify'}.jpg",
+        bilinear_warp,
+    )
 
 
 def get_warped_corners(im: np.ndarray, H: np.ndarray):
@@ -734,9 +823,7 @@ def make_3image_mosaic(
     plt.imshow(mosaic)
     plt.show()
 
-    mosaic_saved = (mosaic * 255.0).astype(np.uint8)
-    sk.io.imsave(f"{OUTPUT_DIR}/mosaic.jpg", mosaic_saved)
-    print(f"Saved image to {f'{OUTPUT_DIR}/mosaic.jpg'}")
+    save_np_as_img(f"{OUTPUT_DIR}/mosaic.jpg", mosaic)
 
     return mosaic
 
@@ -763,6 +850,7 @@ def make_mosaic_v2(images, output_base_name, num_correspondences=8):
     Args:
         images: list of np.ndarrays. The images should be ordered such that consecutive images overlap
             because this algorithm computes homographies between adjacent pairs of images.
+        output_base_name: the base name of the output path to save plots to.
         num_correspondences: the number of corresponding point pairs to
             pick between 2 images; needs to be >= 4 to compute homography matrix H.
     Returns:
@@ -1240,48 +1328,25 @@ def plot_feature_matches(
 
 def main():
     print("===== (Auto)stitching and Photo Mosaics =====")
-    # im1_pts = np.array([[1, 2], [3, 4], [5, 6], [7, 8]])
-    # im2_pts = np.array([[-1, -2], [-3, -4], [-5, -6], [-7, -8]])
-    # computeH(im1_pts, im2_pts)
+    # Section A.2: Recover Homographies
+    # gec_1 = img_to_np(DATA_DIR / "gec_1.jpg")
+    # gec_2 = img_to_np(DATA_DIR / "gec_2.jpg")
+    # gec_3 = img_to_np(DATA_DIR / "gec_3.jpg")
 
-    # im2 = img_to_np(DATA_DIR / "engineering_1.jpg")
-    # im2 = img_to_np(DATA_DIR / "engineering_2.jpg")
+    # gec_1_pts, gec_2_pts = get_correspondences(gec_1, gec_2, num_correspondences=8, output_base_name="gec_1_2")
+    # H = computeH(gec_1_pts, gec_2_pts, verbose=True)
 
-    # im1_pts, im2_pts = get_correspondences(im1, im2)
+    # Section A.3: Warp the Images (rectification)
+    # painting_im = img_to_np(DATA_DIR / "painting.jpg")
+    # rectify(painting_im, output_base_name="painting")
 
-    # H = computeH(im1_pts, im2_pts)
-    # print(f"Recovered homography matrix: {H}")
+    # pompeii_im = img_to_np(DATA_DIR / "pompeii.jpg")
+    # rectify(pompeii_im, output_base_name="pompeii")
+    
+    wall_fresco_im = img_to_np(DATA_DIR / "wall_fresco.jpg")
+    rectify(wall_fresco_im, output_base_name="wall_fresco")
 
-    # warp_im1 = img_to_np(DATA_DIR / "parthenon.jpg")
-    # h, w, _ = warp_im1.shape
-    # warp_im2 = np.zeros_like(warp_im1)
-    # size_of_corner = max(h // 15, w // 15)
-    # warp_im2[
-    #     h // 2 - size_of_corner : h // 2 + size_of_corner,
-    #     w // 2 - size_of_corner : w // 2 + size_of_corner,
-    #     :,
-    # ] = 1
-
-    # warp_im1_pts, warp_im2_pts = get_correspondences(warp_im1, warp_im2)
-
-    # warp_H = computeH(warp_im1_pts, warp_im2_pts)
-
-    # print(f"Recovered homography matrix: {warp_H}")
-
-    # nn_warp, _, _ = warpImageNearestNeighbor(warp_im1, warp_H)
-
-    # bilinear_warp, _, _ = warpImageBilinear(warp_im1, warp_H)
-
-    # fig, axs = plt.subplots(1, 2, figsize=(12, 6))
-    # axs[0].imshow(nn_warp)
-    # axs[0].set_title("Warp (nearest neighbors inverse warp)")
-
-    # axs[1].imshow(bilinear_warp)
-    # axs[1].set_title("Warp (bilinear interpolation inverse warp)")
-
-    # plt.tight_layout()
-    # plt.show()
-
+    # Section A.4: Blend the Images into a Mosaic
     gec_1 = img_to_np(DATA_DIR / "gec_1.jpg")
     gec_2 = img_to_np(DATA_DIR / "gec_2.jpg")
     gec_3 = img_to_np(DATA_DIR / "gec_3.jpg")
@@ -1336,7 +1401,7 @@ def main():
     # match_features(gec_1_fds, gec_2_fds)
 
     # Section B.3: Feature Matching
-    plot_feature_matches(gec_1, gec_2, "gec_1", "gec_2")
+    # plot_feature_matches(gec_1, gec_2, "gec_1", "gec_2")
 
 
 if __name__ == "__main__":

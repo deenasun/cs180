@@ -21,23 +21,6 @@ export default function Page() {
             sectionLink: "part_a_4",
             text: "A.4: Blend the Images into a Mosaic"
         },
-        {
-            sectionLink: "part_b_1",
-            text: "Part B.1: Harris Corner Detection"
-        },
-        {
-            sectionLink: "part_b_2",
-            text: "Part B.2: Feature Descriptor Extraction"
-        },
-        {
-            sectionLink: "part_b_3",
-            text: "Part B.3: Feature Matching"
-        },
-        {
-            sectionLink: "part_b_4",
-            text: "B.4: RANSAC for Robust Homography"
-        },
-
     ]
     return (
         <main className="mx-4 my-2 sm:mx-8">
@@ -420,29 +403,29 @@ export default function Page() {
                     </p>
                     <ol>
                         <li>
-                            Find  correspondences between adjacent images and compute Homographies
+                            1. Find  correspondences between adjacent images and compute Homographies
                             that map adjacent images to each other.
                         </li>
                         <li>
-                            Compose the transforms together to find a homography for each image that maps
+                            2. Compose the transforms together to find a homography for each image that maps
                             it onto the shared, common projective plane (AKA the projective plane that the
                             center image uses).
                         </li>
                         <li>
-                            Compute the size that the shared canvas should have so that it fits all the images
+                            3. Compute the size that the shared canvas should have so that it fits all the images
                             after they are tranformed. For each image, transform its 4 corners using the image-to-center homography.
                             Then, find the minimum x, minimum y, maximum x, and maximum y coordinates across all the warped corners.
                             The shared canvas needs to be able to fit the full range of x, y coordinates; thus the dimensions
                             of the final mosaic canvas should equal (maximum x - minimum x + 1, maximum y - minimum y + 1) pixels.
                         </li>
                         <li>
-                            Warp each image onto its own copy of the canvas using the image-to-center homography and inverse interpolation.
+                            4. Warp each image onto its own copy of the canvas using the image-to-center homography and inverse interpolation.
                             Using the same sized canvas helps simplify the multi-resolution blend step.
                             Also, create a mask for each iamge. The mask should have the same shape as the canvas
                             and have 1's where the warped image is located, and 0's elsewhere.
                         </li>
                         <li>
-                            Blend all the image canvases together using multi-resolution blending!
+                            5. Blend all the image canvases together using multi-resolution blending!
                             This involves creating Laplacian stacks of all the canvases containing a single warped image
                             and Guassian stacks of all the masks. Then, merge each level by weighting each canvas's Laplacian
                             at that level by its mask's Gaussian at that level. Finally, collapse (add) the blends from all the levels together.

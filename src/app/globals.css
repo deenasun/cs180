@@ -21,6 +21,11 @@ ul {
   margin-left: 1em;
 }
 
+ol {
+  margin-top: 1em;
+  margin-left: 1em;
+}
+
 li {
   margin-bottom: 1em;
 }

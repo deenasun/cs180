@@ -1351,11 +1351,11 @@ def main():
     gec_2 = img_to_np(DATA_DIR / "gec_2.jpg")
     gec_3 = img_to_np(DATA_DIR / "gec_3.jpg")
 
-    # mosaic = make_mosaic_v2(
-    #     [gec_1, gec_2, gec_3],
-    #     "gec",
-    #     6,
-    # )
+    make_mosaic_v2(
+        [gec_1, gec_2, gec_3],
+        "gec",
+        6,
+    )
 
     campus_1 = img_to_np(DATA_DIR / "campus_1.jpg")
     campus_2 = img_to_np(DATA_DIR / "campus_2.jpg")
@@ -1363,29 +1363,23 @@ def main():
     campus_4 = img_to_np(DATA_DIR / "campus_4.jpg")
     campus_5 = img_to_np(DATA_DIR / "campus_5.jpg")
 
-    # mosaic = make_mosaic_v2(
-    #     [campus_1, campus_2, campus_3, campus_4, campus_5],
-    #     "campus",
-    #     6,
-    # )
+    make_mosaic_v2(
+        [campus_1, campus_2, campus_3, campus_4, campus_5],
+        "campus",
+        6,
+    )
 
-    # wheeler_1 = img_to_np(DATA_DIR / "wheeler_1.jpg")
-    # wheeler_2 = img_to_np(DATA_DIR / "wheeler_2.jpg")
-    # wheeler_3 = img_to_np(DATA_DIR / "wheeler_3.jpg")
-    # wheeler_4 = img_to_np(DATA_DIR / "wheeler_4.jpg")
-    # wheeler_5 = img_to_np(DATA_DIR / "wheeler_5.jpg")
+    kresge_1 = img_to_np(DATA_DIR / "kresge_1.jpg")
+    kresge_2 = img_to_np(DATA_DIR / "kresge_2.jpg")
+    kresge_3 = img_to_np(DATA_DIR / "kresge_3.jpg")
+    kresge_4 = img_to_np(DATA_DIR / "kresge_4.jpg")
+    kresge_5 = img_to_np(DATA_DIR / "kresge_5.jpg")
 
-    # mosaic = make_mosaic_v2(
-    #     [
-    #         wheeler_1,
-    #         wheeler_2,
-    #         wheeler_3,
-    #         wheeler_4,
-    #         wheeler_5,
-    #     ],
-    #     "wheeler",
-    #     6,
-    # )
+    make_mosaic_v2(
+        [kresge_1, kresge_2, kresge_3, kresge_4, kresge_5],
+        "kresge",
+        6,
+    )
 
     # Section B.2: Feature Descriptor Extraction
     # gec_1_h, gec_1_coords = harris_corner_detection(gec_1, output_base_name="gec_1")

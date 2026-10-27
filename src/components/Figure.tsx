@@ -11,7 +11,8 @@ export default function Figure({
     subcaption,
     style_width,
     style_height,
-    loading
+    loading,
+    classNameOverride = ""
 }: {
     src: string,
     caption: string,
@@ -19,6 +20,7 @@ export default function Figure({
     style_width?: string | null,
     style_height?: string | null,
     loading?: "eager" | "lazy";
+    classNameOverride?: string
 }) {
     // Focus on the figure if mouse hovers and stays over the image
     const [isHovering, setIsHovering] = useState(false);
@@ -62,7 +64,7 @@ export default function Figure({
     return (
         <>
             <figure
-                className={`flex w-full max-w-2xl flex-col items-center ${style_width ? "" : "mx-auto"}`}
+                className={`${classNameOverride} flex w-full flex-col items-center ${style_width ? "" : "mx-auto"}`}
                 style={style_width ? { width: style_width } : undefined}
             >
                 <div

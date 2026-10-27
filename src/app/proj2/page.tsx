@@ -173,12 +173,12 @@ export default function Page() {
                         <Figure
                             src={"/proj2/part1_2/cameraman_conv_dx.jpg"}
                             caption={"Convolving camerman.jpg with Dx"}
-                            style_width="50vw"
+                            style_width="35vw"
                         />
                         <Figure
                             src={"/proj2/part1_2/cameraman_conv_dy.jpg"}
                             caption={"Convolving camerman.jpg with Dy"}
-                            style_width="50vw"
+                            style_width="35vw"
                         />
                     </div>
                     <p>The gradient is a vector of partial derivatives.
@@ -205,12 +205,12 @@ export default function Page() {
                         <Figure
                             src={"/proj2/part1_2/cameraman_binarized_edge_magnitude.jpg"}
                             caption={"Edge strengths (binarized) of cameraman.jpg"}
-                            style_width="50vw"
+                            style_width="35vw"
                         />
                         <Figure
                             src={"/proj2/part1_2/cameraman_finite_difference_operators.jpg"}
                             caption={"Comparing the results of convolving cameraman.jpg with finite difference operators"}
-                            style_width="50vw"
+                            style_width="35vw"
                         />
                     </div>
                 </section>
@@ -408,22 +408,22 @@ export default function Page() {
                         <Figure
                             src={"/proj2/part2_1/taj_sharpen_blur_sharpen.jpg"}
                             caption={"Sharpening an image, blurring it, and then re-sharpening it again does not recover the original image or the sharpened image"}
-                            style_width="50vw"
+                            style_width="35vw"
                         />
                         <Figure
                             src={"/proj2/part2_1/clownfish_sharpen_blur_sharpen.jpg"}
                             caption={"Original, sharpened, blurred, and re-sharpened images of clownfish.jpg"}
-                            style_width="50vw"
+                            style_width="35vw"
                         />
                         <Figure
                             src={"/proj2/part2_1/chinatown_sharpen_blur_sharpen.jpg"}
                             caption={"Original, sharpened, blurred, and re-sharpened images of chinatown.jpg"}
-                            style_width="50vw"
+                            style_width="35vw"
                         />
                         <Figure
                             src={"/proj2/part2_1/tetons_sharpen_blur_sharpen.jpg"}
                             caption={"Original, sharpened, blurred, and re-sharpened images of tetons.jpg"}
-                            style_width="50vw"
+                            style_width="35vw"
                         />
                     </div>
                 </section>

@@ -181,7 +181,7 @@ def computeH(im1_pts: np.ndarray, im2_pts: np.ndarray, verbose: bool = False):
     Compute the homography matrix that transforms image 1 onto image 2, given correspondence point pairs.
 
     Args:
-        im1_pts, im2_pts: (N, 2) matrices of N point correspondences between the two images
+        im1_pts, im2_pts: (P, 2) matrices of P point correspondences between the two images
             - Each row is an (x, y) coordinate pair
             - To recover the matrix H, the inputs must contain at least 4 correspondences
         verbose: whether or not to print out the system of equations and recovered H.
@@ -197,11 +197,11 @@ def computeH(im1_pts: np.ndarray, im2_pts: np.ndarray, verbose: bool = False):
     #      [0, 0, 0, x, y, 1, -y' * x, - y' * y],
     #      ... ]
     #
-    N = im1_pts.shape[0]
-    A = np.zeros((2 * N, 8))
-    b = np.zeros((2 * N,))
+    num_correspondences = im1_pts.shape[0]
+    A = np.zeros((2 * num_correspondences, 8))
+    b = np.zeros((2 * num_correspondences,))
 
-    for i in range(N):
+    for i in range(num_correspondences):
         x1, y1 = im1_pts[i]
         x2, y2 = im2_pts[i]
         A[2 * i] = [x1, y1, 1, 0, 0, 0, -x2 * x1, -x2 * y1]
@@ -228,12 +228,16 @@ def computeH(im1_pts: np.ndarray, im2_pts: np.ndarray, verbose: bool = False):
 
 
 def normalize(homogeneous_coord: np.ndarray):
-    """Normalizes 3D homogeneous coordinates s.t. its last component = 1"""
+    """
+    Normalizes 3D homogeneous coordinates s.t. its last component = 1.
+
+    Returns a tuple of np.ndarrays: (normalized, valid)
+    """
     if homogeneous_coord.ndim == 1:
         denominator = homogeneous_coord[-1]
     elif (
         homogeneous_coord.ndim == 2
-    ):  # Batched homogenous coordinates have shape (3, N)
+    ):  # Batched homogenous coordinates have shape (3, P)
         denominator = homogeneous_coord[-1:,]
     else:
         print(
@@ -248,6 +252,7 @@ def normalize(homogeneous_coord: np.ndarray):
         out=np.zeros_like(homogeneous_coord),
         where=valid,
     )
+
     return normalized, valid
 
 
@@ -861,7 +866,7 @@ def make_mosaic(images, output_base_name, num_correspondences=8):
 
 def harris_corner_detection(
     image: np.ndarray,
-    num_interest_points: int = 500,
+    num_interest_points: int = 1000,
     output_base_name: str | None = None,
 ):
     """
@@ -875,32 +880,33 @@ def harris_corner_detection(
         num_interest_points: the number of interest points to detect from image.
         output_base_name: the base name of the output path to save plots to.
     Returns:
-        corner_strengths: (H, W) array whose (i, j)th value corresopnds to the corner
-            strength 2 * det(A) / (trace(A) + eps) at position (i, j) in the image.
-        interest_points: (2, N) array of ys, xs
+        corner_strengths: (N,) array whose ith value corresopnds to the corner
+            strength of interest point i.
+        interest_points: (N, 2) array of xs, ys
     """
     print("===== Harris corner detection with adaptive non-maximal suppression =====")
 
     if len(image.shape) == 3 and image.shape[2] == 3:
         bw = sk.color.rgb2gray(image)
 
-    # h is a (N,) array of the corner strength function of the interest points (2 * det(A) / (trace(A) + eps))
+    # h is a (height, width) array of the corner strength function of the interest points (2 * det(A) / (trace(A) + eps))
+    # coords have shape (2, num_candidates)
     h, coords = get_harris_corners(bw, edge_discard=20)
     ys, xs = coords
 
     # TODO: implement ANMS
-    N = len(ys)
+    num_candidates = len(ys)
     rng = np.random.default_rng(seed=180)
-    sample_idx = rng.choice(N - 1, size=num_interest_points, replace=False)
+    sample_idx = rng.choice(num_candidates, size=num_interest_points, replace=False)
     interest_point_xs = xs[sample_idx]
     interest_point_ys = ys[sample_idx]
-    interest_points = np.stack([interest_point_ys, interest_point_xs], axis=0)
+    interest_points = np.stack([interest_point_xs, interest_point_ys], axis=1)  # (N, 2)
     corner_strengths = h[interest_point_ys, interest_point_xs]
 
     fig, ax = plt.subplots()
     ax.imshow(image)
     ax.set_title(f"Multi-scale Harris corners of {output_base_name}")
-    ax.scatter(interest_point_xs, interest_point_ys, s=0.25)
+    ax.scatter(interest_point_xs, interest_point_ys, s=0.35)
     plt.tight_layout()
     plt.savefig(
         f"{OUTPUT_DIR}/{output_base_name + '_harris_corners' if output_base_name else 'harris_corners'}.jpg",
@@ -939,7 +945,7 @@ def extract_feature_descriptors(
     image: np.ndarray,
     interest_points: np.ndarray,
     output_base_name: str,
-    eps=1e-8,
+    eps: float = 1e-8,
     num_display: int = 8,
 ):
     """
@@ -948,8 +954,8 @@ def extract_feature_descriptors(
 
     Args:
         image: np.ndarray of the image.
-        interest_points: (2, N) array of interest points.
-            The first row is the y-coordinates and the second row is the x-coordinates.
+        interest_points: (N, 2) array of interest points.
+            The first row is the x-coordinates and the second row is the y-coordinates.
         output_base_name: the base name of the output path to save plots to.
         eps: small value to avoid dividing by 0 when bias/gain-normalizing feature descriptors.
         num_display: the number of feature descriptors to sample and display.
@@ -967,19 +973,21 @@ def extract_feature_descriptors(
     gaussian_kernel = make_2d_gaussian_kernel(sigma=4.5)
     smoothed = scipy.signal.convolve2d(bw_image, gaussian_kernel, mode="same")
 
-    num_interest_points = interest_points.shape[1]
+    num_interest_points = interest_points.shape[0]  # (N, 2)
     patch_size = 40  # Extract 40x40 patches
 
     # Upstream harris_corner_detection function only finds interest_points
     # that are at least 20 pixels away from the edges, so a patch of [-20, +19]
     # around each interest point will always be in-bound.
     sample_offsets = np.arange(
-        -patch_size // 2, patch_size // 2, 5
-    )  # [-20, -15, ..., 15, 20] with shape (8,)
-    ys, xs = interest_points  # (N,)
-    patch_ys = ys[:, None, None] + sample_offsets[None, :, None]  # (N, 8, 1)
+        -patch_size // 2, patch_size // 2 , 5
+    )  # [-20, -15, ..., 15] with shape (8,)
+    xs, ys = interest_points[:, 0], interest_points[:, 1]  # (N,)
     patch_xs = xs[:, None, None] + sample_offsets[None, None, :]  # (N, 1, 8)
+    patch_ys = ys[:, None, None] + sample_offsets[None, :, None]  # (N, 8, 1)
+    
     # Broadcast the 2 indices patch_xs, patch_ys into (N, 8, 8) --> fetch N (8, 8) patches from smoothed
+    # Index into the smoothed image with row=patch_ys, col=patch_xs
     patches = smoothed[patch_ys, patch_xs]  # (N, 8, 8)
     patch_mean = np.mean(patches, axis=(1, 2), keepdims=True)
     patch_std = np.std(patches, axis=(1, 2), keepdims=True) + eps
@@ -1026,32 +1034,31 @@ def match_features(
             to image 1's interest points.
         im2_fds: (L, 64) array of feature descriptor vectors corresponding
             to image 2's interest points.
-        lowes_ratio_threshold: threshold for accepting a neighbor as a match.
+        lowe_ratio_threshold: threshold for accepting a neighbor as a match.
             Given the 2 nearest neighbors of a feature descriptor, only accept
             the closest neighbor as a match if the ratio of the
-            distances 1-NN/2-NN <= threshold.
+            squared distances 1-NN/2-NN <= threshold.
 
     Returns:
         symmetric_matches: np.ndarray of shape (K, 2) where K is the number of
             feature matches found. Each element in the array is a tuple of feature
             descriptor indices (index_of_im1_feature_descriptor, index_of_im2_feature_descriptor).
-            If no feature matches are found, symmetric_matches is an empy array of shape (0,)
+            If no feature matches are found, symmetric_matches is an empy array of shape (0, 2)
     """
+    print("===== Matching features =====")
 
     # distances[i, j] is the squared distance from
     # image 1's ith feature descriptor to image 2's jth feature descriptor.
     distances = dist2(im1_fds, im2_fds)  # (M, L)
 
     # Top 2 closest neighbors in image 2 for each interest point from image 1
-    # Find the bottom k using np.argpartition --> kth=1 puts 2nd largest element in index 1,
+    # Find the bottom k using np.argpartition --> kth=1 puts 2nd smallest element in index 1,
     # and partitions all smaller elements before index 1. Then, indexing [:, :2] gets the
     # top 2 smallest distances.
     im1_nearest_neighbors = np.argpartition(distances, kth=1, axis=1)[:, :2]  # (M, 2)
-    print(im1_nearest_neighbors.shape)
 
     # Top 2 closest neighbors in image 1 for each interest point from image 2
-    im2_nearest_neighbors = np.argpartition(distances, kth=1, axis=0)[:2, :].T  # (L, 2
-    print(im2_nearest_neighbors.shape)
+    im2_nearest_neighbors = np.argpartition(distances, kth=1, axis=0)[:2, :].T  # (L, 2)
 
     matches_for_im1 = {}  # Maps index in im1 to index of matching feature descriptor from im2
     for i, closest_idxs in enumerate(im1_nearest_neighbors):
@@ -1091,7 +1098,8 @@ def match_features(
         if matches_for_im2.get(j) == i:
             symmetric_matches.append([i, j])
 
-    return np.array(symmetric_matches)
+    # Preserve shape (K, 2) even if symmetric_matches is empty
+    return np.array(symmetric_matches, dtype=int).reshape(-1, 2)
 
 
 def plot_feature_matches(
@@ -1104,8 +1112,8 @@ def plot_feature_matches(
     Detects interest points and extracts feature descriptors for both images,
     then finds feature matches. Plots the found matches.
     """
-    # corner_strengths is (H, W).
-    # interest_points should be unpacked as ys, xs
+    # corner_strengths is (N1,).
+    # interest_points has shape (N1, 2), where the 1s column holds the xs and the 2nd column holds the ys
     im1_corner_strengths, im1_interest_points = harris_corner_detection(
         im1, output_base_name=im1_output_base_name
     )
@@ -1116,23 +1124,23 @@ def plot_feature_matches(
     im2_corner_strengths, im2_interest_points = harris_corner_detection(
         im2, output_base_name=im2_output_base_name
     )
+
     im2_fds = extract_feature_descriptors(
         im2, im2_interest_points, output_base_name="im2", num_display=8
     )
 
-    feature_matches = match_features(im1_fds, im2_fds)
-    print(f"feature_matches {feature_matches.shape}")
-    im1_matched_points = im1_interest_points[:, feature_matches[:, 0]]
-    im1_matched_ys, im1_matched_xs = im1_matched_points
+    feature_matches = match_features(im1_fds, im2_fds)  # (K, 2)
 
-    im2_matched_points = im2_interest_points[:, feature_matches[:, 1]]
-    im2_matched_ys, im2_matched_xs = im2_matched_points
+    im1_matched_points = im1_interest_points[feature_matches[:, 0]]  # (K, 2)
+    im1_matched_xs, im1_matched_ys = im1_matched_points[:, 0], im1_matched_points[:, 1]
 
-    print(f"shape of ys {im2_matched_ys.shape}, xs {im2_matched_xs.shape}")
+    im2_matched_points = im2_interest_points[feature_matches[:, 1]]  # (K, 2)
+    im2_matched_xs, im2_matched_ys = im2_matched_points[:, 0], im2_matched_points[:, 1]
+
     num_matches = feature_matches.shape[0]
     colors = list(mcolors.XKCD_COLORS.keys())[:num_matches]
 
-    fig, axs = plt.subplots(1, 2)
+    fig, axs = plt.subplots(1, 2, figsize=(16, 6))
 
     axs[0].imshow(im1)
     axs[0].set_title(im1_output_base_name)
@@ -1153,12 +1161,344 @@ def plot_feature_matches(
     plt.show()
 
 
+def ransac(matches: np.ndarray, num_iters=500, eps=1, num_points=4):
+    """
+    4-point RANSAC algorithm for estimating robust homographies.
+    The RANSAC algorithm reduces the impact of outliers on the final recovered homography.
+
+    In pseuodocode:
+        1. Select 4 feature pairs at random.
+        2. Compute the homography H on the sampled feature pairs.
+        3. Apply the candidate H to transform im1 to im2, then compute the number
+            of inliers (how many points from im1 after transforming by H lie within
+            a threshold of eps from the true matching point in im2).
+        4. Repeat stpes 1-3, and keep the largest set of inliers.
+        5. Re-compute a least-squares H estimate on the best set of kept inliers.
+
+    Args:
+        matches: (K, 2, 2) array of matching interest points between image 1 and image 2.
+            K is the total number of correspondences, found from feature matches.
+            Each element is a 2x2 matrix whose first column holds the (x, y)
+            coordinates of a point from image 1, and whose second column holds the
+            (x', y') coordinates of a point from image 2.
+    """
+    print("===== Improving homography with RANSAC =====")
+    num_matches = matches.shape[0]
+
+    # Extract im1's interest points from the first column of every 2x2 pair
+    im1_ips = matches[:, :, 0]  # (K, 2)
+    im2_ips = matches[
+        :, :, 1
+    ]  # Extract im2's interest points from the second column of every 2x2 pair
+
+    im1_homogenous_ips = np.concat([im1_ips, np.ones((num_matches, 1))], axis=1)
+
+    best_inliers_mask = np.ones(num_matches, dtype=bool)
+    best_inliers_count = 0
+
+    rng = np.random.default_rng(seed=180)
+    for _ in range(num_iters):
+        sample_idxs = rng.choice(
+            num_matches, size=min(num_matches, num_points), replace=False
+        )
+        im1_points = im1_ips[sample_idxs]
+        im2_points = im2_ips[sample_idxs]
+
+        candidate_H = computeH(im1_points, im2_points)
+
+        transformed_im1_homogeneous_ips, valid = normalize(
+            candidate_H @ im1_homogenous_ips.T
+        )  # (3, 3) x (3, K)
+
+        valid = np.squeeze(
+            valid.T
+        )  # (1, N) --> (N,) for combining with boolean operators later
+
+        # Extract just the (x, y) coordinates from the transformed points (which are in homogeneous coordinates)
+        transformed_im1_ips = transformed_im1_homogeneous_ips[:2]  # (2, K)
+        transformed_im1_ips = transformed_im1_ips.T  # (2, K) --> (K, 2)
+
+        dist = np.linalg.norm(im2_ips - transformed_im1_ips, axis=-1)  # (K,)
+        inliers_mask = valid & (dist < eps)
+        curr_inliers_count = sum(inliers_mask)
+
+        if curr_inliers_count > best_inliers_count:
+            best_H = candidate_H
+            best_inliers_mask = inliers_mask
+            best_inliers_count = curr_inliers_count
+
+    print(
+        f"[RANSAC] Recomputing least-squares H estimate with {sum(best_inliers_mask)} inliers"
+    )
+    im1_inliers = im1_ips[best_inliers_mask]
+    im2_inliers = im2_ips[best_inliers_mask]
+
+    H = computeH(im1_inliers, im2_inliers)
+    return H
+
+
+def autostich_mosaic(images, image_base_names, output_base_name):
+    """
+    Automatically stich multiple images into a mosaic.
+
+    1. Find correspondences between neighboring pairs of input images,
+        and compute homographies that map an image to the next image in the list: H_(1->2), H_(2->3), ...
+    2. Compose a transfrom from each image into the center image, and store a final image-to-center homography for each image:
+        - To map image 1 into image 3: p' = H_(2->3) H_(1->2) p
+        - H_(3->3) is just the identity matrix.
+        - To map image 5 into image 3: H_(5->3) = (H_(4->5) H_(3->4))^-1 = H^-1_(3->4) H^-1_(4->5) = H_(4->3) H_(5->4)
+            - The transformation from image 3's coordinates to image 5's coordinates: p' = H_(4->5) H_(3->4) p
+    3. Compute the bounding box of the shared canvas from all the transforms:
+        a. For each image, transform its 4 corners using the image-to-center homography and normalize
+            the homogeneous coordinates after warping.
+        b. Find the minimum and maximum x and y across all images, then take the floor/ceil of the minimas/maximas
+            to compute the dimensions of the shared projective plane.
+    4. Warp each image and mask onto their own copies of the projective plane canvas.
+    5. Blend all the image canvases together using Laplacian stacks and Gaussian stacks of their masks as weights.
+
+    Args:
+        images: list of np.ndarrays. The images should be ordered such that consecutive images overlap
+            because this algorithm computes homographies between adjacent pairs of images.
+        image_base_names: list of strings, where the ith name corresponds to the ith input image.
+        output_base_name: the base name of the output path to save plots to.
+    Returns:
+        mosaic: np.ndarray of the final mosaic
+
+    Also creates a plot of the input images alongside the final mosaic, and saves both
+    the plot and the final mosaic to OUTPUT_DIR.
+    """
+    num_images = len(images)
+
+    # Use the middle image in the input list as the image at the center
+    # of the shared projective plane.
+    center_im_idx = num_images // 2
+    center_im = images[center_im_idx]
+    h_center, w_center = center_im.shape[:2]
+
+    # ips = interest points
+    # fds = feature descriptors
+    image_map = {}  # Maps image i to its interest points and feature_descriptors
+    for i, (im, name) in enumerate(zip(images, image_base_names)):
+        corner_strengths, interest_points = harris_corner_detection(
+            im, output_base_name=name
+        )
+        feature_descriptors = extract_feature_descriptors(
+            im, interest_points, output_base_name=name
+        )
+        image_map[i] = {
+            "interest_points": interest_points,  # (N, 2)
+            "feature_descriptors": feature_descriptors,  # (N, 64)
+        }
+
+    homographies = []  # homographies[i] is the transform that maps im_{i} to im_{i+1}
+    for i in range(num_images - 1):
+        im1_interest_points = image_map[i]["interest_points"]
+        im1_feature_descriptors = image_map[i]["feature_descriptors"]
+
+        im2_interest_points = image_map[i + 1]["interest_points"]
+        im2_feature_descriptors = image_map[i + 1]["feature_descriptors"]
+
+        feature_matches = match_features(
+            im1_feature_descriptors, im2_feature_descriptors
+        )
+
+        im1_matched_points = im1_interest_points[feature_matches[:, 0]]  # (K, 2)
+
+        im1_matched_xs, im1_matched_ys = (
+            im1_matched_points[:, 0],
+            im1_matched_points[:, 1],
+        )
+
+        im2_matched_points = im2_interest_points[feature_matches[:, 1]]  # (K, 2)
+        im2_matched_xs, im2_matched_ys = (
+            im2_matched_points[:, 0],
+            im2_matched_points[:, 1],
+        )
+
+        num_matches = feature_matches.shape[0]
+        colors = list(mcolors.XKCD_COLORS.keys())[:num_matches]
+
+        fig, axs = plt.subplots(1, 2, figsize=(16, 6))
+
+        axs[0].imshow(images[i])
+        axs[0].set_title(image_base_names[i])
+        axs[0].scatter(im1_matched_xs, im1_matched_ys, c=colors)
+
+        axs[1].imshow(images[i + 1])
+        axs[1].set_title(image_base_names[i + 1])
+        axs[1].scatter(im2_matched_xs, im2_matched_ys, c=colors)
+
+        fig.suptitle(
+            f"{num_matches} feature matches between {image_base_names[i]} and {image_base_names[i + 1]}"
+        )
+        plt.tight_layout()
+        plt.savefig(
+            f"{OUTPUT_DIR}/{image_base_names[i]}_{image_base_names[i + 1]}_feature_matches.jpg",
+            bbox_inches="tight",
+        )
+        plt.show()
+
+        matches = np.stack([im1_matched_points, im2_matched_points], axis=2)
+        H_im1_to_im2 = ransac(matches)
+        homographies.append(H_im1_to_im2)
+
+    homography_to_center = {}
+    curr_H = np.eye(3)
+    homography_to_center[center_im_idx] = curr_H
+    # Compute homographies that map images on the left of center_im to the center_im
+    # by composing homographies: H_(1->3) = H_(2->3) H_(1->2)
+    for i in range(center_im_idx - 1, -1, -1):
+        H_prev_to_i = homographies[i]
+        curr_H = curr_H @ H_prev_to_i
+        homography_to_center[i] = curr_H
+
+    curr_H = np.eye(3)
+    # Compute homographies that map images on the right of center_im to the center_im
+    # by composing inverse homographies: H_(5->3) = H^-1_(3->4) H^-1_(4->5)
+    for i in range(center_im_idx + 1, num_images):
+        H_prev_to_i = homographies[i - 1]  #
+        H_inv = np.linalg.inv(H_prev_to_i)
+        curr_H = curr_H @ H_inv
+        homography_to_center[i] = curr_H
+
+    idx_to_warped = {}
+    x_mins = []
+    x_maxes = []
+    y_mins = []
+    y_maxes = []
+    for idx, im in enumerate(images):
+        H_to_center = homography_to_center[idx]
+        out, mask, corners = warpImageBilinear(im, H_to_center)
+        x_min, x_max, y_min, y_max = corners
+
+        idx_to_warped[idx] = {"out": out, "mask": mask, "corners": corners}
+        x_mins.append(x_min)
+        x_maxes.append(x_max)
+        y_mins.append(y_min)
+        y_maxes.append(y_max)
+
+    # Compute dimensions of shared canvas
+    x_min_canvas = math.floor(min(x_mins + [0]))
+    x_max_canvas = math.ceil(
+        max(x_maxes + [w_center - 1])
+    )  # Largest x-coordinate of any pixel in center is w_center - 1
+    y_min_canvas = math.floor(min(y_mins + [0]))
+    y_max_canvas = math.ceil(max(y_maxes + [h_center - 1]))
+
+    canvas_w = x_max_canvas - x_min_canvas + 1
+    canvas_h = y_max_canvas - y_min_canvas + 1
+
+    # Center image's top-left pixel (0, 0) should be placed at row -y_min, col -x_min in the canvas
+    canvas = np.zeros((canvas_h, canvas_w, 3))
+    # Binary mask that is an additive sum of all the warped image's masks.
+    # Used as a final mask to crop out any blurry halos in the final canvas around the final mosaic
+    # that result from the gaussian weights blurring outer pixels into neighboring pixels on the canvas.
+    final_binary_mask = np.zeros((canvas_h, canvas_w, 3))
+
+    # Place each image or mask in its position on a separate canvas (all canvases have the same dimension
+    # as the final, shared canvas).
+    stack_depth = 2
+    laplacian_stacks = []
+    gaussian_mask_stacks = []
+    for idx, im in enumerate(images):
+        curr_canvas = canvas.copy()
+        curr_canvas_mask = canvas.copy()
+
+        out = idx_to_warped[idx]["out"]
+        mask = idx_to_warped[idx]["mask"]
+        x_min, x_max, y_min, y_max = idx_to_warped[idx]["corners"]
+        # Each image's top-left pixels should get translated to y_min - y_min_canvas, x_min - x_min_canvas
+        # in the final shared canvas after being warped.
+        # Center image's top-left pixel (0, 0) should be placed at row -y_min_canvas, col -x_min_canvas in the canvas.
+        curr_canvas[
+            y_min - y_min_canvas : y_max - y_min_canvas + 1,
+            x_min - x_min_canvas : x_max - x_min_canvas + 1,
+        ] = out
+
+        curr_canvas_mask[
+            y_min - y_min_canvas : y_max - y_min_canvas + 1,
+            x_min - x_min_canvas : x_max - x_min_canvas + 1,
+        ] = mask.astype(float)
+
+        final_binary_mask += curr_canvas_mask
+        lap = laplacian_stack(curr_canvas, stack_depth)  # (depth, H, W, 3)
+        gauss = gaussian_stack(curr_canvas_mask, stack_depth)
+
+        laplacian_stacks.append(lap)
+        gaussian_mask_stacks.append(gauss)
+
+    laplacian_stacks = np.stack(
+        laplacian_stacks, axis=1
+    )  # list with num_images items, each of shape (depth, H, W, 3) --> (depth, num_images, H, W, 3)
+    gaussian_mask_stacks = np.stack(
+        gaussian_mask_stacks, axis=1
+    )  # list with num_images items, each of shape (depth, H, W, 3) --> (depth, num_images, H, W, 3)
+
+    mosaic = np.zeros_like(canvas)
+    for laplacians, gaussians in zip(laplacian_stacks, gaussian_mask_stacks):
+        blend = np.zeros_like(canvas)
+        gaussian_weights = np.zeros_like(canvas)
+        for i in range(num_images):
+            blend += gaussians[i] * laplacians[i]
+            gaussian_weights += gaussians[i]
+
+        blend = np.divide(
+            blend,
+            gaussian_weights,
+            out=np.zeros_like(blend),
+            where=gaussian_weights > 0,
+        )
+
+        mosaic += blend
+
+    # final_binary_mask should be 1 if at least one validity mask covered this pixel,
+    # AKA at least 1 warped image mapped to this pixel in the shared projective view.
+    mosaic = mosaic * (final_binary_mask > 0)
+    mosaic = np.clip(mosaic, 0, 1.0)
+
+    num_rows = math.ceil(num_images / 3.0) + 1
+    num_cols = 3
+    fig, axs = plt.subplots(
+        num_rows,
+        num_cols,
+        figsize=(4 * num_cols, 3 * num_rows),
+    )
+
+    for idx, ax in enumerate(axs.flatten()):
+        if idx >= len(images):
+            ax.set_visible(False)
+        else:
+            ax.imshow(images[idx])
+            ax.set_title(
+                f"Image {idx + 1}{' (center)' if idx == center_im_idx else ''}"
+            )
+
+    axs[-1, num_cols // 2].set_visible(True)
+    axs[-1, num_cols // 2].imshow(mosaic)
+
+    plt.tight_layout()
+    plt.savefig(
+        f"{OUTPUT_DIR}/{output_base_name}_mosaic_plots.jpg",
+        bbox_inches="tight",
+    )
+    plt.show()
+
+    plt.imshow(mosaic)
+    plt.show()
+
+    mosaic_saved = (mosaic * 255.0).astype(np.uint8)
+    sk.io.imsave(f"{OUTPUT_DIR}/{output_base_name}_autostitch_mosaic.jpg", mosaic_saved)
+    print(f"Saved image to {OUTPUT_DIR}/{output_base_name}_autostitch_mosaic.jpg")
+
+    return mosaic
+
+
 def main():
     print("===== (Auto)stitching and Photo Mosaics =====")
     # Section A.2: Recover Homographies
-    # gec_1 = img_to_np(DATA_DIR / "gec_1.jpg")
-    # gec_2 = img_to_np(DATA_DIR / "gec_2.jpg")
-    # gec_3 = img_to_np(DATA_DIR / "gec_3.jpg")
+    gec_1 = img_to_np(DATA_DIR / "gec_1.jpg")
+    gec_2 = img_to_np(DATA_DIR / "gec_2.jpg")
+    gec_3 = img_to_np(DATA_DIR / "gec_3.jpg")
 
     # gec_1_pts, gec_2_pts = get_correspondences(gec_1, gec_2, num_correspondences=8, output_base_name="gec_1_2")
     # H = computeH(gec_1_pts, gec_2_pts, verbose=True)
@@ -1170,59 +1510,74 @@ def main():
     # pompeii_im = img_to_np(DATA_DIR / "pompeii.jpg")
     # rectify(pompeii_im, output_base_name="pompeii")
 
-    wall_fresco_im = img_to_np(DATA_DIR / "wall_fresco.jpg")
-    rectify(wall_fresco_im, output_base_name="wall_fresco")
+    # wall_fresco_im = img_to_np(DATA_DIR / "wall_fresco.jpg")
+    # rectify(wall_fresco_im, output_base_name="wall_fresco")
 
-    # Section A.4: Blend the Images into a Mosaic
-    gec_1 = img_to_np(DATA_DIR / "gec_1.jpg")
-    gec_2 = img_to_np(DATA_DIR / "gec_2.jpg")
-    gec_3 = img_to_np(DATA_DIR / "gec_3.jpg")
+    # # Section A.4: Blend the Images into a Mosaic
+    # gec_1 = img_to_np(DATA_DIR / "gec_1.jpg")
+    # gec_2 = img_to_np(DATA_DIR / "gec_2.jpg")
+    # gec_3 = img_to_np(DATA_DIR / "gec_3.jpg")
 
-    make_mosaic(
-        [gec_1, gec_2, gec_3],
-        "gec",
-        6,
-    )
+    # make_mosaic(
+    #     [gec_1, gec_2, gec_3],
+    #     "gec",
+    #     6,
+    # )
 
-    campus_1 = img_to_np(DATA_DIR / "campus_1.jpg")
-    campus_2 = img_to_np(DATA_DIR / "campus_2.jpg")
-    campus_3 = img_to_np(DATA_DIR / "campus_3.jpg")
-    campus_4 = img_to_np(DATA_DIR / "campus_4.jpg")
-    campus_5 = img_to_np(DATA_DIR / "campus_5.jpg")
+    # campus_1 = img_to_np(DATA_DIR / "campus_1.jpg")
+    # campus_2 = img_to_np(DATA_DIR / "campus_2.jpg")
+    # campus_3 = img_to_np(DATA_DIR / "campus_3.jpg")
+    # campus_4 = img_to_np(DATA_DIR / "campus_4.jpg")
+    # campus_5 = img_to_np(DATA_DIR / "campus_5.jpg")
 
-    make_mosaic(
-        [campus_1, campus_2, campus_3, campus_4, campus_5],
-        "campus",
-        6,
-    )
+    # make_mosaic(
+    #     [campus_1, campus_2, campus_3, campus_4, campus_5],
+    #     "campus",
+    #     6,
+    # )
 
-    kresge_1 = img_to_np(DATA_DIR / "kresge_1.jpg")
-    kresge_2 = img_to_np(DATA_DIR / "kresge_2.jpg")
-    kresge_3 = img_to_np(DATA_DIR / "kresge_3.jpg")
-    kresge_4 = img_to_np(DATA_DIR / "kresge_4.jpg")
-    kresge_5 = img_to_np(DATA_DIR / "kresge_5.jpg")
+    # kresge_1 = img_to_np(DATA_DIR / "kresge_1.jpg")
+    # kresge_2 = img_to_np(DATA_DIR / "kresge_2.jpg")
+    # kresge_3 = img_to_np(DATA_DIR / "kresge_3.jpg")
+    # kresge_4 = img_to_np(DATA_DIR / "kresge_4.jpg")
+    # kresge_5 = img_to_np(DATA_DIR / "kresge_5.jpg")
 
-    make_mosaic(
-        [kresge_1, kresge_2, kresge_3, kresge_4, kresge_5],
-        "kresge",
-        6,
-    )
+    # make_mosaic(
+    #     [kresge_1, kresge_2, kresge_3, kresge_4, kresge_5],
+    #     "kresge",
+    #     6,
+    # )
 
-    # Section B.2: Feature Descriptor Extraction
-    # gec_1_h, gec_1_coords = harris_corner_detection(gec_1, output_base_name="gec_1")
+    # # Section B.2: Feature Descriptor Extraction
+    # gec_1_h, gec_1_ips = harris_corner_detection(gec_1, output_base_name="gec_1")
     # gec_1_fds = extract_feature_descriptors(
-    #     gec_1, gec_1_coords, output_base_name="gec_1", num_display=8
+    #     gec_1, gec_1_ips, output_base_name="gec_1", num_display=8
     # )
 
-    # gec_2_h, gec_2_coords = harris_corner_detection(gec_2, output_base_name="gec_2")
+    # gec_2_h, gec_2_ips = harris_corner_detection(gec_2, output_base_name="gec_2")
     # gec_2_fds = extract_feature_descriptors(
-    #     gec_2, gec_2_coords, output_base_name="gec_2", num_display=8
+    #     gec_2, gec_2_ips, output_base_name="gec_2", num_display=8
     # )
 
-    # match_features(gec_1_fds, gec_2_fds)
+    # feature_matches = match_features(gec_1_fds, gec_2_fds)
 
-    # Section B.3: Feature Matching
+    # # Section B.3: Feature Matching
     # plot_feature_matches(gec_1, gec_2, "gec_1", "gec_2")
+
+    # # Section B.4: RANSAC for Robust Homography
+    # im1_matched_points = gec_1_ips[feature_matches[:, 0]]  # (K, 2)
+    # im2_matched_points = gec_2_ips[feature_matches[:, 1]]  # (K, 2)
+
+    # matches = np.stack([im1_matched_points, im2_matched_points], axis=2)
+    # H = ransac(matches)
+    # print(f"H recoverd with RANSAC:\n{H}")
+
+    # Full auto-stitching mosaic pipeline
+    autostich_mosaic(
+        images=[gec_1, gec_2, gec_3],
+        image_base_names=["gec_1", "gec_2", "gec_3"],
+        output_base_name="gec",
+    )
 
 
 if __name__ == "__main__":

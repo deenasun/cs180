@@ -870,14 +870,59 @@ def make_mosaic(images, output_base_name, num_correspondences=8):
 
 def harris_corner_detection(
     image: np.ndarray,
-    n_ip: int = 500,
-    c_robust: float = 0.9,
     output_base_name: str | None = None,
 ):
     """
-    Implements section 2 and 3 of the paper: Interest Point Detection and Adaptive Non-Maximal Suppression.
-    Uses the multi-scale Harris corner algorithm to detect interest points
-    and adaptive non-maximal suppression to select a fixed number of interest points
+    Implements section 2 of the paper: Interest Point Detection.
+
+    Args:
+        image: np.ndarray of an image.
+        output_base_name: the base name of the output path to save plots to.
+    Returns:
+        corner_strengths: (N,) array whose ith value corresponds to the corner
+            strength of interest point i.
+        interest_points: (N, 2) array of xs, ys
+    """
+    print("===== Harris corner detection =====")
+
+    if len(image.shape) == 3 and image.shape[2] == 3:
+        bw = sk.color.rgb2gray(image)
+
+    # h is a (height, width) array of the corner strength function of the interest points (2 * det(A) / (trace(A) + eps))
+    # coords have shape (2, num_candidates)
+    h, coords = get_harris_corners(bw, edge_discard=20)
+    ys, xs = coords
+
+    corner_strengths = h[ys, xs]  # (num_corners, )
+    interest_points = np.stack([xs, ys], axis=1)  # (num_corners, 2)
+
+    fig, ax = plt.subplots()
+    ax.imshow(image)
+    ax.set_title(f"Multi-scale Harris corners of {output_base_name}")
+    ax.scatter(interest_points[:, 0], interest_points[:, 1], s=0.35)
+    plt.tight_layout()
+    plt.savefig(
+        f"{OUTPUT_DIR}/{output_base_name + '_harris_corners' if output_base_name else 'harris_corners'}.jpg",
+        bbox_inches="tight",
+    )
+    plt.show()
+    return corner_strengths, interest_points
+
+
+def adaptive_nonmaximal_suppression(
+    image: np.ndarray,
+    corner_strengths: np.ndarray,
+    interest_points: np.ndarray,
+    n_ip: int = 500,
+    c_robust: float = 0.9,
+    output_base_name: str | None = None,
+    plot_comparison: bool = False,
+    verbose: bool = False,
+):
+    """
+    Implements section 3 of the paper: Adaptive Non-Maximal Suppression.
+
+    Uses adaptive non-maximal suppression to select a fixed number of interest points
     that are well-distributed throughout the image.
 
     Adaptive non-maximal suppression:
@@ -891,36 +936,30 @@ def harris_corner_detection(
 
     Args:
         image: np.ndarray of an image.
-        n_ip: the number of interest points to detect from image.
-        output_base_name: the base name of the output path to save plots to.
-    Returns:
         corner_strengths: (N,) array whose ith value corresponds to the corner
             strength of interest point i.
         interest_points: (N, 2) array of xs, ys
+        n_ip: the number of interest points to keep.
+        output_base_name: the base name of the output path to save plots to.
+        plot_comparison: whether to plot the full set of interest points with the ANMS subset
+            side-by-side, or to only plot the ANMS interest points.
+        verbose: whether or not to print informational progress.
+
+    Returns:
+        kept_corner_strengths: (n_ip,) array containing the corner strengths of the kept interest points.
+        kept_interest_points: (n_ip, 2) array of the interest points with the highest suppression radius.
     """
-    print("===== Harris corner detection with adaptive non-maximal suppression =====")
-
-    if len(image.shape) == 3 and image.shape[2] == 3:
-        bw = sk.color.rgb2gray(image)
-
-    # h is a (height, width) array of the corner strength function of the interest points (2 * det(A) / (trace(A) + eps))
-    # coords have shape (2, num_candidates)
-    h, coords = get_harris_corners(bw, edge_discard=20)
-    ys, xs = coords
-
-    # TODO: implement ANMS
-    num_corners = coords.shape[1]  # Number of interest point candidates
+    num_corners = interest_points.shape[0]  # Number of interest point candidates
     if n_ip > num_corners:
         print(
-            f"[Harris Corner Detection] Warning: requested {n_ip} to keep, but get_harris_corners only found {num_corners} corners."
+            f"[ANMS] Warning: requested {n_ip} to keep, but get_harris_corners only found {num_corners} corners."
         )
-
-    corner_strengths = h[ys, xs]  # (num_corners, )
-    interest_points = np.stack([xs, ys], axis=1)  # (num_corners, 2)
 
     suppression_radius = np.full(num_corners, fill_value=0.0)
 
-    print("[Harris Corner Detection] Starting ANMS algorithm...")
+    print("===== Adaptive Non-maximal Suppression =====")
+    if verbose:
+        print("[ANMS] Starting ANMS algorithm...")
     for i, (cs_i, p_i) in enumerate(zip(corner_strengths, interest_points)):
         stronger_points = interest_points[
             cs_i < c_robust * corner_strengths
@@ -933,7 +972,8 @@ def harris_corner_detection(
             distances = np.sqrt(dist2(np.expand_dims(p_i, axis=1).T, stronger_points))
             suppression_radius[i] = np.min(distances)
 
-    print("[Harris Corner Detection] ANMS algorithm completed!")
+    if verbose:
+        print("[ANMS] ANMS algorithm completed!")
 
     # Sort indices such that indexing with them would sort the interest points from highest
     # suppression radius to lowest suppression radius.
@@ -945,29 +985,37 @@ def harris_corner_detection(
     # Corner strengths, in the same order as kept_interest_points (highest r_i to lowest r_i)
     kept_corner_strengths = corner_strengths[sorted_suppression_radius_idx][:n_ip]
 
-    # num_candidates = len(ys)
-    # rng = np.random.default_rng(seed=180)
-    # sample_idx = rng.choice(num_candidates, size=n_ip, replace=False)
-    # random_interest_points = interest_points[sample_idx]
+    if plot_comparison:
+        fig, axs = plt.subplots(1, 2, figsize=(16, 6))
+        axs[0].imshow(image)
+        axs[0].set_title("Detected corners without ANMS")
+        axs[0].scatter(interest_points[:, 0], interest_points[:, 1], s=0.35)
+        # axs[0].scatter(random_interest_points[:, 0], random_interest_points[:, 1], s=0.35)
 
-    fig, axs = plt.subplots(1, 2, figsize=(16, 6))
-    axs[0].imshow(image)
-    axs[0].set_title("Detected corners without ANMS")
-    axs[0].scatter(interest_points[:, 0], interest_points[:, 1], s=0.35)
-    # axs[0].scatter(random_interest_points[:, 0], random_interest_points[:, 1], s=0.35)
+        axs[1].imshow(image)
+        axs[1].set_title(f"{n_ip} detected corners with ANMS")
+        axs[1].scatter(kept_interest_points[:, 0], kept_interest_points[:, 1], s=0.35)
 
-    axs[1].imshow(image)
-    axs[1].set_title(f"{n_ip} detected corners with ANMS")
-    axs[1].scatter(kept_interest_points[:, 0], kept_interest_points[:, 1], s=0.35)
+        fig.suptitle(f"Multi-scale Harris corners of {output_base_name}")
 
-    fig.suptitle(f"Multi-scale Harris corners of {output_base_name}")
+        plt.tight_layout()
+        plt.savefig(
+            f"{OUTPUT_DIR}/{output_base_name + '_anms_comparison' if output_base_name else 'anms_comparison'}.jpg",
+            bbox_inches="tight",
+        )
+        plt.show()
+    else:
+        fig, ax = plt.subplots()
+        ax.imshow(image)
+        ax.set_title(f"{n_ip} detected corners with ANMS")
+        ax.scatter(kept_interest_points[:, 0], kept_interest_points[:, 1], s=0.35)
 
-    plt.tight_layout()
-    plt.savefig(
-        f"{OUTPUT_DIR}/{output_base_name + '_harris_corners' if output_base_name else 'harris_corners'}.jpg",
-        bbox_inches="tight",
-    )
-    plt.show()
+        plt.tight_layout()
+        plt.savefig(
+            f"{OUTPUT_DIR}/{output_base_name + '_anms' if output_base_name else 'anms'}.jpg",
+            bbox_inches="tight",
+        )
+        plt.show()
 
     return kept_corner_strengths, kept_interest_points
 
@@ -1079,7 +1127,10 @@ def extract_feature_descriptors(
 
 
 def match_features(
-    im1_fds: np.ndarray, im2_fds: np.ndarray, lowe_ratio_threshold: float = 0.4
+    im1_fds: np.ndarray,
+    im2_fds: np.ndarray,
+    lowe_ratio_threshold: float = 0.4,
+    verbose: bool = False,
 ):
     """
     Implements section 5 of the paper: Feature Matching.
@@ -1093,6 +1144,7 @@ def match_features(
             Given the 2 nearest neighbors of a feature descriptor, only accept
             the closest neighbor as a match if the ratio of the
             squared distances 1-NN/2-NN <= threshold.
+        verbose: whether or not to print informational progress.
 
     Returns:
         symmetric_matches: np.ndarray of shape (K, 2) where K is the number of
@@ -1101,6 +1153,10 @@ def match_features(
             If no feature matches are found, symmetric_matches is an empy array of shape (0, 2)
     """
     print("===== Matching features =====")
+    if verbose:
+        print(
+            f"Matching {im1_fds} feature descriptors from image 1 with {im2_fds} feature descriptors from image 2..."
+        )
 
     # distances[i, j] is the squared distance from
     # image 1's ith feature descriptor to image 2's jth feature descriptor.
@@ -1152,6 +1208,9 @@ def match_features(
     for i, j in matches_for_im1.items():
         if matches_for_im2.get(j) == i:
             symmetric_matches.append([i, j])
+
+    if verbose:
+        print(f"Found {len(symmetric_matches)} matches")
 
     # Preserve shape (K, 2) even if symmetric_matches is empty
     return np.array(symmetric_matches, dtype=int).reshape(-1, 2)
@@ -1337,11 +1396,16 @@ def autostich_mosaic(images, image_base_names, output_base_name):
         corner_strengths, interest_points = harris_corner_detection(
             im, output_base_name=name
         )
+
+        anms_corner_strengths, anms_interest_points = adaptive_nonmaximal_suppression(
+            im, corner_strengths, interest_points, output_base_name=name
+        )
+
         feature_descriptors = extract_feature_descriptors(
-            im, interest_points, output_base_name=name
+            im, anms_interest_points, output_base_name=name
         )
         image_map[i] = {
-            "interest_points": interest_points,  # (N, 2)
+            "interest_points": anms_interest_points,  # (N, 2)
             "feature_descriptors": feature_descriptors,  # (N, 64)
         }
 
@@ -1353,14 +1417,8 @@ def autostich_mosaic(images, image_base_names, output_base_name):
         im2_interest_points = image_map[i + 1]["interest_points"]
         im2_feature_descriptors = image_map[i + 1]["feature_descriptors"]
 
-        print(
-            f"Matching {len(im1_feature_descriptors)} interest points from image {i + 1} and {len(im2_feature_descriptors)} interest points from image {i + 2}..."
-        )
         feature_matches = match_features(
             im1_feature_descriptors, im2_feature_descriptors
-        )
-        print(
-            f"Found {len(feature_matches)} between image {i + 1} and image {i + 2}..."
         )
 
         im1_matched_points = im1_interest_points[feature_matches[:, 0]]  # (K, 2)

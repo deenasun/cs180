@@ -1,8 +1,4 @@
-import heapq
 import math
-from numpy._typing._shape import _AnyShape
-from numpy import dtype
-from typing import Any
 import numpy as np
 import cv2 as cv
 import scipy
@@ -949,13 +945,13 @@ def adaptive_nonmaximal_suppression(
         kept_corner_strengths: (n_ip,) array containing the corner strengths of the kept interest points.
         kept_interest_points: (n_ip, 2) array of the interest points with the highest suppression radius.
     """
-    num_corners = interest_points.shape[0]  # Number of interest point candidates
-    if n_ip > num_corners:
+    num_candidates = interest_points.shape[0]  # Number of interest point candidates
+    if n_ip > num_candidates:
         print(
-            f"[ANMS] Warning: requested {n_ip} to keep, but get_harris_corners only found {num_corners} corners."
+            f"[ANMS] Warning: requested {n_ip} to keep, but adaptive_nonmaximal_supression only received {num_candidates} input interest points."
         )
 
-    suppression_radius = np.full(num_corners, fill_value=0.0)
+    suppression_radius = np.full(num_candidates, fill_value=0.0)
 
     print("===== Adaptive Non-maximal Suppression =====")
     if verbose:
@@ -1231,16 +1227,29 @@ def plot_feature_matches(
     im1_corner_strengths, im1_interest_points = harris_corner_detection(
         im1, output_base_name=im1_output_base_name
     )
+    _, im1_anms_ips = adaptive_nonmaximal_suppression(
+        im1,
+        im1_corner_strengths,
+        im1_interest_points,
+        output_base_name=im1_output_base_name,
+        verbose=True,
+    )
     im1_fds = extract_feature_descriptors(
-        im1, im1_interest_points, output_base_name="im1", num_display=8
+        im1, im1_anms_ips, output_base_name="im1", num_display=8
     )
 
     im2_corner_strengths, im2_interest_points = harris_corner_detection(
         im2, output_base_name=im2_output_base_name
     )
-
+    _, im2_anms_ips = adaptive_nonmaximal_suppression(
+        im2,
+        im2_interest_points,
+        im2_interest_points,
+        output_base_name=im2_output_base_name,
+        verbose=True,
+    )
     im2_fds = extract_feature_descriptors(
-        im2, im2_interest_points, output_base_name="im2", num_display=8
+        im2, im2_anms_ips, output_base_name="im2", num_display=8
     )
 
     feature_matches = match_features(im1_fds, im2_fds)  # (K, 2)
@@ -1397,7 +1406,7 @@ def autostich_mosaic(images, image_base_names, output_base_name):
             im, output_base_name=name
         )
 
-        anms_corner_strengths, anms_interest_points = adaptive_nonmaximal_suppression(
+        _, anms_interest_points = adaptive_nonmaximal_suppression(
             im, corner_strengths, interest_points, output_base_name=name
         )
 
@@ -1672,21 +1681,44 @@ def main():
     #     6,
     # )
 
+    # # Section B.1: Harris Corner Detection
+    gec_1_h, gec_1_ips = harris_corner_detection(image=gec_1, output_base_name="gec_1")
+
+    _, gec_1_anms_ips = adaptive_nonmaximal_suppression(
+        image=gec_1,
+        corner_strengths=gec_1_h,
+        interest_points=gec_1_ips,
+        n_ip=500,
+        c_robust=0.9,
+        output_base_name="gec_1",
+        plot_comparison=True,
+        verbose=True,
+    )
+
     # # Section B.2: Feature Descriptor Extraction
-    # gec_1_h, gec_1_ips = harris_corner_detection(gec_1, output_base_name="gec_1")
     # gec_1_fds = extract_feature_descriptors(
-    #     gec_1, gec_1_ips, output_base_name="gec_1", num_display=8
+    #     image=gec_1, interest_points=gec_1_anms_ips, output_base_name="gec_1", eps=1e-8, num_display=8
     # )
 
     # gec_2_h, gec_2_ips = harris_corner_detection(gec_2, output_base_name="gec_2")
+    # _, gec_2_anms_ips = adaptive_nonmaximal_suppression(
+    #     image=gec_2,
+    #     corner_strengths=gec_2_h,
+    #     interest_points=gec_2_ips,
+    #     n_ip=500,
+    #     c_robust=0.9,
+    #     output_base_name="gec_2",
+    #     plot_comparison=True,
+    #     verbose=True,
+    # )
     # gec_2_fds = extract_feature_descriptors(
-    #     gec_2, gec_2_ips, output_base_name="gec_2", num_display=8
+    #     image=gec_2, interest_points=gec_2_anms_ips, output_base_name="gec_2",  eps=1e-8, num_display=8
     # )
 
-    # feature_matches = match_features(gec_1_fds, gec_2_fds)
+    # feature_matches = match_features(im1_fds=gec_1_fds, im2_fds=gec_2_fds, lowe_ratio_threshold=0.4, verbose=True)
 
     # # Section B.3: Feature Matching
-    # plot_feature_matches(gec_1, gec_2, "gec_1", "gec_2")
+    # plot_feature_matches(im1=gec_1, im2=gec_2, im1_output_base_name="gec_1", im2_output_base_name="gec_2")
 
     # # Section B.4: RANSAC for Robust Homography
     # im1_matched_points = gec_1_ips[feature_matches[:, 0]]  # (K, 2)

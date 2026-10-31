@@ -1,4 +1,8 @@
+import heapq
 import math
+from numpy._typing._shape import _AnyShape
+from numpy import dtype
+from typing import Any
 import numpy as np
 import cv2 as cv
 import scipy
@@ -866,7 +870,8 @@ def make_mosaic(images, output_base_name, num_correspondences=8):
 
 def harris_corner_detection(
     image: np.ndarray,
-    num_interest_points: int = 1000,
+    n_ip: int = 500,
+    c_robust: float = 0.9,
     output_base_name: str | None = None,
 ):
     """
@@ -875,12 +880,21 @@ def harris_corner_detection(
     and adaptive non-maximal suppression to select a fixed number of interest points
     that are well-distributed throughout the image.
 
+    Adaptive non-maximal suppression:
+    1. For each interest point, calculate its suppression radius: r_i = min_j |p_i - p_j| s.t. corner_strength(i) < c_robust * corner_strength(j)
+        a. Conceptually r_i measures how much further we must search around p_i before we find a
+            meaningfully stronger corner. To calculate r_i:
+            i. For each interest point p_i, find all other points p_j with a stronger corner strength.
+            ii. Then, take the distance from p_i to its nearest stronger neighbor.
+            iii. If no other points are stronger than p_i, assign r_i = inf.
+    2. Keep n_ip with the highest suppression radius.
+
     Args:
         image: np.ndarray of an image.
-        num_interest_points: the number of interest points to detect from image.
+        n_ip: the number of interest points to detect from image.
         output_base_name: the base name of the output path to save plots to.
     Returns:
-        corner_strengths: (N,) array whose ith value corresopnds to the corner
+        corner_strengths: (N,) array whose ith value corresponds to the corner
             strength of interest point i.
         interest_points: (N, 2) array of xs, ys
     """
@@ -895,18 +909,59 @@ def harris_corner_detection(
     ys, xs = coords
 
     # TODO: implement ANMS
-    num_candidates = len(ys)
-    rng = np.random.default_rng(seed=180)
-    sample_idx = rng.choice(num_candidates, size=num_interest_points, replace=False)
-    interest_point_xs = xs[sample_idx]
-    interest_point_ys = ys[sample_idx]
-    interest_points = np.stack([interest_point_xs, interest_point_ys], axis=1)  # (N, 2)
-    corner_strengths = h[interest_point_ys, interest_point_xs]
+    num_corners = coords.shape[1]  # Number of interest point candidates
+    if n_ip > num_corners:
+        print(
+            f"[Harris Corner Detection] Warning: requested {n_ip} to keep, but get_harris_corners only found {num_corners} corners."
+        )
 
-    fig, ax = plt.subplots()
-    ax.imshow(image)
-    ax.set_title(f"Multi-scale Harris corners of {output_base_name}")
-    ax.scatter(interest_point_xs, interest_point_ys, s=0.35)
+    corner_strengths = h[ys, xs]  # (num_corners, )
+    interest_points = np.stack([xs, ys], axis=1)  # (num_corners, 2)
+
+    suppression_radius = np.full(num_corners, fill_value=0.0)
+
+    print("[Harris Corner Detection] Starting ANMS algorithm...")
+    for i, (cs_i, p_i) in enumerate(zip(corner_strengths, interest_points)):
+        stronger_points = interest_points[
+            cs_i < c_robust * corner_strengths
+        ]  # (num_stronger, 2)
+
+        if len(stronger_points) == 0:
+            suppression_radius[i] = np.inf
+        else:
+            # Need to expand p_i into (2, 1) and then transpose it into (1, 2) for dist2
+            distances = np.sqrt(dist2(np.expand_dims(p_i, axis=1).T, stronger_points))
+            suppression_radius[i] = np.min(distances)
+
+    print("[Harris Corner Detection] ANMS algorithm completed!")
+
+    # Sort indices such that indexing with them would sort the interest points from highest
+    # suppression radius to lowest suppression radius.
+    sorted_suppression_radius_idx = suppression_radius.argsort(descending=True)
+    sorted_interest_points = interest_points[sorted_suppression_radius_idx]
+
+    kept_interest_points = sorted_interest_points[:n_ip]  # (n_ip, 2)
+
+    # Corner strengths, in the same order as kept_interest_points (highest r_i to lowest r_i)
+    kept_corner_strengths = corner_strengths[sorted_suppression_radius_idx][:n_ip]
+
+    # num_candidates = len(ys)
+    # rng = np.random.default_rng(seed=180)
+    # sample_idx = rng.choice(num_candidates, size=n_ip, replace=False)
+    # random_interest_points = interest_points[sample_idx]
+
+    fig, axs = plt.subplots(1, 2, figsize=(16, 6))
+    axs[0].imshow(image)
+    axs[0].set_title("Detected corners without ANMS")
+    axs[0].scatter(interest_points[:, 0], interest_points[:, 1], s=0.35)
+    # axs[0].scatter(random_interest_points[:, 0], random_interest_points[:, 1], s=0.35)
+
+    axs[1].imshow(image)
+    axs[1].set_title(f"{n_ip} detected corners with ANMS")
+    axs[1].scatter(kept_interest_points[:, 0], kept_interest_points[:, 1], s=0.35)
+
+    fig.suptitle(f"Multi-scale Harris corners of {output_base_name}")
+
     plt.tight_layout()
     plt.savefig(
         f"{OUTPUT_DIR}/{output_base_name + '_harris_corners' if output_base_name else 'harris_corners'}.jpg",
@@ -914,7 +969,7 @@ def harris_corner_detection(
     )
     plt.show()
 
-    return corner_strengths, interest_points
+    return kept_corner_strengths, kept_interest_points
 
 
 def calculate_gradient(bw_image):
@@ -980,12 +1035,12 @@ def extract_feature_descriptors(
     # that are at least 20 pixels away from the edges, so a patch of [-20, +19]
     # around each interest point will always be in-bound.
     sample_offsets = np.arange(
-        -patch_size // 2, patch_size // 2 , 5
+        -patch_size // 2, patch_size // 2, 5
     )  # [-20, -15, ..., 15] with shape (8,)
     xs, ys = interest_points[:, 0], interest_points[:, 1]  # (N,)
     patch_xs = xs[:, None, None] + sample_offsets[None, None, :]  # (N, 1, 8)
     patch_ys = ys[:, None, None] + sample_offsets[None, :, None]  # (N, 8, 1)
-    
+
     # Broadcast the 2 indices patch_xs, patch_ys into (N, 8, 8) --> fetch N (8, 8) patches from smoothed
     # Index into the smoothed image with row=patch_ys, col=patch_xs
     patches = smoothed[patch_ys, patch_xs]  # (N, 8, 8)
@@ -1298,8 +1353,14 @@ def autostich_mosaic(images, image_base_names, output_base_name):
         im2_interest_points = image_map[i + 1]["interest_points"]
         im2_feature_descriptors = image_map[i + 1]["feature_descriptors"]
 
+        print(
+            f"Matching {len(im1_feature_descriptors)} interest points from image {i + 1} and {len(im2_feature_descriptors)} interest points from image {i + 2}..."
+        )
         feature_matches = match_features(
             im1_feature_descriptors, im2_feature_descriptors
+        )
+        print(
+            f"Found {len(feature_matches)} between image {i + 1} and image {i + 2}..."
         )
 
         im1_matched_points = im1_interest_points[feature_matches[:, 0]]  # (K, 2)
@@ -1316,7 +1377,12 @@ def autostich_mosaic(images, image_base_names, output_base_name):
         )
 
         num_matches = feature_matches.shape[0]
-        colors = list(mcolors.XKCD_COLORS.keys())[:num_matches]
+
+        # If there are more matches than the number of colors,
+        # repeat colors to have at least num_matches items before slicing
+        colors = list(mcolors.XKCD_COLORS.keys())
+        colors = colors * math.ceil(num_matches / len(colors))
+        colors = colors[:num_matches]
 
         fig, axs = plt.subplots(1, 2, figsize=(16, 6))
 

@@ -587,10 +587,28 @@ export default function Page() {
                 <section id="part_b_2" className="space-y-5">
                     <h2 className="font-medium">Part B.2: Feature Descriptor Extraction</h2>
                     <p>
-                        TODO
+                        The next step is to extract feature descriptors for each interest point.
+                        The feature descriptors will help us identify which interest points in different images
+                        correspond to each other/represent the same thing in the real scene.
+                        {"\n\n"}
+                        For our case, we'll sample a patch of 8x8 pixels around each interest point as its feature descriptor
+                        and flatten it into a vector. The 8x8 pixels were sampled such that each pixel is spaced 5 pixels apart from one another —
+                        in practice, this is like taking a 40x40 window centered around the interest point and extracting every 5th pixel.
+                        By sampling the pixels at a lowwer frequncy, this makes the patches less sensitive to the exact interest point location.
+                        {"\n\n"}
+                        After sampling, the descriptor patch is normalized to have mean 0 and standard deviation 1 — this makes the features
+                        invariant to any affine changes in intensity (AKA bias and gain invariant).
+                        {"\n\n"}
+                        I simplified my algorithm by omitting the rotation-invariance step and wavelet transformation step from Brown et al.'s paper.
+                        {"\n\n"}
+                        Here are a few of the normalized 8x8 feature descriptors extracted from the picture of the Grimes Engineering Center.
                     </p>
                     <div className="flex flex-row w-full justify-center space-x-20">
-                        TODO
+                        <Figure
+                            src={"/proj4/part_b/gec_1_feature_descriptors.jpg"}
+                            caption={"A few of the normalized 8x8 feature descriptor patches from a picture of the Grimes Engineering Center."}
+                            style_width="50vw"
+                        />
                     </div>
                 </section>
                 <section id="part_b_3" className="space-y-5">

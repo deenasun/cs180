@@ -543,36 +543,36 @@ export default function Page() {
                     <p>
                         Now that we know how to calculate the corner strength for each interest point, we are ready to
                         dive into the ANMS algorithm! n_ip represents the desired number of interest points we want to keep.
-                        <ol>
-                            <li>
-                                1) To implement the ANMS algorithm, we first calculate the suppression radius r_i for each interest point.
-                                The suppression radius measures how much further we must search around a given point p_i before we find
-                                a meaningfully stronger point p_j (a point whose corner strength is larger than p_i's by a ratio c_robust).
-                            </li>
-                            <Equation
-                                rawString={String.raw`
+                    </p>
+                    <ol>
+                        <li>
+                            1) To implement the ANMS algorithm, we first calculate the suppression radius r_i for each interest point.
+                            The suppression radius measures how much further we must search around a given point p_i before we find
+                            a meaningfully stronger point p_j (a point whose corner strength is larger than p_i's by a ratio c_robust).
+                        </li>
+                        <Equation
+                            rawString={String.raw`
                                 r_i = \min_j |p_i - p_j|, \quad s.t. \ f_{HM}(p_i) < c_{robust} * f_{HM}(p_j)
                                 `}
-                            />
-                            <ol>
-                                <li>
-                                    a) For each interest point p_i, find all other points p_j with a stronger corner strength.
-                                </li>
-                                <li>
-                                    b) Then, take the distance from p_i to its nearest stronger neighbor.
-                                </li>
-                                <li>
-                                    c) If no other points are stronger than p_i, assign r_i = inf.
-                                </li>
-                            </ol>
+                        />
+                        <ol>
                             <li>
-                                2) Sort all the interest points from largest suppression radius to smallest suppression radius.
+                                a) For each interest point p_i, find all other points p_j with a stronger corner strength.
                             </li>
                             <li>
-                                3) Keep the n_ip interest points with the largest suppression radius.
+                                b) Then, take the distance from p_i to its nearest stronger neighbor.
+                            </li>
+                            <li>
+                                c) If no other points are stronger than p_i, assign r_i = inf.
                             </li>
                         </ol>
-                    </p>
+                        <li>
+                            2) Sort all the interest points from largest suppression radius to smallest suppression radius.
+                        </li>
+                        <li>
+                            3) Keep the n_ip interest points with the largest suppression radius.
+                        </li>
+                    </ol>
                     <p>
                         Here are a couple images showing the detected Harris corners without ANMS and with ANMS.
                     </p>
@@ -614,10 +614,43 @@ export default function Page() {
                 <section id="part_b_3" className="space-y-5">
                     <h2 className="font-medium">Part B.3: Feature Matching</h2>
                     <p>
-                        TODO
+                        Feature matching involves finding pairs of interest points from two different images
+                        that look similar and are likely to represent the same thing in the real-world scene.
+                        {"\n\n"}
+                        Given a list of feature descriptors extracted from one image and a list of feature descriptors extracted
+                        from aother image, I first computed the squared L2 distance between each possible pair of feature descriptors.
+                        Then, I iterated through the first list of feature descriptors.
+                        For each feature descriptor from image 1, I took the error of the best match (i.e. the distance
+                        to its first nearest neighbor) and the error of the second best match (i.e.
+                        the distance to its second nearest neighbor). Based on work by Lowe, I only accepted
+                        the first nearest neighbor as a match if it was significantly closer than the next closest neighbor.
+                        This is equivalent to accepting the first nearest neighbor only if dist(1-NN) / dist(2-NN) {"<="} some set threshold.
+                        Likewise, I iterated through each feature descriptor from image 2 and also applied the Lowe ratio test.
+                        Finally, I only kept symmetric matches: when feature descriptor j from image 2 was feature descriptor i from image 1's closest match AND
+                        when feature descriptor i from image 1 was feature descriptor j from image 2's closest match.
+                        {"\n\n"}
+                        In my algorithm, I used a Lowe ratio threshold of 0.4 because based on figure 6b a threshold of 0.4
+                        increases the number of correctly accepted matches without allowing many incorrect matches.
+                        {"\n\n"}
+                        These are the matching features that my automatic feature-matching algorithm found between different pairs of images!
+                        Matching features share the same color marker in the plots.
                     </p>
-                    <div className="flex flex-row w-full justify-center space-x-20">
-                        TODO
+                    <div className="flex flex-col w-full justify-center items-center space-y-8">
+                        <Figure
+                            src={"/proj4/part_b/gec_2_gec_3_feature_matches.jpg"}
+                            caption={"Feature matches between image 2 and image 3 of the Grimes Engineering Center."}
+                            style_width="50vw"
+                        />
+                        <Figure
+                            src={"/proj4/part_b/campus_4_campus_5_feature_matches.jpg"}
+                            caption={"Feature matches between image 4 and image 5 of the Berkeley campus."}
+                            style_width="50vw"
+                        />
+                        <Figure
+                            src={"/proj4/part_b/kresge_3_kresge_4_feature_matches.jpg"}
+                            caption={"Feature matches between image 3 and image 4 of Kresge Library."}
+                            style_width="50vw"
+                        />
                     </div>
                 </section>
                 <section id="part_b_4" className="space-y-5">

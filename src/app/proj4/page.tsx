@@ -546,7 +546,7 @@ export default function Page() {
                     </p>
                     <ol>
                         <li>
-                            1) To implement the ANMS algorithm, we first calculate the suppression radius r_i for each interest point.
+                            1. To implement the ANMS algorithm, we first calculate the suppression radius r_i for each interest point.
                             The suppression radius measures how much further we must search around a given point p_i before we find
                             a meaningfully stronger point p_j (a point whose corner strength is larger than p_i's by a ratio c_robust).
                         </li>
@@ -557,20 +557,20 @@ export default function Page() {
                         />
                         <ol>
                             <li>
-                                a) For each interest point p_i, find all other points p_j with a stronger corner strength.
+                                a. For each interest point p_i, find all other points p_j with a stronger corner strength.
                             </li>
                             <li>
-                                b) Then, take the distance from p_i to its nearest stronger neighbor.
+                                b. Then, take the distance from p_i to its nearest stronger neighbor.
                             </li>
                             <li>
-                                c) If no other points are stronger than p_i, assign r_i = inf.
+                                c. If no other points are stronger than p_i, assign r_i = inf.
                             </li>
                         </ol>
                         <li>
-                            2) Sort all the interest points from largest suppression radius to smallest suppression radius.
+                            2. Sort all the interest points from largest suppression radius to smallest suppression radius.
                         </li>
                         <li>
-                            3) Keep the n_ip interest points with the largest suppression radius.
+                            3. Keep the n_ip interest points with the largest suppression radius.
                         </li>
                     </ol>
                     <p>
@@ -656,10 +656,79 @@ export default function Page() {
                 <section id="part_b_4" className="space-y-5">
                     <h2 className="font-medium">Part B.4: RANSAC for Robust Homography</h2>
                     <p>
-                        TODO
+                        Lastly, I used RANSAC (Random Sample Consensus) to estimate the homography transformation between overlapping images.
+                        RANSAC is an iterative algorithm used to estimate the best-fitting parameters for a dataset that contains a high degree of noise or
+                        has a high proportion of outliers.
+                        Naively calculating a best-fit homography matrix H using all the feature matches might inadvertantly try to also fit
+                        to incorrect correspondence pairs (outliers).
+                        RANSAC computes more robust homographies by finding an H matrix that maximizes the number of inliers (correspondence pairs
+                        that get accurately mapped to one another by a given candidate H matrix) and ignores outliers.
+                        {"\n\n"}
+                        Here's how the 4-point RANSAC algorithm works:
                     </p>
-                    <div className="flex flex-row w-full justify-center space-x-20">
-                        TODO
+                    <ol>
+                        <li>
+                            1. Select 4 feature pairs at random.
+                        </li>
+
+                        <li>
+                            2. Compute the homography H on the sampled feature pairs by solving a system of linear equations.
+                        </li>
+                        <li>
+                            3. Apply the candidate H to transform im1 to im2, then compute the number
+                            of inliers (how many points from im1 after transforming by H lie within
+                            a chosen threshold from the true matching point in im2).
+                        </li>
+                        <li>
+                            4. Repeat stpes 1-3, and keep the largest set of inliers.
+                        </li>
+                        <li>
+                            5. Re-compute a least-squares H estimate using all the correspondences from the best set of inliers.
+                        </li>
+                    </ol>
+                    <p>
+                        Putting all the pieces together, we now have an automatic image stitching algorithm for creating mosaics!
+                        Here are the images I manually stitched together in part A by hand-selecting feature matches
+                        and the same images automatically stitched together.
+                        {"\n\n"}
+                        Automatic stitching improves alignment of adjacent images in the mosaic. For example, the top right corner of
+                        the Strauch Hypercube in the Grimes Engineering Center mosaic; the trees, Student Union's roof, and campanile in the Berkeley campus mosaic;
+                        and details on the plants, keyboard, and ceiling lights in the Kresge Library mosaic show more ghosting/blurring
+                        in the manually-stitched version. Automatic stitching can find way more feature matches and at much higher pixel accuracies than I can by hand :)
+                        {"\n\n"}
+                        Although there were many moving parts to the mosaic-making and automatic stitching process, they all came together into a magical mosaic of computer vision concepts!
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center justify-items-center">
+                        <Figure
+                            src={"/proj4/part_a/gec_mosaic.jpg"}
+                            caption={"A manually-stitched photo mosaic of the Grimes Engineering Center."}
+                            style_width="35vw"
+                        />
+                        <Figure
+                            src={"/proj4/part_b/gec_autostitch_mosaic.jpg"}
+                            caption={"The same images of the Grimes Engineering Center, automatically stitched together into a photo mosaic."}
+                            style_width="35vw"
+                        />
+                        <Figure
+                            src={"/proj4/part_a/campus_mosaic.jpg"}
+                            caption={"A manually-stitched photo mosaic of the Berkeley campus."}
+                            style_width="35vw"
+                        />
+                        <Figure
+                            src={"/proj4/part_b/campus_autostitch_mosaic.jpg"}
+                            caption={"The same images of the Berkeley campus, automatically stitched together into a photo mosaic."}
+                            style_width="35vw"
+                        />
+                        <Figure
+                            src={"/proj4/part_a/kresge_mosaic.jpg"}
+                            caption={"A manually-stitched photo mosaic of the Kresge Library."}
+                            style_width="35vw"
+                        />
+                        <Figure
+                            src={"/proj4/part_b/kresge_autostitch_mosaic.jpg"}
+                            caption={"The same images of the Kresge Library, automatically stitched together into a photo mosaic."}
+                            style_width="35vw"
+                        />
                     </div>
                 </section>
             </article>

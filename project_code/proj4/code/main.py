@@ -1608,7 +1608,7 @@ def autostich_mosaic(images, image_base_names, output_base_name):
 
     axs[-1, num_cols // 2].set_visible(True)
     axs[-1, num_cols // 2].imshow(mosaic)
-
+    fig.suptitle(f"Auto-stitched mosaic of {output_base_name}")
     plt.tight_layout()
     plt.savefig(
         f"{OUTPUT_DIR}/{output_base_name}_mosaic_plots.jpg",
@@ -1718,12 +1718,25 @@ def main():
     # )
 
     # Section B.3: Feature Matching
-    print("\nSection B.3: Feature Matching\n")
-    plot_feature_matches(im1=gec_2, im2=gec_3, im1_output_base_name="gec_2", im2_output_base_name="gec_3")
-    plot_feature_matches(im1=campus_4, im2=campus_5, im1_output_base_name="campus_4", im2_output_base_name="campus_5")
-    plot_feature_matches(im1=kresge_3, im2=kresge_4, im1_output_base_name="kresge_3", im2_output_base_name="kresge_4")
+    # print("\nSection B.3: Feature Matching\n")
+    # plot_feature_matches(
+    #     im1=gec_2, im2=gec_3, im1_output_base_name="gec_2", im2_output_base_name="gec_3"
+    # )
+    # plot_feature_matches(
+    #     im1=campus_4,
+    #     im2=campus_5,
+    #     im1_output_base_name="campus_4",
+    #     im2_output_base_name="campus_5",
+    # )
+    # plot_feature_matches(
+    #     im1=kresge_3,
+    #     im2=kresge_4,
+    #     im1_output_base_name="kresge_3",
+    #     im2_output_base_name="kresge_4",
+    # )
 
     # # Section B.4: RANSAC for Robust Homography
+    # print("\nSection B.4: RANSAC for Robust Homography\n")
     # im1_matched_points = gec_1_ips[feature_matches[:, 0]]  # (K, 2)
     # im2_matched_points = gec_2_ips[feature_matches[:, 1]]  # (K, 2)
 
@@ -1731,12 +1744,25 @@ def main():
     # H = ransac(matches)
     # print(f"H recoverd with RANSAC:\n{H}")
 
-    # Full auto-stitching mosaic pipeline
-    # autostich_mosaic(
-    #     images=[gec_1, gec_2, gec_3],
-    #     image_base_names=["gec_1", "gec_2", "gec_3"],
-    #     output_base_name="gec",
-    # )
+    # Full auto-stitching mosaic-making pipeline
+    print("\nThe Full Auto-Stitching Mosaic-Making Pipeline\n")
+    autostich_mosaic(
+        images=[gec_1, gec_2, gec_3],
+        image_base_names=["gec_1", "gec_2", "gec_3"],
+        output_base_name="gec",
+    )
+
+    autostich_mosaic(
+        images=[campus_1, campus_2, campus_3, campus_4, campus_5],
+        image_base_names=["campus_1", "campus_2", "campus_3", "campus_4", "campus_5"],
+        output_base_name="campus",
+    )
+
+    autostich_mosaic(
+        images=[kresge_1, kresge_2, kresge_3, kresge_4, kresge_5],
+        image_base_names=["kresge_1", "kresge_2", "kresge_3", "kresge_4", "kresge_5"],
+        output_base_name="kresge",
+    )
 
 
 if __name__ == "__main__":

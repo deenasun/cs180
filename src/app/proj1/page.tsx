@@ -83,8 +83,8 @@ export default function Page() {
     ]
 
     return (
-        <main className="mx-4 my-2 sm:mx-8">
-            <article className="mr-[17vw] space-y-12">
+        <main className="project-layout">
+            <article className="project-article space-y-12">
                 <h1 className="font-bold">Project 1: Colorizing the Prokudin-Gorskii Photo Collection</h1>
                 <div className="flex flex-row w-full justify-center space-x-20">
                     <Figure src={"/proj1/gallery/self_portrait_original.jpg"}
@@ -533,7 +533,7 @@ export default function Page() {
                     </section>
                 </section>
             </article>
-            <aside className="fixed right-0 top-20 hidden h-fit max-h-[70vh] w-[15vw] min-w-[150px] px-4 overflow-y-auto border-l-2 border-gray-200 md:block">
+            <aside className="toc-panel">
                 <TableOfContents contents={contents} />
             </aside>
         </main>

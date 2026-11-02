@@ -85,8 +85,8 @@ export default function Page() {
     return out`
 
     return (
-        <main className="mx-4 my-2 sm:mx-8">
-            <article className="mr-[17vw] space-y-12">
+        <main className="project-layout">
+            <article className="project-article space-y-12">
                 <h1 className="font-bold">Project 2: Fun with Filters and Frequencies!</h1>
                 <div className="flex flex-row w-full justify-center space-x-20">
                     <Figure src={"/proj2/part2_4/multiresolution_blend_apple_orange.jpg"}
@@ -662,7 +662,7 @@ export default function Page() {
                     </div>
                 </section>
             </article>
-            <aside className="fixed right-0 top-20 hidden h-fit max-h-[70vh] w-[15vw] min-w-[150px] px-4 overflow-y-auto border-l-2 border-gray-200 md:block">
+            <aside className="toc-panel">
                 <TableOfContents contents={contents} />
             </aside>
         </main>

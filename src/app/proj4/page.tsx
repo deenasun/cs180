@@ -40,13 +40,13 @@ export default function Page() {
     ]
 
     return (
-        <main className="mx-4 my-2 sm:mx-8">
-            <article className="mr-[17vw] space-y-12">
+        <main className="project-layout">
+            <article className="project-article space-y-12">
                 <h1 className="font-bold">Project 4: Autostitching Photo Mosaics</h1>
                 <div className="flex flex-row w-full justify-center space-x-20">
                     <Figure
-                        src={"/proj4/part_a/campus_mosaic.jpg"}
-                        caption={"A mosaic of the Berkeley campus!"}
+                        src={"/proj4/part_b/campus_autostitch_mosaic.jpg"}
+                        caption={"An automatically-stitched mosaic of the Berkeley campus!"}
                         style_width="50vw"
                         loading="eager"
                     />
@@ -364,7 +364,7 @@ export default function Page() {
                         <Figure
                             src={"/proj4/part_a/painting_rectify.jpg"}
                             caption={"Rectifying a live painting of a painting. The top row shows the correspondences between corners of the painting and a reference square. The bottom row compares the results with both nearest neighbors interpolation and bilinear interpolation."}
-                            style_width="50vw"
+                            style_width="30vw"
                             classNameOverride="md:col-span-2 w-full max-w-none"
                         />
                         <Figure
@@ -381,7 +381,7 @@ export default function Page() {
                             src={"/proj4/part_a/pompeii_rectify.jpg"}
                             caption={"Rectifying a Pompeiian fresco."}
                             classNameOverride="md:col-span-2 w-full max-w-none"
-                            style_width="50vw"
+                            style_width="30vw"
                         />
                         <Figure
                             src={"/proj4/part_a/pompeii_nearest_neighbors_rectify.jpg"}
@@ -397,7 +397,7 @@ export default function Page() {
                             src={"/proj4/part_a/wall_fresco_rectify.jpg"}
                             caption={"Rectifying the another Pompeiian fresco! This time, the fresco on the right wall in the picture."}
                             classNameOverride="md:col-span-2 w-full max-w-none"
-                            style_width="50vw"
+                            style_width="30vw"
                         />
                         <Figure
                             src={"/proj4/part_a/wall_fresco_nearest_neighbors_rectify.jpg"}
@@ -460,32 +460,32 @@ export default function Page() {
                         <Figure
                             src={"/proj4/part_a/gec_mosaic_plots.jpg"}
                             caption={"Images from inside the Grimes Engineering Center"}
-                            style_width="35vw"
+                            style_width="30vw"
                         />
                         <Figure
                             src={"/proj4/part_a/gec_mosaic.jpg"}
                             caption={"Photo mosaic of the Grimes Engineering Center."}
-                            style_width="35vw"
+                            style_width="30vw"
                         />
                         <Figure
                             src={"/proj4/part_a/campus_mosaic_plots.jpg"}
                             caption={"Images of the Berkeley campus seen across from the Student Union."}
-                            style_width="35vw"
+                            style_width="30vw"
                         />
                         <Figure
                             src={"/proj4/part_a/campus_mosaic.jpg"}
                             caption={"Photo mosaic of Berkeley campus."}
-                            style_width="35vw"
+                            style_width="30vw"
                         />
                         <Figure
                             src={"/proj4/part_a/kresge_mosaic_plots.jpg"}
                             caption={"Images from inside the Kresge Library."}
-                            style_width="35vw"
+                            style_width="30vw"
                         />
                         <Figure
                             src={"/proj4/part_a/kresge_mosaic.jpg"}
                             caption={"Photo mosaic of Kresge Library."}
-                            style_width="35vw"
+                            style_width="30vw"
                         />
                     </div>
                 </section>
@@ -702,37 +702,37 @@ export default function Page() {
                         <Figure
                             src={"/proj4/part_a/gec_mosaic.jpg"}
                             caption={"A manually-stitched photo mosaic of the Grimes Engineering Center."}
-                            style_width="35vw"
+                            style_width="30vw"
                         />
                         <Figure
                             src={"/proj4/part_b/gec_autostitch_mosaic.jpg"}
                             caption={"The same images of the Grimes Engineering Center, automatically stitched together into a photo mosaic."}
-                            style_width="35vw"
+                            style_width="30vw"
                         />
                         <Figure
                             src={"/proj4/part_a/campus_mosaic.jpg"}
                             caption={"A manually-stitched photo mosaic of the Berkeley campus."}
-                            style_width="35vw"
+                            style_width="30vw"
                         />
                         <Figure
                             src={"/proj4/part_b/campus_autostitch_mosaic.jpg"}
                             caption={"The same images of the Berkeley campus, automatically stitched together into a photo mosaic."}
-                            style_width="35vw"
+                            style_width="30vw"
                         />
                         <Figure
                             src={"/proj4/part_a/kresge_mosaic.jpg"}
                             caption={"A manually-stitched photo mosaic of the Kresge Library."}
-                            style_width="35vw"
+                            style_width="30vw"
                         />
                         <Figure
                             src={"/proj4/part_b/kresge_autostitch_mosaic.jpg"}
                             caption={"The same images of the Kresge Library, automatically stitched together into a photo mosaic."}
-                            style_width="35vw"
+                            style_width="30vw"
                         />
                     </div>
                 </section>
             </article>
-            <aside className="fixed right-0 top-20 hidden h-fit max-h-[70vh] w-[15vw] min-w-[150px] px-4 overflow-y-auto border-l-2 border-gray-200 md:block">
+            <aside className="toc-panel">
                 <TableOfContents contents={contents} />
             </aside>
         </main >

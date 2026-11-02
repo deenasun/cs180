@@ -21,7 +21,24 @@ export default function Page() {
             sectionLink: "part_a_4",
             text: "A.4: Blend the Images into a Mosaic"
         },
+        {
+            sectionLink: "part_b_1",
+            text: "Part B.1: Harris Corner Detection"
+        },
+        {
+            sectionLink: "part_b_2",
+            text: "Part B.2: Feature Descriptor Extraction"
+        },
+        {
+            sectionLink: "part_b_3",
+            text: "Part B.3: Feature Matching"
+        },
+        {
+            sectionLink: "part_b_4",
+            text: "B.4: RANSAC for Robust Homography"
+        },
     ]
+
     return (
         <main className="mx-4 my-2 sm:mx-8">
             <article className="mr-[17vw] space-y-12">
@@ -472,10 +489,132 @@ export default function Page() {
                         />
                     </div>
                 </section>
+                <section id="part_b_1" className="space-y-5">
+                    <h2 className="font-medium">Part B.1: Harris Corner Detection</h2>
+                    <p>
+                        To automatically stitch together images into a mosaic, I followed the
+                        algorithm described in "Multi-Image Matching using Multi-Scale Oriented Patches" by
+                        Brown, Szeliski, and Winder.
+                        At a high-level, I first detected interest points in each image,
+                        extracted an 8x8 patch around each interest point to use as a descriptor vector,
+                        matched interest points between two images based on how similar their descriptors
+                        were to each other, and computed homographies between pairs of images using RANSAC
+                        for robustness to outliers (false matches).
+                        {"\n\n"}
+                        First, I found interest points in each image based on the multi-scale Harris corners algorithm.
+                        {"\n\n"}
+                        Next, it's helpful to filter down to a select subset of interest points.
+                        The first reason is that the more interest points there are in each image, the more computationally expensive
+                        it is to find matches.
+                        The second reason is that when stitching images together, adjacent images may only overlap in a portion of the scene.
+                        Therefore, it is useful to choose interest points that are well distributed across the entire image to maximize the likelihood
+                        of finding true matches.
+                        {"\n\n"}
+                        Brown et al. introduced a method called adaptive non-maximal suppression (ANMS) that
+                        keeps an interest point only if it is the strongest interest point (as measured by its corner strength)
+                        within a certain radius.
+                        {"\n\n"}
+                        To calculate the corner strength at a pixel (x, y), we need to compute its Harris matrix:
+                        the smoothed outer product of the image gradient at (x, y). Conceptually, the Harris matrix represents
+                        a weighted average of the image's gradients near (x, y).
+                        In the equation below, ∇_{'{'}σ_d{'}'}P is the gradient of the image smoothed by convolving it with a Gaussian kernel parameterized by sigma_d.
+                    </p>
+                    <Equation
+                        rawString={String.raw`
+\mathbf{H}_l(x,y)
+=
+\left(
+\left(\nabla_{\sigma_d} P_l\right)^{\mathsf T} \quad
+\nabla_{\sigma_d} P_l \right)
+* g_{\sigma_i}
+(x,y)`}
+                        ariaLabel="The corner strength function at pixel (x, y) of an image is the smoothed outer product of the gradients."
+                    />
+                    <p>
+                        The corner strength of an interest point (x, y) is proportional to the determinant of the Harris matrix
+                        divided by the trace of the Harris matrix.
+                    </p>
+                    <Equation
+                        rawString={String.raw`
+                            f_{HM}(x, y) = \frac{\det H(x, y)}{\operatorname{tr} H(x, y)}
+                        `}
+                        ariaLabel="The corner strength at (x, y) is the ratio of its Harris matrix's determinant to its Harris matrix's trace"
+                    />
+                    <p>
+                        Now that we know how to calculate the corner strength for each interest point, we are ready to
+                        dive into the ANMS algorithm! n_ip represents the desired number of interest points we want to keep.
+                        <ol>
+                            <li>
+                                1) To implement the ANMS algorithm, we first calculate the suppression radius r_i for each interest point.
+                                The suppression radius measures how much further we must search around a given point p_i before we find
+                                a meaningfully stronger point p_j (a point whose corner strength is larger than p_i's by a ratio c_robust).
+                            </li>
+                            <Equation
+                                rawString={String.raw`
+                                r_i = \min_j |p_i - p_j|, \quad s.t. \ f_{HM}(p_i) < c_{robust} * f_{HM}(p_j)
+                                `}
+                            />
+                            <ol>
+                                <li>
+                                    a) For each interest point p_i, find all other points p_j with a stronger corner strength.
+                                </li>
+                                <li>
+                                    b) Then, take the distance from p_i to its nearest stronger neighbor.
+                                </li>
+                                <li>
+                                    c) If no other points are stronger than p_i, assign r_i = inf.
+                                </li>
+                            </ol>
+                            <li>
+                                2) Sort all the interest points from largest suppression radius to smallest suppression radius.
+                            </li>
+                            <li>
+                                3) Keep the n_ip interest points with the largest suppression radius.
+                            </li>
+                        </ol>
+                    </p>
+                    <p>
+                        Here are a couple images showing the detected Harris corners without ANMS and with ANMS.
+                    </p>
+                    <div className="flex flex-row w-full justify-center space-x-20">
+                        <Figure
+                            src={"/proj4/part_b/gec_1_anms_comparison.jpg"}
+                            caption={"Detected interest points of the Grimes Engineering Center, without adaptive non-maximal suppression and with adaptive non-maximal suppression."}
+                            style_width="50vw"
+                        />
+                    </div>
+                </section>
+                <section id="part_b_2" className="space-y-5">
+                    <h2 className="font-medium">Part B.2: Feature Descriptor Extraction</h2>
+                    <p>
+                        TODO
+                    </p>
+                    <div className="flex flex-row w-full justify-center space-x-20">
+                        TODO
+                    </div>
+                </section>
+                <section id="part_b_3" className="space-y-5">
+                    <h2 className="font-medium">Part B.3: Feature Matching</h2>
+                    <p>
+                        TODO
+                    </p>
+                    <div className="flex flex-row w-full justify-center space-x-20">
+                        TODO
+                    </div>
+                </section>
+                <section id="part_b_4" className="space-y-5">
+                    <h2 className="font-medium">Part B.4: RANSAC for Robust Homography</h2>
+                    <p>
+                        TODO
+                    </p>
+                    <div className="flex flex-row w-full justify-center space-x-20">
+                        TODO
+                    </div>
+                </section>
             </article>
             <aside className="fixed right-0 top-20 hidden h-fit max-h-[70vh] w-[15vw] min-w-[150px] px-4 overflow-y-auto border-l-2 border-gray-200 md:block">
                 <TableOfContents contents={contents} />
             </aside>
-        </main>
+        </main >
     );
 }

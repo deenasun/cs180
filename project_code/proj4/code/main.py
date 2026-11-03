@@ -1629,33 +1629,39 @@ def autostich_mosaic(images, image_base_names, output_base_name):
 def main():
     print("===== (Auto)stitching and Photo Mosaics =====")
     # Section A.2: Recover Homographies
+    print("\nSection A.2: Recover Homographies\n")
+
     gec_1 = img_to_np(DATA_DIR / "gec_1.jpg")
     gec_2 = img_to_np(DATA_DIR / "gec_2.jpg")
     gec_3 = img_to_np(DATA_DIR / "gec_3.jpg")
 
-    # gec_1_pts, gec_2_pts = get_correspondences(gec_1, gec_2, num_correspondences=8, output_base_name="gec_1_2")
-    # H = computeH(gec_1_pts, gec_2_pts, verbose=True)
+    gec_1_pts, gec_2_pts = get_correspondences(
+        gec_1, gec_2, num_correspondences=8, output_base_name="gec_1_2"
+    )
+    H = computeH(gec_1_pts, gec_2_pts, verbose=True)
 
     # Section A.3: Warp the Images (rectification)
-    # painting_im = img_to_np(DATA_DIR / "painting.jpg")
-    # rectify(painting_im, output_base_name="painting")
+    print("\nSection A.3: Warp the Images (rectification)\n")
+    painting_im = img_to_np(DATA_DIR / "painting.jpg")
+    rectify(painting_im, output_base_name="painting")
 
-    # pompeii_im = img_to_np(DATA_DIR / "pompeii.jpg")
-    # rectify(pompeii_im, output_base_name="pompeii")
+    pompeii_im = img_to_np(DATA_DIR / "pompeii.jpg")
+    rectify(pompeii_im, output_base_name="pompeii")
 
-    # wall_fresco_im = img_to_np(DATA_DIR / "wall_fresco.jpg")
-    # rectify(wall_fresco_im, output_base_name="wall_fresco")
+    wall_fresco_im = img_to_np(DATA_DIR / "wall_fresco.jpg")
+    rectify(wall_fresco_im, output_base_name="wall_fresco")
 
-    # # Section A.4: Blend the Images into a Mosaic
-    # gec_1 = img_to_np(DATA_DIR / "gec_1.jpg")
-    # gec_2 = img_to_np(DATA_DIR / "gec_2.jpg")
-    # gec_3 = img_to_np(DATA_DIR / "gec_3.jpg")
+    # Section A.4: Blend the Images into a Mosaic
+    print("\nSection A.4: Blend the Images into a Mosaic\n")
+    gec_1 = img_to_np(DATA_DIR / "gec_1.jpg")
+    gec_2 = img_to_np(DATA_DIR / "gec_2.jpg")
+    gec_3 = img_to_np(DATA_DIR / "gec_3.jpg")
 
-    # make_mosaic(
-    #     [gec_1, gec_2, gec_3],
-    #     "gec",
-    #     6,
-    # )
+    make_mosaic(
+        [gec_1, gec_2, gec_3],
+        "gec",
+        6,
+    )
 
     campus_1 = img_to_np(DATA_DIR / "campus_1.jpg")
     campus_2 = img_to_np(DATA_DIR / "campus_2.jpg")
@@ -1663,11 +1669,11 @@ def main():
     campus_4 = img_to_np(DATA_DIR / "campus_4.jpg")
     campus_5 = img_to_np(DATA_DIR / "campus_5.jpg")
 
-    # make_mosaic(
-    #     [campus_1, campus_2, campus_3, campus_4, campus_5],
-    #     "campus",
-    #     6,
-    # )
+    make_mosaic(
+        [campus_1, campus_2, campus_3, campus_4, campus_5],
+        "campus",
+        6,
+    )
 
     kresge_1 = img_to_np(DATA_DIR / "kresge_1.jpg")
     kresge_2 = img_to_np(DATA_DIR / "kresge_2.jpg")
@@ -1675,74 +1681,85 @@ def main():
     kresge_4 = img_to_np(DATA_DIR / "kresge_4.jpg")
     kresge_5 = img_to_np(DATA_DIR / "kresge_5.jpg")
 
-    # make_mosaic(
-    #     [kresge_1, kresge_2, kresge_3, kresge_4, kresge_5],
-    #     "kresge",
-    #     6,
-    # )
+    make_mosaic(
+        [kresge_1, kresge_2, kresge_3, kresge_4, kresge_5],
+        "kresge",
+        6,
+    )
 
-    # # Section B.1: Harris Corner Detection
-    # print("\nSection B.1: Harris Corner Detection\n")
-    # gec_1_h, gec_1_ips = harris_corner_detection(image=gec_1, output_base_name="gec_1")
+    # Section B.1: Harris Corner Detection
+    print("\nSection B.1: Harris Corner Detection\n")
+    gec_1_h, gec_1_ips = harris_corner_detection(image=gec_1, output_base_name="gec_1")
 
-    # _, gec_1_anms_ips = adaptive_nonmaximal_suppression(
-    #     image=gec_1,
-    #     corner_strengths=gec_1_h,
-    #     interest_points=gec_1_ips,
-    #     n_ip=500,
-    #     c_robust=0.9,
-    #     output_base_name="gec_1",
-    #     plot_comparison=True,
-    #     verbose=True,
-    # )
+    _, gec_1_anms_ips = adaptive_nonmaximal_suppression(
+        image=gec_1,
+        corner_strengths=gec_1_h,
+        interest_points=gec_1_ips,
+        n_ip=500,
+        c_robust=0.9,
+        output_base_name="gec_1",
+        plot_comparison=True,
+        verbose=True,
+    )
 
     # Section B.2: Feature Descriptor Extraction
-    # print("\nSection B.2: Feature Descriptor Extraction\n")
-    # gec_1_fds = extract_feature_descriptors(
-    #     image=gec_1, interest_points=gec_1_anms_ips, output_base_name="gec_1", eps=1e-8, num_display=8
-    # )
+    print("\nSection B.2: Feature Descriptor Extraction\n")
+    gec_1_fds = extract_feature_descriptors(
+        image=gec_1,
+        interest_points=gec_1_anms_ips,
+        output_base_name="gec_1",
+        eps=1e-8,
+        num_display=8,
+    )
 
-    # gec_2_h, gec_2_ips = harris_corner_detection(gec_2, output_base_name="gec_2")
-    # _, gec_2_anms_ips = adaptive_nonmaximal_suppression(
-    #     image=gec_2,
-    #     corner_strengths=gec_2_h,
-    #     interest_points=gec_2_ips,
-    #     n_ip=500,
-    #     c_robust=0.9,
-    #     output_base_name="gec_2",
-    #     plot_comparison=True,
-    #     verbose=True,
-    # )
-    # gec_2_fds = extract_feature_descriptors(
-    #     image=gec_2, interest_points=gec_2_anms_ips, output_base_name="gec_2",  eps=1e-8, num_display=8
-    # )
+    gec_2_h, gec_2_ips = harris_corner_detection(gec_2, output_base_name="gec_2")
+    _, gec_2_anms_ips = adaptive_nonmaximal_suppression(
+        image=gec_2,
+        corner_strengths=gec_2_h,
+        interest_points=gec_2_ips,
+        n_ip=500,
+        c_robust=0.9,
+        output_base_name="gec_2",
+        plot_comparison=True,
+        verbose=True,
+    )
+    gec_2_fds = extract_feature_descriptors(
+        image=gec_2,
+        interest_points=gec_2_anms_ips,
+        output_base_name="gec_2",
+        eps=1e-8,
+        num_display=8,
+    )
 
     # Section B.3: Feature Matching
-    # print("\nSection B.3: Feature Matching\n")
-    # plot_feature_matches(
-    #     im1=gec_2, im2=gec_3, im1_output_base_name="gec_2", im2_output_base_name="gec_3"
-    # )
-    # plot_feature_matches(
-    #     im1=campus_4,
-    #     im2=campus_5,
-    #     im1_output_base_name="campus_4",
-    #     im2_output_base_name="campus_5",
-    # )
-    # plot_feature_matches(
-    #     im1=kresge_3,
-    #     im2=kresge_4,
-    #     im1_output_base_name="kresge_3",
-    #     im2_output_base_name="kresge_4",
-    # )
+    print("\nSection B.3: Feature Matching\n")
+    plot_feature_matches(
+        im1=gec_2, im2=gec_3, im1_output_base_name="gec_2", im2_output_base_name="gec_3"
+    )
+    plot_feature_matches(
+        im1=campus_4,
+        im2=campus_5,
+        im1_output_base_name="campus_4",
+        im2_output_base_name="campus_5",
+    )
+    plot_feature_matches(
+        im1=kresge_3,
+        im2=kresge_4,
+        im1_output_base_name="kresge_3",
+        im2_output_base_name="kresge_4",
+    )
 
-    # # Section B.4: RANSAC for Robust Homography
-    # print("\nSection B.4: RANSAC for Robust Homography\n")
-    # im1_matched_points = gec_1_ips[feature_matches[:, 0]]  # (K, 2)
-    # im2_matched_points = gec_2_ips[feature_matches[:, 1]]  # (K, 2)
+    # Section B.4: RANSAC for Robust Homography
+    print("\nSection B.4: RANSAC for Robust Homography\n")
+    feature_matches = match_features(
+        im1_fds=gec_1_fds, im2_fds=gec_2_fds, lowe_ratio_threshold=0.4, verbose=True
+    )
+    im1_matched_points = gec_1_ips[feature_matches[:, 0]]  # (K, 2)
+    im2_matched_points = gec_2_ips[feature_matches[:, 1]]  # (K, 2)
 
-    # matches = np.stack([im1_matched_points, im2_matched_points], axis=2)
-    # H = ransac(matches)
-    # print(f"H recoverd with RANSAC:\n{H}")
+    matches = np.stack([im1_matched_points, im2_matched_points], axis=2)
+    H = ransac(matches)
+    print(f"H recoverd with RANSAC:\n{H}")
 
     # Full auto-stitching mosaic-making pipeline
     print("\nThe Full Auto-Stitching Mosaic-Making Pipeline\n")

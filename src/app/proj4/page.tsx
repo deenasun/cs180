@@ -43,13 +43,21 @@ export default function Page() {
         <main className="project-layout">
             <article className="project-article space-y-12">
                 <h1 className="font-bold">Project 4: Autostitching Photo Mosaics</h1>
-                <div className="flex flex-row w-full justify-center space-x-20">
+                <div className="flex flex-col w-full justify-center items-center space-y-8">
                     <Figure
                         src={"/proj4/part_b/campus_autostitch_mosaic.jpg"}
                         caption={"An automatically-stitched mosaic of the Berkeley campus!"}
                         style_width="50vw"
                         loading="eager"
                     />
+                    <p className="text-center mb-2">
+                        My implementation for autostitching photo mosaics is based on the following papers :)
+                    </p>
+                    <p className="text-center">
+                        M. Brown, R. Szeliski and S. Winder, "Multi-image matching using multi-scale oriented patches"
+                        {"\n"}
+                        D. G. Lowe, "Distinctive image features from scale-invariant keypoints"
+                    </p>
                 </div>
                 <section id="part_a_1" className="space-y-5">
                     <h2 className="font-medium">Part A.1: Shooting the Pictures</h2>
